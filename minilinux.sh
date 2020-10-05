@@ -45,8 +45,16 @@ kernels()
 		11) echo 'https://git.kernel.org/pub/scm/linux/kernel/git/wtarreau/linux-2.4.git/snapshot/linux-2.4-2.4.37.11.tar.gz' ;;
 		12) echo 'https://git.kernel.org/torvalds/t/linux-5.7-rc6.tar.gz' ;;
 		13) echo 'https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.7.tar.xz' ;;
-		14) echo "https://git.kernel.org/torvalds/t/linux-5.9-rc7.tar.gz" ;;
-		*) false ;;
+		14) echo 'https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.8.12.tar.xz' ;;
+		15) echo 'https://git.kernel.org/torvalds/t/linux-5.9-rc1.tar.gz' ;;
+		16) echo 'https://git.kernel.org/torvalds/t/linux-5.9-rc2.tar.gz' ;;
+		17) echo 'https://git.kernel.org/torvalds/t/linux-5.9-rc3.tar.gz' ;;
+		18) echo 'https://git.kernel.org/torvalds/t/linux-5.9-rc4.tar.gz' ;;
+		19) echo 'https://git.kernel.org/torvalds/t/linux-5.9-rc5.tar.gz' ;;
+		20) echo 'https://git.kernel.org/torvalds/t/linux-5.9-rc6.tar.gz' ;;
+		21) echo 'https://git.kernel.org/torvalds/t/linux-5.9-rc7.tar.gz' ;;
+		22) echo 'https://git.kernel.org/torvalds/t/linux-5.9-rc8.tar.gz' ;;
+		 *) false ;;
 	esac
 }
 
@@ -313,10 +321,14 @@ cp -a $BUSYBOX_BUILD/_install/* .
 
 cat >'init' <<EOF
 #!/bin/sh
-mount -t proc  none /proc && read -r UP _ </proc/uptime || UP=\$( cut -d' ' -f1 /proc/uptime )
+mount -t proc  none /proc && {
+	read -r UP _ </proc/uptime || UP=\$( cut -d' ' -f1 /proc/uptime )
+	while read -r LINE; do case "\$LINE" in MemAvailable:*) set -- \$LINE; MEMAVAIL_KB=\$2; break ;; esac; done </proc/meminfo
+}
 mount -t sysfs none /sys
 
 printf '%s\n' "# BOOTTIME_SECONDS \$UP"
+printf '%s\n' "# MEMFREE_KILOBYTES \$MEMAVAIL_KB"
 printf '%s\n' "# UNAME \$( uname -a )"
 printf '%s\n' "# READY - to quit $( if has_arg 'UML'; then echo "type 'exit'"; else echo "press once STRG+A and then 'x'"; fi )"
 
@@ -324,6 +336,7 @@ exec /bin/sh
 EOF
 
 chmod +x 'init'
+sh -n 'init' || { RC=$?; echo "$PWD/init"; exit $RC; }
 find . -print0 | cpio --null -ov --format=newc | gzip -9 >$BUILDS/initramfs.cpio.gz
 
 INITRD_FILE="$( readlink -e "$BUILDS/initramfs.cpio.gz" )"
@@ -389,6 +402,10 @@ has_arg 'menuconfig' && {
 
 CONFIG1="$PWD/.config"
 
+logger -s "bitte jetzt in '$(pwd)' Aenderungen machen unter enter druecken"
+#read NOP
+
+
 if has_arg 'no_pie'; then
 	echo "make $ARCH CFLAGS=-fno-pie LDFLAGS=-no-pie -j$CPU" && sleep 5
 	make       $ARCH CFLAGS=-fno-pie LDFLAGS=-no-pie -j$CPU || exit
@@ -405,6 +422,7 @@ else
 	KERNEL_FILE="$( readlink -e "$LINUX_BUILD/arch/x86_64/boot/bzImage" )"
 fi
 
+# TODO: include build-instructions
 cat >"$LINUX_BUILD/run.sh" <<!
 #!/bin/sh
 
@@ -423,7 +441,7 @@ ACTION="\$1"		# autotest|boot
 #
 # INITRD: $INITRD_FILE
 # INITRD_SIZE: $( wc -c <$INITRD_FILE ) bytes
-# # decompress: gzip -cd $INITRD_FILE | cpio -idm
+#   decompress: gzip -cd $INITRD_FILE | cpio -idm
 
 KERNEL_ARGS='console=ttyS0'
 $( has_arg 'net' && echo "KERNEL_ARGS='console=ttyS0 ip=dhcp nameserver=8.8.8.8'" )
