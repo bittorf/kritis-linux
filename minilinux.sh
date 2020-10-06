@@ -337,13 +337,15 @@ EOF
 
 chmod +x 'init'
 sh -n 'init' || { RC=$?; echo "$PWD/init"; exit $RC; }
-find . -print0 | cpio --create --null --format=newc | xz -9  --format=lzma >$BUILDS/initramfs.cpio.xz
-find . -print0 | cpio --create --null --format=newc | xz -9e --format=lzma >$BUILDS/initramfs.cpio.xz.xz
-find . -print0 | cpio --create --null --format=newc | gzip -9              >$BUILDS/initramfs.cpio.gz
+find . -print0 | cpio --create --null --format=newc | xz -9  --format=lzma    >$BUILDS/initramfs.cpio.xz
+find . -print0 | cpio --create --null --format=newc | xz -9e --format=lzma    >$BUILDS/initramfs.cpio.xz.xz
+find . -print0 | cpio --create --null --format=newc | zstd -v -T0 --ultra -22 >$BUILDS/initramfs.cpio.zstd
+find . -print0 | cpio --create --null --format=newc | gzip -9                 >$BUILDS/initramfs.cpio.gz
 
 INITRD_FILE="$(  readlink -e "$BUILDS/initramfs.cpio.gz"    )"
 INITRD_FILE2="$( readlink -e "$BUILDS/initramfs.cpio.xz"    )"
 INITRD_FILE3="$( readlink -e "$BUILDS/initramfs.cpio.xz.xz" )"
+INITRD_FILE4="$( readlink -e "$BUILDS/initramfs.cpio.zstd"  )"
 BB_FILE="$BUSYBOX_BUILD/busybox"
 has_arg 'toybox' && BB_FILE="$BUSYBOX_BUILD/toybox"
 
@@ -443,12 +445,10 @@ ACTION="\$1"		# autotest|boot
 # BUSYBOX_SIZE: $( wc -c <$BB_FILE ) bytes
 # BUSYBOX_CONFIG: $CONFIG2
 #
-# INITRD:  $INITRD_FILE
-# INITRD2: $INITRD_FILE2
-# INITRD3: $INITRD_FILE3
-# INITRD_SIZE: $(  wc -c <$INITRD_FILE ) bytes
-# INITRD_SIZE2: $( wc -c <$INITRD_FILE2 ) bytes
-# INITRD_SIZE3: $( wc -c <$INITRD_FILE3 ) bytes
+# INITRD:  $(  wc -c <$INITRD_FILE ) bytes = $INITRD_FILE
+# INITRD2: $(  wc -c <$INITRD_FILE2 ) bytes = $INITRD_FILE2
+# INITRD3: $(  wc -c <$INITRD_FILE3 ) bytes = $INITRD_FILE3
+# INITRD3: $(  wc -c <$INITRD_FILE4 ) bytes = $INITRD_FILE4
 #   decompress: gzip -cd $INITRD_FILE | cpio -idm
 
 KERNEL_ARGS='console=ttyS0'
