@@ -54,6 +54,8 @@ kernels()
 		20) echo 'https://git.kernel.org/torvalds/t/linux-5.9-rc6.tar.gz' ;;
 		21) echo 'https://git.kernel.org/torvalds/t/linux-5.9-rc7.tar.gz' ;;
 		22) echo 'https://git.kernel.org/torvalds/t/linux-5.9-rc8.tar.gz' ;;
+		23) echo 'https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.9.tar.xz' ;;
+		24) echo 'https://cdn.kernel.org/pub/linux/kernel/v3.x/linux-3.10.1.tar.bz2' ;;
 		 *) false ;;
 	esac
 }
@@ -168,7 +170,7 @@ has_arg 'UML' && ARCH='ARCH=um'
 # CONFIG_BLK_DEV_INITRD=y		| General setup ---> Initial RAM filesystem and RAM disk (initramfs/initrd) support
 # CONFIG_PRINTK=y			| General setup ---> Configure standard kernel features ---> Enable support for printk 
 # CONFIG_BINFMT_ELF=y			| Executable file formats / Emulations ---> Kernel support for ELF binaries
-# CONFIG_BINFMT_SCRIPT=y		| Executable file formats / Emulations ---> Kernel support for scripts starting with #!
+# CONFIG_BINFMT_SCRIPT=y		| Executable file formats / Emulations ---> Kernel support for scripts starting with #!		// support since 3.10?
 # CONFIG_DEVTMPFS=y			| Device Drivers ---> Generic Driver Options ---> Maintain a devtmpfs filesystem to mount at /dev
 # CONFIG_DEVTMPFS_MOUNT=y		| Device Drivers ---> Generic Driver Options ---> Automount devtmpfs at /dev, after the kernel mounted the rootfs
 # CONFIG_TTY=y				| Device Drivers ---> Character devices ---> Enable TTY
@@ -428,6 +430,10 @@ else
 	KERNEL_FILE="$( readlink -e "$LINUX_BUILD/arch/x86_64/boot/bzImage" )"
 fi
 
+KERNEL_ELF="$KERNEL_FILE.elf"
+EXTRACT="$( find "$LINUX" -type f -name 'extract-vmlinux' )"
+$EXTRACT "$KERNEL_FILE" >"$KERNEL_ELF"
+
 # TODO: include build-instructions
 cat >"$LINUX_BUILD/run.sh" <<!
 #!/bin/sh
@@ -437,9 +443,12 @@ ACTION="\$1"		# autotest|boot
 # generated: $( LC_ALL=C date )
 #
 # KERNEL_URL: $KERNEL_URL
-# KERNEL: $KERNEL_FILE
-# KERNEL_SIZE: $( wc -c <$KERNEL_FILE ) bytes
 # KERNEL_CONFIG: $CONFIG1
+# KERNEL: $KERNEL_FILE
+# KERNEL_ELF: $KERNEL_ELF
+# KERNEL_SIZE: $( wc -c <$KERNEL_FILE ) bytes compressed
+# KERNEL_ELF: $(  wc -c <$KERNEL_ELF ) bytes
+#   show sections with: readelf -S $KERNEL_ELF
 #
 # BUSYBOX: $BB_FILE
 # BUSYBOX_SIZE: $( wc -c <$BB_FILE ) bytes
