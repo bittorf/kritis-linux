@@ -1,6 +1,7 @@
 #!/bin/sh
 #
 # TODO:
+# - builddir = mark_cache = no_backup
 # - net: nameserver?
 # - nproc/memsize
 # - UML http://user-mode-linux.sourceforge.net/network.html
@@ -56,6 +57,13 @@ kernels()
 		22) echo 'https://git.kernel.org/torvalds/t/linux-5.9-rc8.tar.gz' ;;
 		23) echo 'https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.9.tar.xz' ;;
 		24) echo 'https://cdn.kernel.org/pub/linux/kernel/v3.x/linux-3.10.1.tar.bz2' ;;
+		25) echo 'https://cdn.kernel.org/pub/linux/kernel/v3.x/linux-3.17.tar.xz' ;;
+		26) echo 'https://cdn.kernel.org/pub/linux/kernel/v3.x/linux-3.18.tar.xz' ;;
+		27) echo 'https://cdn.kernel.org/pub/linux/kernel/v3.x/linux-3.19.tar.xz' ;;
+		28) echo 'https://cdn.kernel.org/pub/linux/kernel/v3.x/linux-3.19.8.tar.xz' ;;
+		29) echo 'https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.9.1.tar.xz' ;;
+		30) echo 'https://git.kernel.org/torvalds/t/linux-5.10-rc1.tar.gz' ;;
+		31) echo 'https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.10.1.tar.xz' ;;
 		 *) false ;;
 	esac
 }
@@ -228,11 +236,17 @@ apply()
 	local symbol="$1"
 	local word="${symbol%=*}"
 
+	echo "[OK] applying symbol '$symbol'"
+
+	case "$symbol" in
+		'#'*)
+			return 0
+		;;
+	esac
+
 	sed -i "/^$word=.*/d" '.config'
 	sed -i "/.*$word .*/d" '.config'
 	echo "$symbol" >>'.config'
-
-	echo "[OK] applying symbol '$symbol'"
 
 	# see: https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/scripts/config
 	yes "" | make $ARCH oldconfig || return 1
@@ -334,6 +348,17 @@ printf '%s\n' "# MEMFREE_KILOBYTES \$MEMAVAIL_KB"
 printf '%s\n' "# UNAME \$( uname -a )"
 printf '%s\n' "# READY - to quit $( if has_arg 'UML'; then echo "type 'exit'"; else echo "press once STRG+A and then 'x'"; fi )"
 
+# https://github.com/lubomyr/bochs/blob/master/misc/slirp.conf
+command -v 'ip' >/dev/null && {
+	ip link show dev eth0 && {
+		ip address add 10.0.2.15/24 dev eth0 && {
+			ip link set dev eth0 up && {
+				ip route add default via 10.0.2.2
+			}
+		}
+	}
+}
+
 exec /bin/sh
 EOF
 
@@ -359,6 +384,16 @@ cd "$LINUX" || exit
 download "$KERNEL_URL" || exit
 untar *
 cd * || exit		# there is only 1 dir
+
+# kernel 2,3,4 but nut 5.x
+sed -i 's|-Wall -Wundef|& -fno-pie|' Makefile
+
+[ -f 'include/linux/compiler-gcc9.h' ] || {
+	cp include/linux/compiler-gcc5.h include/linux/compiler-gcc9.h
+}
+#
+# TODO:
+# home/bastian/software/minilinux/minilinux/opt/linux/linux-3.19.8/include/linux/compiler-gcc.h:106:1: fatal error: linux/compiler-gcc9.h: Datei oder Verzeichnis nicht gefunden 
 
 make $ARCH O=$LINUX_BUILD allnoconfig || exit
 cd $LINUX_BUILD
@@ -394,7 +429,13 @@ if has_arg 'UML'; then
 #		sleep 10
 #	}
 else
-	for SYMBOL in $( list_kernel_symbols ); do apply "$SYMBOL" || exit; done
+	# FIXME! respect spaces in symbols
+	# e.g. # CONFIG_64BIT is not set
+#	for SYMBOL in $( list_kernel_symbols ); do apply "$SYMBOL" || exit; done
+
+	list_kernel_symbols | while read -r SYMBOL; do {
+		apply "$SYMBOL" || exit
+	} done
 fi
 
 has_arg 'menuconfig' && {
@@ -410,16 +451,25 @@ has_arg 'menuconfig' && {
 
 CONFIG1="$PWD/.config"
 
-logger -s "bitte jetzt in '$(pwd)' Aenderungen machen unter enter druecken"
+logger -s "bitte jetzt in '$(pwd)' Aenderungen machen unter enter druecken | FIXME!"
 #read NOP
 
-
 if has_arg 'no_pie'; then
-	echo "make $ARCH CFLAGS=-fno-pie LDFLAGS=-no-pie -j$CPU" && sleep 5
+	echo "make $ARCH CFLAGS=-fno-pie LDFLAGS=-no-pie -j$CPU"
 	make       $ARCH CFLAGS=-fno-pie LDFLAGS=-no-pie -j$CPU || exit
 else
-	echo "make $ARCH -j$CPU" && sleep 5
+	echo "make $ARCH -j$CPU"
 	make       $ARCH -j$CPU || exit
+fi
+
+# e.g. $LINUX_BUILD/arch/x86_64/boot/bzImage
+KERNEL_FILE="$( find "$LINUX_BUILD" -type f -name 'bzImage' )"
+
+if [ -z "$KERNEL_FILE" ]; then
+	logger -s "pwd: $(pwd) no file found: '$KERNEL_FILE'"
+	exit 1
+else
+	logger -s "pwd: $(pwd) found: '$KERNEL_FILE'"
 fi
 
 cd .. || exit
@@ -427,12 +477,22 @@ cd .. || exit
 if has_arg 'UML'; then
 	KERNEL_FILE="$LINUX_BUILD/vmlinux"
 else
-	KERNEL_FILE="$( readlink -e "$LINUX_BUILD/arch/x86_64/boot/bzImage" )"
+	KERNEL_FILE="$( readlink -e "$KERNEL_FILE" )"
 fi
 
 KERNEL_ELF="$KERNEL_FILE.elf"
 EXTRACT="$( find "$LINUX" -type f -name 'extract-vmlinux' )"
-$EXTRACT "$KERNEL_FILE" >"$KERNEL_ELF"
+if [ -f "$EXTRACT" ]; then
+	$EXTRACT "$KERNEL_FILE" >"$KERNEL_ELF"
+
+	if [ -f "$KERNEL_ELF" ]; then
+		:
+	else
+		logger -s "extracting ELF failed"
+	fi
+else
+	logger -s "extractor for ELF not found"
+fi
 
 # TODO: include build-instructions
 cat >"$LINUX_BUILD/run.sh" <<!
