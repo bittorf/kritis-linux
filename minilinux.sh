@@ -15,6 +15,7 @@
 # - filesizes
 # - needed space
 
+# INITRD_DIR_ADD= ...
 
 KERNEL="$1"
 [ -n "$2" ] && {
@@ -334,6 +335,11 @@ mkdir -p bin sbin etc proc sys usr/bin usr/sbin dev
 cp -a $BUSYBOX_BUILD/_install/* .
 
 # TODO: https://stackoverflow.com/questions/36529881/qemu-bin-sh-cant-access-tty-job-control-turned-off?rq=1
+
+[ -d "$INITRD_DIR_ADD" ] && {
+	cp -R "$INITRD_DIR_ADD/"* .
+	test -f 'init' && cp init init.user
+}
 
 cat >'init' <<EOF
 #!/bin/sh
