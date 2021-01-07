@@ -15,7 +15,16 @@
 # - filesizes
 # - needed space
 
+# debug: generate a ~1mb file with builtins:
+# S=$( I=0; while test $I -lt 100; do printf '%s' A; I=$((I+1)); done )
+# I=0; while test $I -lt 10000; do echo $S; I=$((I+1)); done >foo
+
+# possible vars to export into this script:
 # INITRD_DIR_ADD= ...
+# KEEP_LIST= ...	# e.g. '/bin/busybox /bin/sh /bin/chmod /bin/cat'
+			# busybox find / -xdev -name 'sh'
+			# busybox find / -xdev -type l
+			# busybox find / -xdev -type f
 
 KERNEL="$1"
 [ -n "$2" ] && {
@@ -331,8 +340,19 @@ export INITRAMFS_BUILD=$BUILDS/initramfs
 mkdir -p $INITRAMFS_BUILD
 cd $INITRAMFS_BUILD || exit
 
-mkdir -p bin sbin etc proc sys usr/bin usr/sbin dev
+mkdir -p bin sbin etc proc sys usr/bin usr/sbin dev tmp
 cp -a $BUSYBOX_BUILD/_install/* .
+
+[ -n "$KEEP_LIST" ] && {
+	find . | while read -r LINE; do {
+		# e.g. ./bin/busybox -> dot is removed in check
+
+		case " $KEEP_LIST " in
+			*" ${LINE#?} "*) logger -s "KEEP_LIST: keeping '$LINE'" ;;
+			*) test -d "$LINE" || rm -f "$LINE" ;;
+		esac
+	} done
+}
 
 # TODO: https://stackoverflow.com/questions/36529881/qemu-bin-sh-cant-access-tty-job-control-turned-off?rq=1
 
@@ -395,7 +415,7 @@ cd * || exit		# there is only 1 dir
 sed -i 's|-Wall -Wundef|& -fno-pie|' Makefile
 
 [ -f 'include/linux/compiler-gcc9.h' ] || {
-	cp include/linux/compiler-gcc5.h include/linux/compiler-gcc9.h
+	cp -v include/linux/compiler-gcc5.h include/linux/compiler-gcc9.h
 }
 #
 # TODO:
