@@ -20,8 +20,8 @@
 # I=0; while test $I -lt 10000; do echo $S; I=$((I+1)); done >foo
 
 # possible vars to export into this script:
-# INITRD_DIR_ADD= ...
-# KEEP_LIST= ...	# e.g. '/bin/busybox /bin/sh /bin/chmod /bin/cat'
+# INITRD_DIR_ADD= ...	# e.g. /tmp/foo
+# KEEP_LIST= ...	# e.g. '/bin/busybox /bin/sh /bin/cat'
 			# busybox find / -xdev -name 'sh'
 			# busybox find / -xdev -type l
 			# busybox find / -xdev -type f
@@ -74,6 +74,7 @@ kernels()
 		29) echo 'https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.9.1.tar.xz' ;;
 		30) echo 'https://git.kernel.org/torvalds/t/linux-5.10-rc1.tar.gz' ;;
 		31) echo 'https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.10.1.tar.xz' ;;
+		32) echo 'https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.10.6.tar.xz' ;;
 		 *) false ;;
 	esac
 }
@@ -357,7 +358,17 @@ cp -a $BUSYBOX_BUILD/_install/* .
 # TODO: https://stackoverflow.com/questions/36529881/qemu-bin-sh-cant-access-tty-job-control-turned-off?rq=1
 
 [ -d "$INITRD_DIR_ADD" ] && {
+	test -d "$INITRD_DIR_ADD/x" && mv -v "$INITRD_DIR_ADD/x" ~/tmp.cheat.$$
+
 	cp -R "$INITRD_DIR_ADD/"* .
+
+	test -d ~/tmp.cheat.$$ && mv -v ~/tmp.cheat.$$ "$INITRD_DIR_ADD/x"
+	rm "LICENSE" "README.md" kernel.bin initramfs.cpio.gz 2>/dev/null
+	rm -fR sys usr sbin etc root proc
+
+	test -f 'run-amd64.sh' && mv run-amd64.sh init.user
+	touch 'tmp/hex0.bin' && chmod +x 'tmp/hex0.bin'		# mes bootstrap
+
 	test -f 'init' && cp init init.user
 }
 
@@ -384,6 +395,8 @@ command -v 'ip' >/dev/null && {
 		}
 	}
 }
+
+test -f init.user && . ./init.user
 
 exec /bin/sh
 EOF
