@@ -363,7 +363,7 @@ cp -a $BUSYBOX_BUILD/_install/* .
 	cp -R "$INITRD_DIR_ADD/"* .
 
 	test -d ~/tmp.cheat.$$ && mv -v ~/tmp.cheat.$$ "$INITRD_DIR_ADD/x"
-	rm "LICENSE" "README.md" kernel.bin initramfs.cpio.gz 2>/dev/null
+	rm "LICENSE" "README.md" kernel.bin initramfs.cpio.gz initrd.xz 2>/dev/null
 	rm -fR sys usr sbin etc root proc
 
 	test -f 'run-amd64.sh' && mv run-amd64.sh init.user
@@ -385,6 +385,7 @@ printf '%s\n' "# MEMFREE_KILOBYTES \$MEMAVAIL_KB"
 printf '%s\n' "# UNAME \$( uname -a )"
 printf '%s\n' "# READY - to quit $( if has_arg 'UML'; then echo "type 'exit'"; else echo "press once STRG+A and then 'x'"; fi )"
 
+# https://github.com/bittorf/slirp-uml-and-compiler-friendly
 # https://github.com/lubomyr/bochs/blob/master/misc/slirp.conf
 command -v 'ip' >/dev/null && {
 	ip link show dev eth0 && {
@@ -396,9 +397,9 @@ command -v 'ip' >/dev/null && {
 	}
 }
 
-test -f init.user && . ./init.user
+test -f init.user && busybox sleep 2 && . ./init.user	# wait for dmesg-trash
 
-exec /bin/sh
+exec /bin/sh 2>/dev/null
 EOF
 
 chmod +x 'init'
