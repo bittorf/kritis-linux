@@ -648,7 +648,7 @@ while [ \$I -gt 0 ]; do {
 	LINE="\$( tail -n1 "\$PIPE" )"
 
 	case "\$LINE" in
-		\$PATTERN) break ;;
+		READY) break ;;
 		*) sleep 1; I=\$((I-1)) ;;
 	esac
 } done
