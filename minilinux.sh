@@ -589,6 +589,9 @@ MAX="\${3:-5}"		# max running time [seconds] in autotest-mode
 # INITRD3: $(  wc -c <$INITRD_FILE4 ) bytes = $INITRD_FILE4
 #   decompress: gzip -cd $INITRD_FILE | cpio -idm
 
+grep -q svm /proc/cpuinfo && KVM_SUPPORT='-enable-kvm -cpu host'
+grep -q vmx /proc/cpuinfo && KVM_SUPPORT='-enable-kvm -cpu host'
+
 KERNEL_ARGS='console=ttyS0'
 $( has_arg 'net' && echo "KERNEL_ARGS='console=ttyS0 ip=dhcp nameserver=8.8.8.8'" )
 QEMU_OPTIONS=
@@ -602,7 +605,7 @@ case "\$ACTION" in
 					initrd=$INITRD_FILE
 			;;
 			*)
-				qemu-system-x86_64 \\
+				qemu-system-x86_64 \$KVM_SUPPORT \\
 					-kernel $KERNEL_FILE \\
 					-initrd $INITRD_FILE \\
 					-nographic \\
@@ -620,7 +623,7 @@ mkfifo "\$PIPE.in"  || exit
 mkfifo "\$PIPE.out" || exit
 
 (
-	qemu-system-x86_64 \\
+	qemu-system-x86_64 \$KVM_SUPPORT \\
 		-kernel $KERNEL_FILE \\
 		-initrd $INITRD_FILE \\
 		-nographic \\
