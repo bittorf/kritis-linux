@@ -2,9 +2,10 @@
 
 KEEP_FILES="$2"			# e.g. '/bin/busybox /bin/sh /bin/cat' or .
 ADD_DIR="$4"			# e.g. "$PWD"
-WAIT_PATTERN="$6"
+WAIT_PATTERN="$6"		# e.g. 'READY_BOOT_MARKER'
 WAIT_SECONDS="${8:-120}"
 LINUX_VERSION="${10:-latest}"	# e.g. 'https://cdn.kernel.org/pub/linux/kernel/v3.x/linux-3.17.tar.xz'
+# INIT="${12:-init.user}"	# TODO
 
 cd "$( dirname "$0" )" || exit
 
@@ -25,5 +26,5 @@ echo "kernel.bin: $( ls -l minilinux/builds/linux/arch/x86/boot/bzImage	)"
 echo "initrd.xz:  $( ls -l minilinux/builds/initramfs.cpio.xz.xz )"
 echo
 echo "[OK] now running 'minilinux/builds/linux/run.sh' in autotest-mode"
-minilinux/builds/linux/run.sh autotest "$WAIT_PATTERN" "$WAIT_SECONDS"
 
+minilinux/builds/linux/run.sh autotest "$WAIT_PATTERN" "$WAIT_SECONDS"

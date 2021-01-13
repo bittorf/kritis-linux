@@ -18,7 +18,8 @@ kritis-linux/ci_helper.sh \
 	--diradd "$( pwd )" \
 	--pattern "In QEMU-mode you can now explore the system" \
 	--maxwait "600" \
-	--linux "latest"
+	--linux "latest" \
+	--myinit "script.xy"
 ```
 
 * above command builds linux + busybox 
@@ -26,5 +27,5 @@ kritis-linux/ci_helper.sh \
 * adds directory in --diradd to initial ramdisk
 * starts qemu and waits till --pattern shows up
 * aborts the run, when over 600 seconds
-* use latest mainline linux (default)
-
+* uses latest mainline linux (default)
+* and uses 'script.xy' as /sbin/init
