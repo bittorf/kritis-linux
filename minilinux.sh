@@ -35,6 +35,9 @@ KERNEL="$1"
 CPU="$( nproc || echo 1 )"
 BASEDIR='minilinux'
 
+URL_TOYBOX='http://landley.net/toybox/downloads/toybox-0.8.4.tar.gz'
+URL_BUSYBOX='https://busybox.net/downloads/busybox-1.33.0.tar.bz2'
+
 export STORAGE="/tmp/storage"
 mkdir -p "$STORAGE"
 echo "[OK] cache/storage is here: '$STORAGE'"
@@ -75,6 +78,7 @@ kernels()
 		30) echo 'https://git.kernel.org/torvalds/t/linux-5.10-rc1.tar.gz' ;;
 		31) echo 'https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.10.1.tar.xz' ;;
 		32) echo 'https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.10.6.tar.xz' ;;
+		latest) wget -qO - https://www.kernel.org | grep -A1 "latest_link" | tail -n1 | cut -d'"' -f2 ;;
 		 *) false ;;
 	esac
 }
@@ -131,7 +135,7 @@ case "$KERNEL" in
 
 		exit
 	;;
-	[0-9]|[0-9][0-9])
+	[0-9]|[0-9][0-9]|latest)
 		KERNEL_URL="$( kernels $KERNEL )"
 		echo "[OK] choosing '$KERNEL_URL'"
 	;;
@@ -141,9 +145,8 @@ case "$KERNEL" in
 		echo "choose 0,1,2,3..."
 		echo
 
-		I=0
-		while KERNEL_URL="$( kernels $I )"; do {
-			MINOR="$( echo "$KERNEL_URL" | sed -n 's/.*linux-\([0-9].*\)/\1/p' )"	# 5.4.39.tar.xz
+		minor_from_url() {	# outputs e.g. 5.4.39
+			MINOR="$( echo "$1" | sed -n 's/.*linux-\([0-9].*\)/\1/p' )"	# e.g. 5.4.39.tar.xz
 
 			while case "$MINOR" in
 				*[0-9]) false ;;
@@ -151,10 +154,18 @@ case "$KERNEL" in
 			      esac; do {
 				MINOR="${MINOR%.*}"
 			} done
-			echo "$I | $MINOR"
 
+			echo "$MINOR"
+		}
+
+		I=0
+		while KERNEL_URL="$( kernels $I )"; do {
+			MINOR="$( minor_from_url "$KERNEL_URL" )"
+			echo "$I | $MINOR"
 			I=$((I+1))
 		} done
+
+		echo "latest | $( minor_from_url "$( kernels latest )" )"
 
 		exit 1
 	;;
@@ -284,11 +295,10 @@ mkdir -p "$BUSYBOX_BUILD"
 cd $BUSYBOX || msg_and_die "$?" "cd $BUSYBOX"
 
 if has_arg 'toybox'; then
-	download "http://landley.net/toybox/downloads/toybox-0.8.3.tar.gz" || exit
+	download "$URL_TOYBOX" || exit
 	mv *toybox* $BUSYBOX_BUILD/
 else
-#	download "https://busybox.net/downloads/busybox-1.31.1.tar.bz2" || exit
-	download "https://busybox.net/downloads/busybox-1.32.0.tar.bz2" || exit
+	download "$URL_BUSYBOX" || exit	
 fi
 
 has_arg 'toybox' && cd $BUSYBOX_BUILD
