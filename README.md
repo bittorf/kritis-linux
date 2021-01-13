@@ -4,7 +4,27 @@
 * still alpha
 * supports musl, glibc and busybox/toybox
 
-# TODO
+# Syntax
 
-* add syntax, e.g. `./minilinux.sh`
+* get help with, e.g. `./minilinux.sh`
+
+# CI-integration / autobuild and run QEMU:
+
+```
+git clone --depth 1 https://github.com/bittorf/kritis-linux.git
+
+kritis-linux/ci_helper.sh \
+	--keep '/bin/busybox /bin/sh /bin/cat' \
+	--diradd "$( pwd )" \
+	--pattern "In QEMU-mode you can now explore the system" \
+	--maxwait "600" \
+	--linux "latest"
+```
+
+* above command builds linux + busybox 
+* removes all symlinks, except those in --keep
+* adds directory in --diradd to initial ramdisk
+* starts qemu and waits till --pattern shows up
+* aborts the run, when over 600 seconds
+* use latest mainline linux (default)
 
