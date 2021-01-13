@@ -42,6 +42,23 @@ export STORAGE="/tmp/storage"
 mkdir -p "$STORAGE"
 echo "[OK] cache/storage is here: '$STORAGE'"
 
+deps_check()
+{
+	local cmd list='gzip xz zstd wget cp basename mkdir rm cat make sed grep tar test find touch chmod'
+	# hint: 'vimdiff' and 'logger' are used, but not essential
+
+	for cmd in $list; do {
+		command -v "$cmd" >/dev/null || {
+			printf '%s\n' "abort, missing command: '$cmd' - please install"
+			return 1
+		}
+	} done
+
+	true
+}
+
+deps_check || exit
+
 kernels()
 {
 	case "$1" in
