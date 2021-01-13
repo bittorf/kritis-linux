@@ -1,10 +1,10 @@
 #!/bin/sh
 
-KEEP_FILES="$1"			# e.g. '/bin/busybox /bin/sh /bin/cat' or .
-ADD_DIR="$2"			# e.g. "$PWD"
-WAIT_PATTERN="$3"
-WAIT_SECONDS="${4:-120}"
-LINUX_VERSION="${5:-latest}"	# e.g. 'https://cdn.kernel.org/pub/linux/kernel/v3.x/linux-3.17.tar.xz'
+KEEP_FILES="$2"			# e.g. '/bin/busybox /bin/sh /bin/cat' or .
+ADD_DIR="$4"			# e.g. "$PWD"
+WAIT_PATTERN="$6"
+WAIT_SECONDS="${8:-120}"
+LINUX_VERSION="${10:-latest}"	# e.g. 'https://cdn.kernel.org/pub/linux/kernel/v3.x/linux-3.17.tar.xz'
 
 cd "$( dirname "$0" )" || exit
 
