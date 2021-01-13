@@ -657,6 +657,8 @@ kill -0 \$PID && kill \$PID
 
 cat "\$PIPE"
 rm -f "\$PIPE" "\$PIPE.in" "\$PIPE.out"
+echo
+echo "autotest-mode ready after \$I (out of max \$MAX) seconds"
 !
 
 chmod +x "$LINUX_BUILD/run.sh" && \
