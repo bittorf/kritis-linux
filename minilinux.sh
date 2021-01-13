@@ -369,10 +369,9 @@ cp -a $BUSYBOX_BUILD/_install/* .
 
 [ -d "$INITRD_DIR_ADD" ] && {
 	test -d "$INITRD_DIR_ADD/x" && mv -v "$INITRD_DIR_ADD/x" ~/tmp.cheat.$$
-
 	cp -R "$INITRD_DIR_ADD/"* .
-
 	test -d ~/tmp.cheat.$$ && mv -v ~/tmp.cheat.$$ "$INITRD_DIR_ADD/x"
+
 	rm "LICENSE" "README.md" kernel.bin initramfs.cpio.gz initrd.xz 2>/dev/null
 	rm -fR sys usr sbin etc root proc
 
@@ -390,9 +389,9 @@ mount -t proc  none /proc && {
 }
 mount -t sysfs none /sys
 
-printf '%s\n' "# BOOTTIME_SECONDS \$UP"
-printf '%s\n' "# MEMFREE_KILOBYTES \$MEMAVAIL_KB"
-printf '%s\n' "# UNAME \$( uname -a )"
+printf '%s\n' "# BOOTTIME_SECONDS \${UP:--1}"
+printf '%s\n' "# MEMFREE_KILOBYTES \${MEMAVAIL_KB:--1}"
+printf '%s\n' "# UNAME \$( uname -a || printf uname_unavailable )"
 printf '%s\n' "# READY - to quit $( if has_arg 'UML'; then echo "type 'exit'"; else echo "press once STRG+A and then 'x'"; fi )"
 
 # https://github.com/bittorf/slirp-uml-and-compiler-friendly
@@ -407,7 +406,7 @@ command -v 'ip' >/dev/null && {
 	}
 }
 
-test -f init.user && busybox sleep 2 && . ./init.user	# wait for dmesg-trash
+test -f init.user && busybox sleep 2 && ./init.user	# wait for dmesg-trash
 
 exec /bin/sh 2>/dev/null
 EOF
