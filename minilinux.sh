@@ -423,7 +423,8 @@ command -v 'ip' >/dev/null && {
 	}
 }
 
-test -f init.user && busybox sleep 2 && ./init.user	# wait for dmesg-trash
+# used for MES:
+test -f init.user && busybox sleep 2 && AUTO=true ./init.user	# wait for dmesg-trash
 
 exec /bin/sh 2>/dev/null
 EOF
