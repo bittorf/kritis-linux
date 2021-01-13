@@ -566,7 +566,7 @@ cat >"$LINUX_BUILD/run.sh" <<!
 #!/bin/sh
 
 ACTION="\$1"		# autotest|boot
-PATTERM="\${2:-READY}"	# in autotest-mode pattern for end-detection
+PATTERN="\${2:-READY}"	# in autotest-mode pattern for end-detection
 MAX="\${3:-5}"		# max running time [seconds] in autotest-mode
 
 # generated: $( LC_ALL=C date )
@@ -614,9 +614,10 @@ case "\$ACTION" in
 	;;
 esac
 
-PIPE="\$( mktemp )"
-mkfifo "\$PIPE.in"
-mkfifo "\$PIPE.out"
+PIPE="\$( mktemp )" || exit
+TEXT="\$( mktemp )" || exit
+mkfifo "\$PIPE.in"  || exit
+mkfifo "\$PIPE.out" || exit
 
 (
 	qemu-system-x86_64 \\
@@ -631,6 +632,8 @@ PID=\$!
 
 (
 	while read -r LINE; do {
+		printf '%s\n' "\$LINE"
+
 		case "\$LINE" in
 			'# BOOTTIME_SECONDS '*|'# UNAME '*)
 				echo "\$LINE" >>"\$PIPE"
@@ -640,7 +643,7 @@ PID=\$!
 				break
 			;;
 		esac
-	} done <"\$PIPE.out"
+	} done <"\$PIPE.out" >"\$TEXT"
 ) &
 
 I=\$MAX
@@ -649,16 +652,16 @@ while [ \$I -gt 0 ]; do {
 
 	case "\$LINE" in
 		READY) break ;;
-		*) sleep 1; I=\$((I-1)) ;;
+		*) sleep 1; I=\$(( I - 1 )) ;;
 	esac
 } done
 
 kill -0 \$PID && kill \$PID
 
-cat "\$PIPE"
+cat "\$PIPE" "\$TEXT"
 rm -f "\$PIPE" "\$PIPE.in" "\$PIPE.out"
 echo
-echo "autotest-mode ready after \$I (out of max \$MAX) seconds"
+echo "autotest-mode ready after \$(( MAX - I )) (out of max \$MAX) seconds"
 !
 
 chmod +x "$LINUX_BUILD/run.sh" && \
