@@ -567,6 +567,7 @@ cat >"$LINUX_BUILD/run.sh" <<!
 
 ACTION="\$1"		# autotest|boot
 PATTERM="\${2:-READY}"	# in autotest-mode pattern for end-detection
+MAX="\${3:-5}"		# max running time [seconds] in autotest-mode
 
 # generated: $( LC_ALL=C date )
 #
@@ -634,7 +635,7 @@ PID=\$!
 			'# BOOTTIME_SECONDS '*|'# UNAME '*)
 				echo "\$LINE" >>"\$PIPE"
 			;;
-			'# READY'*)
+			"# \$PATTERN"*)
 				echo 'READY' >>"\$PIPE"
 				break
 			;;
@@ -642,7 +643,7 @@ PID=\$!
 	} done <"\$PIPE.out"
 ) &
 
-I=5
+I=\$MAX
 while [ \$I -gt 0 ]; do {
 	LINE="\$( tail -n1 "\$PIPE" )"
 
