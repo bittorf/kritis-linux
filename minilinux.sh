@@ -566,6 +566,7 @@ cat >"$LINUX_BUILD/run.sh" <<!
 #!/bin/sh
 
 ACTION="\$1"		# autotest|boot
+PATTERM="\${2:-READY}"	# in autotest-mode pattern for end-detection
 
 # generated: $( LC_ALL=C date )
 #
@@ -646,7 +647,7 @@ while [ \$I -gt 0 ]; do {
 	LINE="\$( tail -n1 "\$PIPE" )"
 
 	case "\$LINE" in
-		READY) break ;;
+		\$PATTERN) break ;;
 		*) sleep 1; I=\$((I-1)) ;;
 	esac
 } done
@@ -658,7 +659,7 @@ rm -f "\$PIPE" "\$PIPE.in" "\$PIPE.out"
 !
 
 chmod +x "$LINUX_BUILD/run.sh" && \
-	  $LINUX_BUILD/run.sh 'autotest'
+	  $LINUX_BUILD/run.sh 'autotest' 'READY'
 
 echo
 echo "see: $LINUX_BUILD/run.sh"
