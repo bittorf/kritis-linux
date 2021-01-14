@@ -30,3 +30,4 @@ echo
 echo "[OK] now running 'minilinux/builds/linux/run.sh' in autotest-mode"
 
 minilinux/builds/linux/run.sh autotest "$WAIT_PATTERN" "$WAIT_SECONDS"
+cat "$TMP1" "$TMP2"
