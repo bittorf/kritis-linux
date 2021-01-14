@@ -389,8 +389,8 @@ cp -a $BUSYBOX_BUILD/_install/* .
 	cp -R "$INITRD_DIR_ADD/"* .
 	test -d ~/tmp.cheat.$$ && mv -v ~/tmp.cheat.$$ "$INITRD_DIR_ADD/x"
 
-	rm "LICENSE" "README.md" kernel.bin initramfs.cpio.gz initrd.xz 2>/dev/null
-	rm -fR sys usr sbin etc root proc
+	rm -f "LICENSE" "README.md" kernel.bin initramfs.cpio.gz initrd.xz
+	rm -fR sys usr sbin etc root proc kritis-linux
 
 	test -f 'run-amd64.sh' && mv run-amd64.sh init.user
 	touch 'tmp/hex0.bin' && chmod +x 'tmp/hex0.bin'		# mes bootstrap
@@ -400,28 +400,31 @@ cp -a $BUSYBOX_BUILD/_install/* .
 
 cat >'init' <<EOF
 #!/bin/sh
-mount -t proc  none /proc && {
-	read -r UP _ </proc/uptime || UP=\$( cut -d' ' -f1 /proc/uptime )
-	while read -r LINE; do case "\$LINE" in MemAvailable:*) set -- \$LINE; MEMAVAIL_KB=\$2; break ;; esac; done </proc/meminfo
+command -v mount && {
+	mount -t proc  none /proc && {
+		read -r UP _ </proc/uptime || UP=\$( cut -d' ' -f1 /proc/uptime )
+		while read -r LINE; do case "\$LINE" in MemAvailable:*) set -- \$LINE; MEMAVAIL_KB=\$2; break ;; esac; done </proc/meminfo
+	}
+
+	mount -t sysfs none /sys
+
+	# https://github.com/bittorf/slirp-uml-and-compiler-friendly
+	# https://github.com/lubomyr/bochs/blob/master/misc/slirp.conf
+	command -v 'ip' >/dev/null && {
+		ip link show dev eth0 && {
+			ip address add 10.0.2.15/24 dev eth0 && {
+				ip link set dev eth0 up && {
+					ip route add default via 10.0.2.2
+				}
+			}
+		}
+	}
 }
-mount -t sysfs none /sys
 
 printf '%s\n' "# BOOTTIME_SECONDS \${UP:--1}"
 printf '%s\n' "# MEMFREE_KILOBYTES \${MEMAVAIL_KB:--1}"
 printf '%s\n' "# UNAME \$( uname -a || printf uname_unavailable )"
 printf '%s\n' "# READY - to quit $( if has_arg 'UML'; then echo "type 'exit'"; else echo "press once STRG+A and then 'x'"; fi )"
-
-# https://github.com/bittorf/slirp-uml-and-compiler-friendly
-# https://github.com/lubomyr/bochs/blob/master/misc/slirp.conf
-command -v 'ip' >/dev/null && {
-	ip link show dev eth0 && {
-		ip address add 10.0.2.15/24 dev eth0 && {
-			ip link set dev eth0 up && {
-				ip route add default via 10.0.2.2
-			}
-		}
-	}
-}
 
 # used for MES:
 test -f init.user && busybox sleep 2 && AUTO=true ./init.user	# wait for dmesg-trash
