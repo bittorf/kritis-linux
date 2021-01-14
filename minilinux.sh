@@ -599,9 +599,12 @@ QEMU_OPTIONS=
 $( has_arg 'net' && echo "QEMU_OPTIONS='-net nic,model=rtl8139 -net user'" )
 
 case "\$ACTION" in
+	autotest)
+	;;
 	boot|'')
 		case "$KERNEL_FILE" in
 			*'/vmlinux')
+				# UML-mode:
 				$KERNEL_FILE \\
 					initrd=$INITRD_FILE
 			;;
@@ -622,6 +625,7 @@ PIPE="\$( mktemp )" || exit
 TEXT="\$( mktemp )" || exit
 mkfifo "\$PIPE.in"  || exit
 mkfifo "\$PIPE.out" || exit
+\$KVM_PRE echo			# cache sudo-pass for (maybe) next interactive run
 
 (
 	\$KVM_PRE qemu-system-x86_64 \$KVM_SUPPORT \\
@@ -660,10 +664,11 @@ while [ \$I -gt 0 ]; do {
 	esac
 } done
 
-kill -0 \$PID && kill \$PID
+\$KVM_PRE kill -0 \$PID && \$KVM_PRE kill \$PID
 
 cat "\$PIPE" "\$TEXT"
 rm -f "\$PIPE" "\$PIPE.in" "\$PIPE.out"
+
 echo
 echo "autotest-mode ready after \$(( MAX - I )) (out of max \$MAX) seconds"
 !
