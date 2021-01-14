@@ -7,10 +7,12 @@
 # Syntax
 
 * get help with, e.g. `./minilinux.sh`
+* make a linux with e.g. `./minilinux.sh latest`
 
 # CI-integration / autobuild and run QEMU:
 
 ```
+# https://github.com/bittorf/kritis-linux
 git clone --depth 1 https://github.com/bittorf/kritis-linux.git
 
 kritis-linux/ci_helper.sh \

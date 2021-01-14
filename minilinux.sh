@@ -591,6 +591,7 @@ MAX="\${3:-5}"		# max running time [seconds] in autotest-mode
 
 grep -q svm /proc/cpuinfo && KVM_SUPPORT='-enable-kvm -cpu host'
 grep -q vmx /proc/cpuinfo && KVM_SUPPORT='-enable-kvm -cpu host'
+[ -n "\$KVM_SUPPORT" ] && test "\$( id -u )" -gt 0 && KVM_PRE="\$( command -v sudo )"
 
 KERNEL_ARGS='console=ttyS0'
 $( has_arg 'net' && echo "KERNEL_ARGS='console=ttyS0 ip=dhcp nameserver=8.8.8.8'" )
@@ -605,7 +606,7 @@ case "\$ACTION" in
 					initrd=$INITRD_FILE
 			;;
 			*)
-				qemu-system-x86_64 \$KVM_SUPPORT \\
+				\$KVM_PRE qemu-system-x86_64 \$KVM_SUPPORT \\
 					-kernel $KERNEL_FILE \\
 					-initrd $INITRD_FILE \\
 					-nographic \\
@@ -623,7 +624,7 @@ mkfifo "\$PIPE.in"  || exit
 mkfifo "\$PIPE.out" || exit
 
 (
-	qemu-system-x86_64 \$KVM_SUPPORT \\
+	\$KVM_PRE qemu-system-x86_64 \$KVM_SUPPORT \\
 		-kernel $KERNEL_FILE \\
 		-initrd $INITRD_FILE \\
 		-nographic \\
