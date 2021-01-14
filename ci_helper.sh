@@ -27,6 +27,6 @@ echo "initrd.xz:  $( ls -l minilinux/builds/initramfs.cpio.xz.xz )"
 echo
 head -n5 minilinux/builds/linux/.config
 echo
-echo "[OK] now running 'minilinux/builds/linux/run.sh' in autotest-mode"
+echo "[OK] now running 'minilinux/builds/linux/run.sh' in autotest-mode waiting $WAIT_SECONDS sec for pattern '$WAIT_PATTERN'"
 
 minilinux/builds/linux/run.sh autotest "$WAIT_PATTERN" "$WAIT_SECONDS"
