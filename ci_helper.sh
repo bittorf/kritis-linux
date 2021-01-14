@@ -6,6 +6,7 @@ WAIT_PATTERN="$6"		# e.g. 'READY_BOOT_MARKER'
 WAIT_SECONDS="${8:-120}"
 LINUX_VERSION="${10:-latest}"	# e.g. 'https://cdn.kernel.org/pub/linux/kernel/v3.x/linux-3.17.tar.xz'
 # INIT="${12:-init.user}"	# TODO
+# CORE=... busybox/toybox	# TODO
 
 cd "$( dirname "$0" )" || exit
 
@@ -14,7 +15,6 @@ TMP2="$( mktemp )" || exit
 
 echo "[OK] INITRD_DIR_ADD='$ADD_DIR' KEEP_LIST='$KEEP_FILES' ./minilinux.sh '$LINUX_VERSION'"
 
-cd "$( dirname "$0" )" || exit
 INITRD_DIR_ADD="$ADD_DIR" KEEP_LIST="$KEEP_FILES" ./minilinux.sh "$LINUX_VERSION" >"$TMP1" 2>"$TMP2" || {
 	RC="$?"
 	cat "$TMP1" "$TMP2"

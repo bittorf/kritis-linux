@@ -18,8 +18,9 @@ kritis-linux/ci_helper.sh \
 	--diradd "$( pwd )" \
 	--pattern "In QEMU-mode you can now explore the system" \
 	--maxwait "600" \
-	--linux "latest" \
-	--myinit "script.xy"
+	--kernel "latest" \
+	--myinit "script.xy" \
+	--core "busybox"
 ```
 
 * above command builds linux + busybox 
