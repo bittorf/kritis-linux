@@ -421,9 +421,10 @@ command -v mount && {
 	}
 }
 
+UNAME="\$( command -v uname || printf '%s' false )"
 printf '%s\n' "# BOOTTIME_SECONDS \${UP:--1}"
 printf '%s\n' "# MEMFREE_KILOBYTES \${MEMAVAIL_KB:--1}"
-printf '%s\n' "# UNAME \$( uname -a || printf uname_unavailable )"
+printf '%s\n' "# UNAME \$( \$UNAME -a || printf uname_unavailable )"
 printf '%s\n' "# READY - to quit $( if has_arg 'UML'; then echo "type 'exit'"; else echo "press once STRG+A and then 'x'"; fi )"
 
 # used for MES:

@@ -13,7 +13,6 @@ cd "$( dirname "$0" )" || exit
 TMP1="$( mktemp )" || exit
 TMP2="$( mktemp )" || exit
 
-ls -l "$ADD_DIR"
 echo "[OK] INITRD_DIR_ADD='$ADD_DIR' KEEP_LIST='$KEEP_FILES' ./minilinux.sh '$LINUX_VERSION'"
 
 INITRD_DIR_ADD="$ADD_DIR" KEEP_LIST="$KEEP_FILES" ./minilinux.sh "$LINUX_VERSION" >"$TMP1" 2>"$TMP2" || {
