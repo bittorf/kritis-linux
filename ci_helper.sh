@@ -13,11 +13,12 @@ cd "$( dirname "$0" )" || exit
 TMP1="$( mktemp )" || exit
 TMP2="$( mktemp )" || exit
 
+ls -l "$ADD_DIR"
 echo "[OK] INITRD_DIR_ADD='$ADD_DIR' KEEP_LIST='$KEEP_FILES' ./minilinux.sh '$LINUX_VERSION'"
 
 INITRD_DIR_ADD="$ADD_DIR" KEEP_LIST="$KEEP_FILES" ./minilinux.sh "$LINUX_VERSION" >"$TMP1" 2>"$TMP2" || {
 	RC="$?"
-	cat "$TMP1" "$TMP2"
+	cat "$TMP1" "$TMP2"	# TODO: add --debugbuild
 	exit "$RC"
 }
 
@@ -30,4 +31,3 @@ echo
 echo "[OK] now running 'minilinux/builds/linux/run.sh' in autotest-mode"
 
 minilinux/builds/linux/run.sh autotest "$WAIT_PATTERN" "$WAIT_SECONDS"
-cat "$TMP1" "$TMP2"
