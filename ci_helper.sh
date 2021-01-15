@@ -7,6 +7,7 @@ WAIT_SECONDS="${8:-120}"
 LINUX_VERSION="${10:-latest}"	# e.g. 'https://cdn.kernel.org/pub/linux/kernel/v3.x/linux-3.17.tar.xz'
 # INIT="${12:-init.user}"	# TODO
 # CORE=... busybox/toybox	# TODO
+# ARCH=				# TODO
 
 cd "$( dirname "$0" )" || exit
 

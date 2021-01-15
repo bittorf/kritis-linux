@@ -8,18 +8,16 @@
 # - api kernel+busybox+toybox+gcc... download/version
 # - different recipes: minimal, net, compiler, net-compiler
 # - which programs where called? hash?
-# - include tinyCC or HEX
 # - upload/api: good + bad things
 # - upload bootable images
 # - safe versions of all deps (cc, ld, libc)
 # - filesizes
 # - needed space
 
-# debug: generate a ~1mb file with builtins:
-# S=$( I=0; while test $I -lt 100; do printf '%s' A; I=$((I+1)); done )
-# I=0; while test $I -lt 10000; do echo $S; I=$((I+1)); done >foo
 
 # possible vars to export into this script:
+#
+# DSTARCH=armhf		# https://superuser.com/questions/1009540/difference-between-arm64-armel-and-armhf
 # INITRD_DIR_ADD= ...	# e.g. /tmp/foo
 # KEEP_LIST= ...	# e.g. '/bin/busybox /bin/sh /bin/cat'
 			# busybox find / -xdev -name 'sh'
@@ -41,6 +39,26 @@ URL_BUSYBOX='https://busybox.net/downloads/busybox-1.33.0.tar.bz2'
 export STORAGE="/tmp/storage"
 mkdir -p "$STORAGE"
 echo "[OK] cache/storage is here: '$STORAGE'"
+
+has_arg()
+{
+	case " $OPTIONS " in *" $1 "*) true ;; *) false ;; esac
+}
+
+# - arm: qemu-system-arm
+#        gcc-arm-linux-gnueabi  = armel = older 32bit
+#        gcc-arm-linux-gnueabhf = armhf = arm7 / 32bit with power / hard float
+#        gcc-aarch64-linux-gnu  = arm64 = 64bit
+#
+has_arg 'UML' && DSTARCH='uml'
+#
+case "$DSTARCH" in
+	uml)     export ARCH='ARCH=um' ;;
+	armel)   export ARCH='ARCH=arm' && export CROSSCOMPILE="CROSS_COMPILE=arm-linux-gnueabi-" ;;
+	armhf)   export ARCH= ;;
+	aarch64) export ARCH= ;;
+	*)       export ARCH= ;;
+esac
 
 deps_check()
 {
@@ -189,11 +207,6 @@ case "$KERNEL" in
 	
 esac
 
-has_arg()
-{
-	case " $OPTIONS " in *" $1 "*) true ;; *) false ;; esac
-}
-
 rm -fR "$BASEDIR"
 mkdir -p "$BASEDIR" && cd "$BASEDIR"
 
@@ -208,9 +221,6 @@ mkdir -p "$LINUX"
 
 export LINUX_BUILD="$BUILDS/linux"
 mkdir -p "$LINUX_BUILD"
-
-ARCH=
-has_arg 'UML' && ARCH='ARCH=um'
 
 # https://gist.github.com/chrisdone/02e165a0004be33734ac2334f215380e
 # CONFIG_64BIT=y			| 64-bit kernel
@@ -228,11 +238,18 @@ has_arg 'UML' && ARCH='ARCH=um'
 
 list_kernel_symbols()
 {
-	if has_arg '32bit'; then
-		echo '# CONFIG_64BIT is not set'
-	else
-		echo 'CONFIG_64BIT=y'
-	fi
+	case "$DSTARCH" in
+		uml|armel|armhf)
+			echo '# CONFIG_64BIT is not set'
+		;;
+		*)
+			if has_arg '32bit'; then
+				echo '# CONFIG_64BIT is not set'
+			else
+				echo 'CONFIG_64BIT=y'
+			fi
+		;;
+	esac
 
 	if has_arg 'no_printk'; then
 		:
@@ -325,9 +342,9 @@ cd * || exit		# there is only 1 dir
 
 if has_arg 'toybox'; then
 	BUSYBOX_BUILD=$PWD
-	LDFLAGS="--static" make root || msg_and_die "$?" "LDFLAGS=--static make root"
+	LDFLAGS="--static" make $ARCH $CROSSCOMPILE root || msg_and_die "$?" "LDFLAGS=--static make $ARCH $CROSSCOMPILE root"
 else
-	make O=$BUSYBOX_BUILD defconfig || msg_and_die "$?" "make O=$BUSYBOX_BUILD defconfig"
+	make O=$BUSYBOX_BUILD $ARCH $CROSSCOMPILE defconfig || msg_and_die "$?" "make O=$BUSYBOX_BUILD $ARCH $CROSSCOMPILE defconfig"
 fi
 
 cd $BUSYBOX_BUILD || msg_and_die "$?" "$_"
@@ -340,7 +357,7 @@ fi
 
 has_arg 'menuconfig' && {
 	while :; do {
-		make menuconfig || exit
+		make $ARCH menuconfig || exit
 		vimdiff '.config' '.config.old'
 		echo "$PWD" && echo "press enter for menuconfig or type 'ok' (and press enter) to compile" && read GO && test "$GO" && break
 	} done
@@ -352,14 +369,14 @@ has_arg 'menuconfig' && {
 CONFIG2="$PWD/.config"
 
 if has_arg 'toybox'; then
-	LDFLAGS="--static" make -j$CPU toybox || msg_and_die "$?" "LDFLAGS=--static make -j$CPU"
+	LDFLAGS="--static" make -j$CPU $ARCH $CROSSCOMPILE toybox || msg_and_die "$?" "LDFLAGS=--static make -j$CPU $ARCH $CROSSCOMPILE toybox"
 	test -f toybox || msg_and_die "$?" "test -f toybox"
 
 	mkdir '_install'
-	PREFIX="$BUSYBOX_BUILD/_install" make install || msg_and_die "$?" "PREFIX='$BUSYBOX_BUILD/_install' make install"
+	PREFIX="$BUSYBOX_BUILD/_install" make $ARCH $CROSSCOMPILE install || msg_and_die "$?" "PREFIX='$BUSYBOX_BUILD/_install' make $ARCH $CROSSCOMPILE install"
 else
-	make -j$CPU || msg_and_die "$?" "make -j$CPU"
-	make install || msg_and_die "$?" "make install"
+	make -j$CPU $ARCH $CROSSCOMPILE || msg_and_die "$?" "make -j$CPU $ARCH $CROSSCOMPILE"
+	make $ARCH $CROSSCOMPILE install || msg_and_die "$?" "make $ARCH $CROSSCOMPILE install"
 fi
 
 cd ..
@@ -425,7 +442,7 @@ UNAME="\$( command -v uname || printf '%s' false )"
 printf '%s\n' "# BOOTTIME_SECONDS \${UP:--1}"
 printf '%s\n' "# MEMFREE_KILOBYTES \${MEMAVAIL_KB:--1}"
 printf '%s\n' "# UNAME \$( \$UNAME -a || printf uname_unavailable )"
-printf '%s\n' "# READY - to quit $( if has_arg 'UML'; then echo "type 'exit'"; else echo "press once STRG+A and then 'x'"; fi )"
+printf '%s\n' "# READY - to quit $( if has_arg 'UML'; then echo "type 'exit'"; else echo "press once CTRL+A and then 'x' or kill qemu"; fi )"
 
 # used for MES:
 test -f init.user && busybox sleep 2 && AUTO=true ./init.user	# wait for dmesg-trash
@@ -456,17 +473,27 @@ download "$KERNEL_URL" || exit
 untar *
 cd * || exit		# there is only 1 dir
 
-# kernel 2,3,4 but nut 5.x
-sed -i 's|-Wall -Wundef|& -fno-pie|' Makefile
+# kernel 2,3,4 but nut 5.x - FIXME!
+# sed -i 's|-Wall -Wundef|& -fno-pie|' Makefile
 
+# FIXME!
 [ -f 'include/linux/compiler-gcc9.h' ] || {
 	cp -v include/linux/compiler-gcc5.h include/linux/compiler-gcc9.h
+#	cp -v include/linux/compiler-gcc5.h include/linux/compiler-gcc10.h
 }
 #
 # TODO:
 # home/bastian/software/minilinux/minilinux/opt/linux/linux-3.19.8/include/linux/compiler-gcc.h:106:1: fatal error: linux/compiler-gcc9.h: Datei oder Verzeichnis nicht gefunden 
 
-make $ARCH O=$LINUX_BUILD allnoconfig || exit
+case "$DSTARCH" in
+	'')
+		make $ARCH O=$LINUX_BUILD allnoconfig || exit
+	;;
+	*)
+		# e.g. arm - FIXME! we should switch to qemu -M virt without DTB and smaller config
+		make $ARCH O=$LINUX_BUILD versatile_defconfig || exit
+	;;
+esac
 cd $LINUX_BUILD
 
 if has_arg 'UML'; then
@@ -500,10 +527,6 @@ if has_arg 'UML'; then
 #		sleep 10
 #	}
 else
-	# FIXME! respect spaces in symbols
-	# e.g. # CONFIG_64BIT is not set
-#	for SYMBOL in $( list_kernel_symbols ); do apply "$SYMBOL" || exit; done
-
 	list_kernel_symbols | while read -r SYMBOL; do {
 		apply "$SYMBOL" || exit
 	} done
@@ -515,32 +538,30 @@ has_arg 'menuconfig' && {
 		vimdiff '.config' '.config.old'
 		echo "$PWD" && echo "press enter for menuconfig or type 'ok' (and press enter) to compile" && read GO && test "$GO" && break
 	} done
-
-#	comparing manually configured vs. apply()
-#	cmp .config /home/bastian/software/minilinux/.config_kernel || vimdiff .config /home/bastian/software/minilinux/.config_kernel
 }
 
 CONFIG1="$PWD/.config"
 
-logger -s "bitte jetzt in '$(pwd)' Aenderungen machen unter enter druecken | FIXME!"
-#read NOP
+# logger -s "please make changes in '$( pwd )' now and press enter | FIXME!"
+# read NOP
 
 if has_arg 'no_pie'; then
-	echo "make $ARCH CFLAGS=-fno-pie LDFLAGS=-no-pie -j$CPU"
-	make       $ARCH CFLAGS=-fno-pie LDFLAGS=-no-pie -j$CPU || exit
+	echo "make $ARCH $CROSSCOMPILE CFLAGS=-fno-pie LDFLAGS=-no-pie -j$CPU"
+	make       $ARCH $CROSSCOMPILE CFLAGS=-fno-pie LDFLAGS=-no-pie -j$CPU || exit
 else
-	echo "make $ARCH -j$CPU"
-	make       $ARCH -j$CPU || exit
+	echo "make $ARCH $CROSSCOMPILE -j$CPU"
+	make       $ARCH $CROSSCOMPILE -j$CPU || exit
 fi
 
 # e.g. $LINUX_BUILD/arch/x86_64/boot/bzImage
-KERNEL_FILE="$( find "$LINUX_BUILD" -type f -name 'bzImage' )"
+# e.g. $LINUX_BUILD/arch/arm/boot/zImage
+KERNEL_FILE="$( find "$LINUX_BUILD" -type f -name '*zImage' )"
 
 if [ -z "$KERNEL_FILE" ]; then
-	logger -s "pwd: $(pwd) no file found: '$KERNEL_FILE'"
+	logger -s "pwd: $( pwd ) no file found: '$KERNEL_FILE'"
 	exit 1
 else
-	logger -s "pwd: $(pwd) found: '$KERNEL_FILE'"
+	logger -s "pwd: $( pwd ) found: '$KERNEL_FILE'"
 fi
 
 cd .. || exit
@@ -565,6 +586,13 @@ else
 	logger -s "extractor for ELF not found"
 fi
 
+DTB=
+case "$DSTARCH" in
+	arm*)
+		DTB="$( find $LINUX_BUILD/ -type f -name 'versatile-pb.dtb' )"
+	;;
+esac
+
 # TODO: include build-instructions
 cat >"$LINUX_BUILD/run.sh" <<!
 #!/bin/sh
@@ -574,6 +602,9 @@ PATTERN="\${2:-READY}"	# in autotest-mode pattern for end-detection
 MAX="\${3:-5}"		# max running time [seconds] in autotest-mode
 
 # generated: $( LC_ALL=C date )
+#
+# ARCHITECTURE: ${DSTARCH:-default} / ${ARCH:-default}
+# COMPILER: ${CROSSCOMPILE:-cc}
 #
 # KERNEL_URL: $KERNEL_URL
 # KERNEL_CONFIG: $CONFIG1
@@ -593,11 +624,18 @@ MAX="\${3:-5}"		# max running time [seconds] in autotest-mode
 # INITRD3: $(  wc -c <$INITRD_FILE4 ) bytes = $INITRD_FILE4
 #   decompress: gzip -cd $INITRD_FILE | cpio -idm
 
+QEMU='qemu-system-x86_64'
+KERNEL_ARGS='console=ttyS0'
+
 grep -q svm /proc/cpuinfo && KVM_SUPPORT='-enable-kvm -cpu host'
 grep -q vmx /proc/cpuinfo && KVM_SUPPORT='-enable-kvm -cpu host'
 [ -n "\$KVM_SUPPORT" ] && test "\$( id -u )" -gt 0 && KVM_PRE="\$( command -v sudo )"
 
-KERNEL_ARGS='console=ttyS0'
+case "$DSTARCH" in armel|armhf|arm|aarch64)
+	DTB="$DTB"
+	KVM_SUPPORT="-M versatilepb -dtb \$DTB"; KVM_PRE=; QEMU='qemu-system-arm'; KERNEL_ARGS='console=ttyAMA0' ;;
+esac
+
 $( has_arg 'net' && echo "KERNEL_ARGS='console=ttyS0 ip=dhcp nameserver=8.8.8.8'" )
 QEMU_OPTIONS=
 $( has_arg 'net' && echo "QEMU_OPTIONS='-net nic,model=rtl8139 -net user'" )
@@ -606,6 +644,8 @@ case "\$ACTION" in
 	autotest)
 	;;
 	boot|'')
+		set -x
+
 		case "$KERNEL_FILE" in
 			*'/vmlinux')
 				# UML-mode:
@@ -613,7 +653,7 @@ case "\$ACTION" in
 					initrd=$INITRD_FILE
 			;;
 			*)
-				\$KVM_PRE qemu-system-x86_64 \$KVM_SUPPORT \\
+				\$KVM_PRE \$QEMU \$KVM_SUPPORT \\
 					-kernel $KERNEL_FILE \\
 					-initrd $INITRD_FILE \\
 					-nographic \\
@@ -632,7 +672,7 @@ mkfifo "\$PIPE.out" || exit
 \$KVM_PRE echo			# cache sudo-pass for (maybe) next interactive run
 
 (
-	\$KVM_PRE qemu-system-x86_64 \$KVM_SUPPORT \\
+	\$KVM_PRE \$QEMU \$KVM_SUPPORT \\
 		-kernel $KERNEL_FILE \\
 		-initrd $INITRD_FILE \\
 		-nographic \\
