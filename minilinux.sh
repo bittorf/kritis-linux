@@ -57,7 +57,7 @@ case "$DSTARCH" in
 	armel)   export ARCH='ARCH=arm' && export CROSSCOMPILE="CROSS_COMPILE=arm-linux-gnueabi-" ;;
 	armhf)   export ARCH= ;;
 	aarch64) export ARCH= ;;
-	*)       export ARCH= ;;
+	*) ;;
 esac
 
 deps_check()
@@ -477,14 +477,16 @@ cd * || exit		# there is only 1 dir
 # sed -i 's|-Wall -Wundef|& -fno-pie|' Makefile
 
 # FIXME!
-[ -f 'include/linux/compiler-gcc9.h' ] || {
-	cp -v include/linux/compiler-gcc5.h include/linux/compiler-gcc9.h
+#[ -f 'include/linux/compiler-gcc9.h' ] || {
+#	cp -v include/linux/compiler-gcc5.h include/linux/compiler-gcc9.h
 #	cp -v include/linux/compiler-gcc5.h include/linux/compiler-gcc10.h
-}
+#}
 #
 # TODO:
 # home/bastian/software/minilinux/minilinux/opt/linux/linux-3.19.8/include/linux/compiler-gcc.h:106:1: fatal error: linux/compiler-gcc9.h: Datei oder Verzeichnis nicht gefunden 
 
+make $ARCH O=$LINUX_BUILD distclean	# needed?
+#
 case "$DSTARCH" in
 	'')
 		make $ARCH O=$LINUX_BUILD allnoconfig || exit
