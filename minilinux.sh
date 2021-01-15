@@ -45,19 +45,27 @@ has_arg()
 	case " $OPTIONS " in *" $1 "*) true ;; *) false ;; esac
 }
 
-# - arm: qemu-system-arm
-#        gcc-arm-linux-gnueabi  = armel = older 32bit
-#        gcc-arm-linux-gnueabhf = armhf = arm7 / 32bit with power / hard float
-#        gcc-aarch64-linux-gnu  = arm64 = 64bit
+# FIXME! on arm / qemu-system-arm / we should switch to qemu -M virt without DTB and smaller config
+#   apt: gcc-arm-linux-gnueabi   = armel = older 32bit
+#   apt: gcc-arm-linux-gnueabihf = armhf = arm7 / 32bit with power / hard float
+#   apt: gcc-aarch64-linux-gnu   = arm64 = 64bit
 #
 has_arg 'UML' && DSTARCH='uml'
 #
 case "$DSTARCH" in
-	uml)     export ARCH='ARCH=um' ;;
-	armel)   export ARCH='ARCH=arm' && export CROSSCOMPILE="CROSS_COMPILE=arm-linux-gnueabi-" ;;
-	armhf)   export ARCH= ;;
-	aarch64) export ARCH= ;;
-	*) ;;
+	uml)	 export ARCH='ARCH=um'
+		 export DEFCONFIG='allnoconfig'
+	;;
+	armel)	 export ARCH='ARCH=arm' CROSSCOMPILE='CROSS_COMPILE=arm-linux-gnueabi-'
+		 export BOARD='versatilepb' DTB='versatile-pb.dtb' DEFCONFIG='versatile_defconfig'
+	;;
+	armhf)	 export ARCH='ARCH=arm' CROSSCOMPILE='CROSS_COMPILE=arm-linux-gnueabihf-'
+		 export BOARD='vexpress-a9' DTB='vexpress-v2p-ca9.dtb' DEFCONFIG='vexpress_defconfig'
+	;;
+	aarch64) export ARCH=
+	;;
+	*)	 export DEFCONFIG='allnoconfig'
+	;;
 esac
 
 deps_check()
@@ -485,17 +493,8 @@ cd * || exit		# there is only 1 dir
 # TODO:
 # home/bastian/software/minilinux/minilinux/opt/linux/linux-3.19.8/include/linux/compiler-gcc.h:106:1: fatal error: linux/compiler-gcc9.h: Datei oder Verzeichnis nicht gefunden 
 
-make $ARCH O=$LINUX_BUILD distclean	# needed?
-#
-case "$DSTARCH" in
-	'')
-		make $ARCH O=$LINUX_BUILD allnoconfig || exit
-	;;
-	*)
-		# e.g. arm - FIXME! we should switch to qemu -M virt without DTB and smaller config
-		make $ARCH O=$LINUX_BUILD versatile_defconfig || exit
-	;;
-esac
+make $ARCH O=$LINUX_BUILD distclean		# needed?
+make $ARCH O=$LINUX_BUILD $DEFCONFIG || exit
 cd $LINUX_BUILD
 
 if has_arg 'UML'; then
@@ -588,10 +587,9 @@ else
 	logger -s "extractor for ELF not found"
 fi
 
-DTB=
 case "$DSTARCH" in
 	arm*)
-		DTB="$( find $LINUX_BUILD/ -type f -name 'versatile-pb.dtb' )"
+		DTB="$( find $LINUX_BUILD/ -type f -name "$DTB" )"
 	;;
 esac
 
@@ -633,9 +631,9 @@ grep -q svm /proc/cpuinfo && KVM_SUPPORT='-enable-kvm -cpu host'
 grep -q vmx /proc/cpuinfo && KVM_SUPPORT='-enable-kvm -cpu host'
 [ -n "\$KVM_SUPPORT" ] && test "\$( id -u )" -gt 0 && KVM_PRE="\$( command -v sudo )"
 
-case "$DSTARCH" in armel|armhf|arm|aarch64)
+case "${DSTARCH:-\$( arch || echo native )}" in armel|armhf|arm|aarch64)
 	DTB="$DTB"
-	KVM_SUPPORT="-M versatilepb -dtb \$DTB"; KVM_PRE=; QEMU='qemu-system-arm'; KERNEL_ARGS='console=ttyAMA0' ;;
+	KVM_SUPPORT="-M $BOARD -dtb \$DTB"; KVM_PRE=; QEMU='qemu-system-arm'; KERNEL_ARGS='console=ttyAMA0' ;;
 esac
 
 $( has_arg 'net' && echo "KERNEL_ARGS='console=ttyS0 ip=dhcp nameserver=8.8.8.8'" )
