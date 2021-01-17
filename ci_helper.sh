@@ -1,33 +1,33 @@
 #!/bin/sh
 
-KEEP_FILES="$2"			# e.g. '/bin/busybox /bin/sh /bin/cat' or .
-ADD_DIR="$4"			# e.g. "$PWD"
-WAIT_PATTERN="$6"		# e.g. 'READY_BOOT_MARKER'
-WAIT_SECONDS="${8:-120}"
-LINUX_VERSION="${10:-latest}"	# e.g. 'https://cdn.kernel.org/pub/linux/kernel/v3.x/linux-3.17.tar.xz'
-# INIT="${12:-init.user}"	# TODO
-# CORE=... busybox/toybox	# TODO
-# ARCH=				# TODO
+while [ -n "$1" ]; do {
+	case "$1" in
+		--features) export FEATURES="$2" ;;	# e.g. busybox,toybox,net,xyz,foo
+		--pattern) WAIT_PATTERN="$2" ;;		# e.g. '# unittest ok'
+		--maxwait) WAIT_SECONDS="$2" ;;		# e.g. 600 (default is 120)
+		--diradd) export INITRD_DIR_ADD="$2" ;;	# e.g. '/path/to/my/files' or e.g. simply "$(pwd)"
+		--kernel) LINUX_VERSION="$2" ;;		# e.g. 'latest' (=default) or '5.4.89' or an URL to .tgz/.xz
+		--myinit) export MYINIT="$2" ;;		# e.g. 'my_file.sh' (relative to diradd-path)
+		--debug) DEBUG="$2" ;;			# e.g. true
+		--keep) export KEEP_LIST="$2" ;;	# e.g. '/bin/busybox /bin/sh /bin/cat' 
+		--arch) export DSTARCH="$2" ;;		# e.g. i386,x86_64,armel,armhf,arm64,mips,m68k (default is x86_64)
+	esac && shift
+} done
 
 cd "$( dirname "$0" )" || exit
-
 TMP1="$( mktemp )" || exit
 TMP2="$( mktemp )" || exit
 
-echo "[OK] INITRD_DIR_ADD='$ADD_DIR' KEEP_LIST='$KEEP_FILES' ./minilinux.sh '$LINUX_VERSION'"
-
-INITRD_DIR_ADD="$ADD_DIR" KEEP_LIST="$KEEP_FILES" ./minilinux.sh "$LINUX_VERSION" >"$TMP1" 2>"$TMP2" || {
+echo "[OK] executing ./minilinux.sh '${LINUX_VERSION:=latest}'"
+if ./minilinux.sh "$LINUX_VERSION" >"$TMP1" 2>"$TMP2"; then
+	[ -n "$DEBUG" ] && cat "$TMP1" "$TMP2"
+else
 	RC="$?"
-	cat "$TMP1" "$TMP2"	# TODO: add --debugbuild
+	cat "$TMP1" "$TMP2"
 	exit "$RC"
-}
+fi
 
-echo
-echo "kernel.bin: $( ls -l minilinux/builds/linux/arch/x86/boot/bzImage	)"
-echo "initrd.xz:  $( ls -l minilinux/builds/initramfs.cpio.xz.xz )"
-echo
-head -n5 minilinux/builds/linux/.config
-echo
-echo "[OK] now running 'minilinux/builds/linux/run.sh' in autotest-mode, waiting max. $WAIT_SECONDS sec for pattern '$WAIT_PATTERN'"
+grep ^'#' minilinux/builds/linux/run.sh && echo
+echo "[OK] starting 'minilinux/builds/linux/run.sh' in autotest-mode, wait max. ${WAIT_SECONDS:=120} sec for pattern '$WAIT_PATTERN'"
 
 minilinux/builds/linux/run.sh autotest "$WAIT_PATTERN" "$WAIT_SECONDS"
