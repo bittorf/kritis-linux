@@ -1,6 +1,7 @@
 #!/bin/sh
 #
 # TODO:
+# - add maybe -no-reboot?
 # - builddir = mark_cache = no_backup
 # - net: nameserver?
 # - nproc/memsize
@@ -17,6 +18,7 @@
 
 # possible vars to export into this script:
 #
+# OWN_KCONFIG=file
 # DSTARCH=armhf		# https://superuser.com/questions/1009540/difference-between-arm64-armel-and-armhf
 # INITRD_DIR_ADD= ...	# e.g. /tmp/foo
 # KEEP_LIST= ...	# e.g. '/bin/busybox /bin/sh /bin/cat'
@@ -49,22 +51,25 @@ has_arg()
 #   apt: gcc-arm-linux-gnueabi   = armel = older 32bit
 #   apt: gcc-arm-linux-gnueabihf = armhf = arm7 / 32bit with power / hard float
 #   apt: gcc-aarch64-linux-gnu   = arm64 = 64bit
+#   apt: u-boot-qemu -> u-boot-tools
 #
 has_arg 'UML' && DSTARCH='uml'
 #
 case "$DSTARCH" in
-	uml)	 export ARCH='ARCH=um'
-		 export DEFCONFIG='allnoconfig'
+	uml)	export ARCH='ARCH=um'
+		export DEFCONFIG='allnoconfig'
 	;;
-	armel)	 export ARCH='ARCH=arm' CROSSCOMPILE='CROSS_COMPILE=arm-linux-gnueabi-'
-		 export BOARD='versatilepb' DTB='versatile-pb.dtb' DEFCONFIG='versatile_defconfig'
+	armel)	export ARCH='ARCH=arm' CROSSCOMPILE='CROSS_COMPILE=arm-linux-gnueabi-'
+		export BOARD='versatilepb' DTB='versatile-pb.dtb' DEFCONFIG='versatile_defconfig'
 	;;
-	armhf)	 export ARCH='ARCH=arm' CROSSCOMPILE='CROSS_COMPILE=arm-linux-gnueabihf-'
-		 export BOARD='vexpress-a9' DTB='vexpress-v2p-ca9.dtb' DEFCONFIG='vexpress_defconfig'
+	armhf)	export ARCH='ARCH=arm' CROSSCOMPILE='CROSS_COMPILE=arm-linux-gnueabihf-'
+		export BOARD='vexpress-a9' DTB='vexpress-v2p-ca9.dtb' DEFCONFIG='vexpress_defconfig'
 	;;
-	aarch64) export ARCH=
+	arm64)	export ARCH='ARCH=arm64' CROSSCOMPILE='CROSS_COMPILE=aarch64-linux-gnu-'
+		export BOARD='virt' DEFCONFIG='allnoconfig' # BIOS='/usr/lib/u-boot/qemu_arm64/u-boot.bin'
+		export DEFCONFIG='defconfig'
 	;;
-	*)	 export DEFCONFIG='allnoconfig'
+	*)	export DEFCONFIG='allnoconfig'
 	;;
 esac
 
@@ -121,6 +126,8 @@ kernels()
 		30) echo 'https://git.kernel.org/torvalds/t/linux-5.10-rc1.tar.gz' ;;
 		31) echo 'https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.10.1.tar.xz' ;;
 		32) echo 'https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.10.6.tar.xz' ;;
+		33) echo 'https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-4.14.215.tar.xz' ;;
+		34) echo 'https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.4.89.tar.xz' ;;
 		latest) wget -qO - https://www.kernel.org | grep -A1 "latest_link" | tail -n1 | cut -d'"' -f2 ;;
 		 *) false ;;
 	esac
@@ -243,6 +250,27 @@ mkdir -p "$LINUX_BUILD"
 # CONFIG_SERIAL_8250_CONSOLE=y		| Device Drivers ---> Character devices ---> Serial drivers ---> Console on 8250/16550 and compatible serial port
 # CONFIG_PROC_FS=y			| File systems ---> Pseudo filesystems ---> /proc file system support
 # CONFIG_SYSFS=y			| File systems ---> Pseudo filesystems ---> sysfs file system support
+
+
+list_kernel_symbols_arm64()
+{
+	cat <<EOF
+CONFIG_BLK_DEV_INITRD=y
+CONFIG_BINFMT_ELF=y
+CONFIG_BINFMT_SCRIPT=y
+CONFIG_DEVTMPFS=y
+CONFIG_DEVTMPFS_MOUNT=y
+CONFIG_TTY=y
+CONFIG_PRINTK=y
+CONFIG_SERIAL_AMBA_PL011=y
+CONFIG_SERIAL_AMBA_PL011_CONSOLE=y
+CONFIG_SLUB=y
+CONFIG_PROC_FS=y
+CONFIG_SYSFS=y
+# ARM64_PTR_AUTH is not set
+# ARM64_TLB_RANGE is not set
+EOF
+}
 
 list_kernel_symbols()
 {
@@ -497,7 +525,9 @@ make $ARCH O=$LINUX_BUILD distclean		# needed?
 make $ARCH O=$LINUX_BUILD $DEFCONFIG || exit
 cd $LINUX_BUILD
 
-if has_arg 'UML'; then
+if [ -f "$OWN_KCONFIG" ]; then
+	cp -v "$OWN_KCONFIG" .config
+elif has_arg 'UML'; then
 	make mrproper
 	make mrproper $ARCH
 	make defconfig $ARCH
@@ -522,12 +552,13 @@ if has_arg 'UML'; then
 	apply "CONFIG_DECOMPRESS_LZO=y"
 	apply "CONFIG_DECOMPRESS_LZ4=y"
 
+#	set -x
 #	apply "CONFIG_INITRAMFS_SOURCE=\"$INITRD_FILE\""
 #	grep CONFIG_INITRAMFS_SOURCE= .config || {
-#		echo "### sdfisfsdfzuszdf"
-#		sleep 10
+#		echo "FIXME!" && exit
 #	}
 else
+#	list_kernel_symbols_arm64 | while read -r SYMBOL; do {
 	list_kernel_symbols | while read -r SYMBOL; do {
 		apply "$SYMBOL" || exit
 	} done
@@ -557,12 +588,13 @@ fi
 # e.g. $LINUX_BUILD/arch/x86_64/boot/bzImage
 # e.g. $LINUX_BUILD/arch/arm/boot/zImage
 KERNEL_FILE="$( find "$LINUX_BUILD" -type f -name '*zImage' )"
+[ -f "$KERNEL_FILE" ] || KERNEL_FILE="$LINUX_BUILD/vmlinux"	# e.g. arm64 or uml
 
-if [ -z "$KERNEL_FILE" ]; then
+if [ -f "$KERNEL_FILE" ]; then
+	logger -s "pwd: $( pwd ) found: '$KERNEL_FILE'"
+else
 	logger -s "pwd: $( pwd ) no file found: '$KERNEL_FILE'"
 	exit 1
-else
-	logger -s "pwd: $( pwd ) found: '$KERNEL_FILE'"
 fi
 
 cd .. || exit
@@ -589,7 +621,12 @@ fi
 
 case "$DSTARCH" in
 	arm*)
-		DTB="$( find $LINUX_BUILD/ -type f -name "$DTB" )"
+		if [ "$DTB" = 'auto' ]; then
+			qemu-system-aarch64 -machine "$BOARD" -cpu max -machine dumpdtb=auto.dtb -nographic
+			DTB="$( pwd )/auto.dtb"
+		else
+			DTB="$( find $LINUX_BUILD/ -type f -name "$DTB" )"
+		fi
 	;;
 esac
 
@@ -631,11 +668,13 @@ grep -q svm /proc/cpuinfo && KVM_SUPPORT='-enable-kvm -cpu host'
 grep -q vmx /proc/cpuinfo && KVM_SUPPORT='-enable-kvm -cpu host'
 [ -n "\$KVM_SUPPORT" ] && test "\$( id -u )" -gt 0 && KVM_PRE="\$( command -v sudo )"
 
-case "${DSTARCH:-\$( arch || echo native )}" in armel|armhf|arm|aarch64)
-	DTB="$DTB"
-	KVM_SUPPORT="-M $BOARD -dtb \$DTB"; KVM_PRE=; QEMU='qemu-system-arm'; KERNEL_ARGS='console=ttyAMA0' ;;
+case "${DSTARCH:-\$( arch || echo native )}" in armel|armhf|arm|arm64)
+	DTB="$DTB" && test -f "\$DTB" && DTB="-dtb \"\$DTB\""
+	KVM_SUPPORT="-M $BOARD $DTB" ; KVM_PRE=; QEMU='qemu-system-arm'; KERNEL_ARGS='console=ttyAMA0'
+	[ "$DSTARCH" = arm64 ] && QEMU='qemu-system-aarch64' && KVM_SUPPORT="\$KVM_SUPPORT -cpu max"
 esac
 
+$( test -f "$BIOS" && echo "BIOS='-bios \"$BIOS\"'" )
 $( has_arg 'net' && echo "KERNEL_ARGS='console=ttyS0 ip=dhcp nameserver=8.8.8.8'" )
 QEMU_OPTIONS=
 $( has_arg 'net' && echo "QEMU_OPTIONS='-net nic,model=rtl8139 -net user'" )
@@ -646,14 +685,13 @@ case "\$ACTION" in
 	boot|'')
 		set -x
 
-		case "$KERNEL_FILE" in
-			*'/vmlinux')
-				# UML-mode:
+		case "$DSTARCH" in
+			uml)
 				$KERNEL_FILE \\
 					initrd=$INITRD_FILE
 			;;
 			*)
-				\$KVM_PRE \$QEMU \$KVM_SUPPORT \\
+				\$KVM_PRE \$QEMU \$KVM_SUPPORT \$BIOS \\
 					-kernel $KERNEL_FILE \\
 					-initrd $INITRD_FILE \\
 					-nographic \\
@@ -672,7 +710,7 @@ mkfifo "\$PIPE.out" || exit
 \$KVM_PRE echo			# cache sudo-pass for (maybe) next interactive run
 
 (
-	\$KVM_PRE \$QEMU \$KVM_SUPPORT \\
+	\$KVM_PRE \$QEMU \$KVM_SUPPORT \$BIOS \\
 		-kernel $KERNEL_FILE \\
 		-initrd $INITRD_FILE \\
 		-nographic \\
