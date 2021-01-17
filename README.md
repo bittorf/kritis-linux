@@ -38,5 +38,8 @@ kritis-linux/ci_helper.sh \
 
 ### switches and options
 
-* todo
+* --initrd /path/to/initial-ramdisk.tgz
+* --debug true
+* --kconfig /path/to/.kernel-config
+* --arch uml|armel|armhf|arm64|i386|x86_64 (more is one the way)
 
