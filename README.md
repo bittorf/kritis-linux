@@ -1,6 +1,6 @@
 ### KRITIS Linux
 
-* see [https://de.wikipedia.org/w/index.php?title=KRITIS]
+* see [KRITIS](https://de.wikipedia.org/w/index.php?title=KRITIS)
 * still alpha
 * supports musl, glibc and busybox/toybox
 
@@ -9,9 +9,9 @@
 * get help with, e.g. `./minilinux.sh`
 * make a linux with e.g. `./minilinux.sh latest`
 
-# CI script for autobuild and running a QEMU instance
+# CI: build and run QEMU instance
 
-For continuous integration of your code, use a 
+For continuous integration of your code, use a  
 script like this, for deploy a minimal Linux-VM.
 
 ```
