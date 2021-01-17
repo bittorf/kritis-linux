@@ -78,12 +78,12 @@ esac
 
 deps_check()
 {
-	local cmd list='gzip xz zstd wget cp basename mkdir rm cat make sed grep tar test find touch chmod'
+	local cmd list='gzip xz zstd wget cp basename mkdir rm cat make sed grep tar test find touch chmod file'
 	# hint: 'vimdiff' and 'logger' are used, but not essential
 
 	for cmd in $list; do {
 		command -v "$cmd" >/dev/null || {
-			printf '%s\n' "abort, missing command: '$cmd' - please install"
+			printf '%s\n' "[ERROR] missing command: '$cmd' - please install"
 			return 1
 		}
 	} done
@@ -491,7 +491,12 @@ exec /bin/sh 2>/dev/null
 EOF
 
 chmod +x 'init'
-sh -n 'init' || { RC=$?; echo "$PWD/init"; exit $RC; }
+
+case "$( file -b 'init' )" in
+	ELF*) ;;
+	*) sh -n 'init' || { RC=$?; echo "$PWD/init"; exit $RC; } ;;
+esac
+
 find . -print0 | cpio --create --null --format=newc | xz -9  --format=lzma    >$BUILDS/initramfs.cpio.xz
 find . -print0 | cpio --create --null --format=newc | xz -9e --format=lzma    >$BUILDS/initramfs.cpio.xz.xz
 find . -print0 | cpio --create --null --format=newc | zstd -v -T0 --ultra -22 >$BUILDS/initramfs.cpio.zstd
