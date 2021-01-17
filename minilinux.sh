@@ -696,11 +696,16 @@ case "\$ACTION" in
 					-kernel $KERNEL_FILE \\
 					-initrd $INITRD_FILE \\
 					-nographic \\
-					-append "\$KERNEL_ARGS" \$QEMU_OPTIONS
+					-append "\$KERNEL_ARGS" \$QEMU_OPTIONS && set +x
 			;;
 		esac
 
-		exit 
+		RC=\$? && set +x
+		echo
+		echo "# thanks for using:"
+		echo "# https://github.com/bittorf/kritis-linux"
+		echo
+		exit \$RC
 	;;
 esac
 
@@ -729,7 +734,7 @@ PID=\$!
 			'# BOOTTIME_SECONDS '*|'# UNAME '*)
 				echo "\$LINE" >>"\$PIPE"
 			;;
-			"# \$PATTERN"*)
+			"\$PATTERN"*)
 				echo 'READY' >>"\$PIPE"
 				break
 			;;
@@ -753,11 +758,15 @@ cat "\$PIPE" "\$TEXT"
 rm -f "\$PIPE" "\$PIPE.in" "\$PIPE.out"
 
 echo
-echo "autotest-mode ready after \$(( MAX - I )) (out of max \$MAX) seconds"
+echo "# autotest-mode ready after \$(( MAX - I )) (out of max \$MAX) seconds"
 !
 
 chmod +x "$LINUX_BUILD/run.sh" && \
-	  $LINUX_BUILD/run.sh 'autotest' 'READY'
+	  $LINUX_BUILD/run.sh 'autotest' '# READY'
 
 echo
-echo "see: $LINUX_BUILD/run.sh"
+echo "# see: $LINUX_BUILD/run.sh"
+echo "#"
+echo "# thanks for using:"
+echo "# https://github.com/bittorf/kritis-linux"
+echo
