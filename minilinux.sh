@@ -438,20 +438,24 @@ cp -a $BUSYBOX_BUILD/_install/* .
 # TODO: https://stackoverflow.com/questions/36529881/qemu-bin-sh-cant-access-tty-job-control-turned-off?rq=1
 
 [ -d "$INITRD_DIR_ADD" ] && {
+	# FIXME! we do not include a directory names 'x'
 	test -d "$INITRD_DIR_ADD/x" && mv -v "$INITRD_DIR_ADD/x" ~/tmp.cheat.$$
 	cp -R "$INITRD_DIR_ADD/"* .
 	test -d ~/tmp.cheat.$$ && mv -v ~/tmp.cheat.$$ "$INITRD_DIR_ADD/x"
 
-	rm -f "LICENSE" "README.md" kernel.bin initramfs.cpio.gz initrd.xz
-	rm -fR sys usr sbin etc root proc kritis-linux
+	[ -d kritis-linux ] && rm -fR kritis-linux
 
-	test -f 'run-amd64.sh' && mv run-amd64.sh init.user
-	touch 'tmp/hex0.bin' && chmod +x 'tmp/hex0.bin'		# mes bootstrap
+	test -f "$MYINIT" && mv -v "$MYINIT" 'init'
 
-	test -f 'init' && cp init init.user
+	test -f 'run-amd64.sh' && {		# FIXME! is a hack for MES
+		mv 'run-amd64.sh' init.user
+		rm -fR sys usr sbin etc root proc
+		rm -f "LICENSE" "README.md" kernel.bin initramfs.cpio.gz initrd.xz
+		touch 'tmp/hex0.bin' && chmod +x 'tmp/hex0.bin'
+	}
 }
 
-cat >'init' <<EOF
+[ -f init ] || cat >'init' <<EOF
 #!/bin/sh
 command -v mount && {
 	mount -t proc  none /proc && {
@@ -480,7 +484,7 @@ printf '%s\n' "# MEMFREE_KILOBYTES \${MEMAVAIL_KB:--1}"
 printf '%s\n' "# UNAME \$( \$UNAME -a || printf uname_unavailable )"
 printf '%s\n' "# READY - to quit $( if has_arg 'UML'; then echo "type 'exit'"; else echo "press once CTRL+A and then 'x' or kill qemu"; fi )"
 
-# used for MES:
+# hack for MES:
 test -f init.user && busybox sleep 2 && AUTO=true ./init.user	# wait for dmesg-trash
 
 exec /bin/sh 2>/dev/null

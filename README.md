@@ -11,8 +11,7 @@
 
 # CI: build and run QEMU instance
 
-For continuous integration of your code, use a  
-script like this, for deploy a minimal Linux-VM.
+For continuous integration of your code, use a script like this, for deploy a minimal Linux-VM.
 
 ```
 # https://github.com/bittorf/kritis-linux
