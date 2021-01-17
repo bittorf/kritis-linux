@@ -16,19 +16,19 @@
 git clone --depth 1 https://github.com/bittorf/kritis-linux.git
 
 kritis-linux/ci_helper.sh \
-	--keep '/bin/busybox /bin/sh /bin/cat' \
-	--diradd "$( pwd )" \
-	--pattern "In QEMU-mode you can now explore the system" \
-	--maxwait "600" \
+	--arch "x86_64" \
 	--kernel "latest" \
+	--features "busybox" \
+	--keep "/bin/busybox /bin/sh /bin/cat" \
+	--diradd "$( pwd )" \
 	--myinit "script.xy" \
-	--core "busybox"
+	--maxwait "600" \
+	--pattern "In QEMU-mode you can now explore the system"
 ```
 
-* above command builds linux + busybox 
+* above command builds latest 64bit 'linux' and adds 'busybox'
 * removes all symlinks, except those in --keep
 * adds directory in --diradd to initial ramdisk
+* uses 'script.xy' as /sbin/init
 * starts qemu and waits till --pattern shows up
 * aborts the run, when over 600 seconds
-* uses latest mainline linux (default)
-* and uses 'script.xy' as /sbin/init
