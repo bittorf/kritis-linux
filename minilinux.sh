@@ -766,6 +766,7 @@ rm -f "\$PIPE" "\$PIPE.in" "\$PIPE.out"
 
 echo
 echo "# autotest-mode ready after \$(( MAX - I )) (out of max \$MAX) seconds"
+echo "# manual startup: \$0"
 !
 
 chmod +x "$LINUX_BUILD/run.sh" && \
