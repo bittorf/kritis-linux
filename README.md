@@ -4,12 +4,12 @@
 * still alpha
 * supports musl, glibc and busybox/toybox
 
-# Syntax
+### Syntax
 
 * get help with, e.g. `./minilinux.sh`
 * make a linux with e.g. `./minilinux.sh latest`
 
-# CI: build and run QEMU instance
+### CI: build and run QEMU instance
 
 For continuous integration of your code, use a script like this, for deploy a minimal Linux-VM.
 
@@ -19,6 +19,7 @@ git clone --depth 1 https://github.com/bittorf/kritis-linux.git
 
 kritis-linux/ci_helper.sh \
 	--arch x86_64 \
+	--ramsize 384 \
 	--kernel latest \
 	--features busybox \
 	--keep "/bin/busybox /bin/sh /bin/cat" \
@@ -32,5 +33,10 @@ kritis-linux/ci_helper.sh \
 * removes all symlinks, except those in --keep
 * adds directory in --diradd to initial ramdisk
 * uses 'script.xy' as /sbin/init
-* starts qemu and waits till --pattern shows up
+* starts qemu with 384mb RAM and waits till --pattern shows up
 * aborts the run, when over 550 seconds
+
+### switches and options
+
+* todo
+
