@@ -719,7 +719,6 @@ case "\$ACTION" in
 esac
 
 PIPE="\$( mktemp )" || exit
-TEXT="\$( mktemp )" || exit
 mkfifo "\$PIPE.in"  || exit
 mkfifo "\$PIPE.out" || exit
 \$KVM_PRE echo			# cache sudo-pass for (maybe) next interactive run
@@ -743,12 +742,12 @@ PID=\$!
 			'# BOOTTIME_SECONDS '*|'# UNAME '*)
 				echo "\$LINE" >>"\$PIPE"
 			;;
-			"\$PATTERN"*)
+			"\$PATTERN"*|"Kernel panic"*)
 				echo 'READY' >>"\$PIPE"
 				break
 			;;
 		esac
-	} done <"\$PIPE.out" >"\$TEXT"
+	} done <"\$PIPE.out"
 ) &
 
 I=\$MAX
@@ -763,7 +762,6 @@ while [ \$I -gt 0 ]; do {
 
 \$KVM_PRE kill -0 \$PID && \$KVM_PRE kill \$PID
 
-cat "\$PIPE" "\$TEXT"
 rm -f "\$PIPE" "\$PIPE.in" "\$PIPE.out"
 
 echo
