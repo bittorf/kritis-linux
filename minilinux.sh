@@ -645,6 +645,7 @@ MAX="\${3:-5}"		# max running time [seconds] in autotest-mode
 #
 # KERNEL_URL: $KERNEL_URL
 # KERNEL_CONFIG: $CONFIG1
+$( sed -n '1,5s/^/#                /p' "$CONFIG1" )
 # KERNEL: $KERNEL_FILE
 # KERNEL_ELF: $KERNEL_ELF
 # KERNEL_SIZE: $( wc -c <$KERNEL_FILE ) bytes compressed
