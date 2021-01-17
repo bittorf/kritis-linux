@@ -6,6 +6,7 @@ while [ -n "$1" ]; do {
 		--pattern) WAIT_PATTERN="$2" ;;		# e.g. '# unittest ok'
 		--maxwait) WAIT_SECONDS="$2" ;;		# e.g. 600 (default is 120)
 		--diradd) export INITRD_DIR_ADD="$2" ;;	# e.g. '/path/to/my/files' or e.g. simply "$(pwd)"
+		--initrd) export OWN_INITRD="$2" ;;	# e.g. '/path/to/myinit.tgz'
 		--kernel) LINUX_VERSION="$2" ;;		# e.g. 'latest' (=default) or '5.4.89' or an URL to .tgz/.xz
 		--myinit) export MYINIT="$2" ;;		# e.g. 'my_file.sh' (relative to diradd-path)
 		--debug) DEBUG="$2" ;;			# e.g. true

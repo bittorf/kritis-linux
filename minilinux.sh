@@ -18,6 +18,7 @@
 
 # possible vars to export into this script:
 #
+# OWN_INITRD=file
 # OWN_KCONFIG=file
 # DSTARCH=armhf		# https://superuser.com/questions/1009540/difference-between-arm64-armel-and-armhf
 # INITRD_DIR_ADD= ...	# e.g. /tmp/foo
@@ -497,15 +498,20 @@ case "$( file -b 'init' )" in
 	*) sh -n 'init' || { RC=$?; echo "$PWD/init"; exit $RC; } ;;
 esac
 
-find . -print0 | cpio --create --null --format=newc | xz -9  --format=lzma    >$BUILDS/initramfs.cpio.xz
-find . -print0 | cpio --create --null --format=newc | xz -9e --format=lzma    >$BUILDS/initramfs.cpio.xz.xz
-find . -print0 | cpio --create --null --format=newc | zstd -v -T0 --ultra -22 >$BUILDS/initramfs.cpio.zstd
-find . -print0 | cpio --create --null --format=newc | gzip -9                 >$BUILDS/initramfs.cpio.gz
+if [ -f "$OWN_INITRD" ]; then
+	INITRD_FILE="$OWN_INITRD"
+else
+	find . -print0 | cpio --create --null --format=newc | xz -9  --format=lzma    >$BUILDS/initramfs.cpio.xz
+	find . -print0 | cpio --create --null --format=newc | xz -9e --format=lzma    >$BUILDS/initramfs.cpio.xz.xz
+	find . -print0 | cpio --create --null --format=newc | zstd -v -T0 --ultra -22 >$BUILDS/initramfs.cpio.zstd
+	find . -print0 | cpio --create --null --format=newc | gzip -9                 >$BUILDS/initramfs.cpio.gz
 
-INITRD_FILE="$(  readlink -e "$BUILDS/initramfs.cpio.gz"    )"
-INITRD_FILE2="$( readlink -e "$BUILDS/initramfs.cpio.xz"    )"
-INITRD_FILE3="$( readlink -e "$BUILDS/initramfs.cpio.xz.xz" )"
-INITRD_FILE4="$( readlink -e "$BUILDS/initramfs.cpio.zstd"  )"
+	INITRD_FILE="$(  readlink -e "$BUILDS/initramfs.cpio.gz"    )"
+	INITRD_FILE2="$( readlink -e "$BUILDS/initramfs.cpio.xz"    )"
+	INITRD_FILE3="$( readlink -e "$BUILDS/initramfs.cpio.xz.xz" )"
+	INITRD_FILE4="$( readlink -e "$BUILDS/initramfs.cpio.zstd"  )"
+fi
+
 BB_FILE="$BUSYBOX_BUILD/busybox"
 has_arg 'toybox' && BB_FILE="$BUSYBOX_BUILD/toybox"
 
