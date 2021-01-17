@@ -51,7 +51,6 @@ has_arg()
 #   apt: gcc-arm-linux-gnueabi   = armel = older 32bit
 #   apt: gcc-arm-linux-gnueabihf = armhf = arm7 / 32bit with power / hard float
 #   apt: gcc-aarch64-linux-gnu   = arm64 = 64bit
-#   apt: u-boot-qemu -> u-boot-tools
 #
 has_arg 'UML' && DSTARCH='uml'
 #
@@ -66,8 +65,7 @@ case "$DSTARCH" in
 		export BOARD='vexpress-a9' DTB='vexpress-v2p-ca9.dtb' DEFCONFIG='vexpress_defconfig'
 	;;
 	arm64)	export ARCH='ARCH=arm64' CROSSCOMPILE='CROSS_COMPILE=aarch64-linux-gnu-'
-		export BOARD='virt' DEFCONFIG='allnoconfig' # BIOS='/usr/lib/u-boot/qemu_arm64/u-boot.bin'
-		export DEFCONFIG='defconfig'
+		export BOARD='virt' DEFCONFIG='allnoconfig'
 	;;
 	*)	export DEFCONFIG='allnoconfig'
 	;;
@@ -669,8 +667,8 @@ grep -q vmx /proc/cpuinfo && KVM_SUPPORT='-enable-kvm -cpu host'
 [ -n "\$KVM_SUPPORT" ] && test "\$( id -u )" -gt 0 && KVM_PRE="\$( command -v sudo )"
 
 case "${DSTARCH:-\$( arch || echo native )}" in armel|armhf|arm|arm64)
-	DTB="$DTB" && test -f "\$DTB" && DTB="-dtb \"\$DTB\""
-	KVM_SUPPORT="-M $BOARD $DTB" ; KVM_PRE=; QEMU='qemu-system-arm'; KERNEL_ARGS='console=ttyAMA0'
+	DTB='$DTB'
+	KVM_SUPPORT="-M $BOARD \${DTB:+-dtb }\$DTB" ; KVM_PRE=; QEMU='qemu-system-arm'; KERNEL_ARGS='console=ttyAMA0'
 	[ "$DSTARCH" = arm64 ] && QEMU='qemu-system-aarch64' && KVM_SUPPORT="\$KVM_SUPPORT -cpu max"
 esac
 
