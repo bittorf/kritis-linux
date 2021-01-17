@@ -18,6 +18,7 @@
 
 # possible vars to export into this script:
 #
+# MEM=...
 # OWN_INITRD=file
 # OWN_KCONFIG=file
 # DSTARCH=armhf		# https://superuser.com/questions/1009540/difference-between-arm64-armel-and-armhf
@@ -653,6 +654,7 @@ cat >"$LINUX_BUILD/run.sh" <<!
 ACTION="\$1"		# autotest|boot
 PATTERN="\${2:-READY}"	# in autotest-mode pattern for end-detection
 MAX="\${3:-5}"		# max running time [seconds] in autotest-mode
+[ -z "\$MEM" ] && MEM=$MEM
 
 # generated: $( LC_ALL=C date )
 #
@@ -708,7 +710,7 @@ case "\$ACTION" in
 					initrd=$INITRD_FILE
 			;;
 			*)
-				\$KVM_PRE \$QEMU \$KVM_SUPPORT \$BIOS \\
+				\$KVM_PRE \$QEMU -m \${MEM:-256} \$KVM_SUPPORT \$BIOS \\
 					-kernel $KERNEL_FILE \\
 					-initrd $INITRD_FILE \\
 					-nographic \\
@@ -731,7 +733,7 @@ mkfifo "\$PIPE.out" || exit
 \$KVM_PRE echo			# cache sudo-pass for (maybe) next interactive run
 
 (
-	\$KVM_PRE \$QEMU \$KVM_SUPPORT \$BIOS \\
+	\$KVM_PRE \$QEMU -m \${MEM:-256} \$KVM_SUPPORT \$BIOS \\
 		-kernel $KERNEL_FILE \\
 		-initrd $INITRD_FILE \\
 		-nographic \\

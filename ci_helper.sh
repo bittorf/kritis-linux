@@ -5,6 +5,7 @@ while [ -n "$1" ]; do {
 		--features) export FEATURES="$2" ;;	# e.g. busybox,toybox,net,xyz,foo
 		--pattern) WAIT_PATTERN="$2" ;;		# e.g. '# unittest ok'
 		--maxwait) WAIT_SECONDS="$2" ;;		# e.g. 600 (default is 120)
+		--ramsize) export MEM="$2" ;;		# e.g. 512
 		--diradd) export INITRD_DIR_ADD="$2" ;;	# e.g. '/path/to/my/files' or e.g. simply "$(pwd)"
 		--initrd) export OWN_INITRD="$2" ;;	# e.g. '/path/to/myinit.tgz'
 		--kernel) LINUX_VERSION="$2" ;;		# e.g. 'latest' (=default) or '5.4.89' or an URL to .tgz/.xz
