@@ -67,6 +67,11 @@ case "$DSTARCH" in
 	arm64)	export ARCH='ARCH=arm64' CROSSCOMPILE='CROSS_COMPILE=aarch64-linux-gnu-'
 		export BOARD='virt' DEFCONFIG='allnoconfig'
 	;;
+	i386)
+		OPTIONS="$OPTIONS,32bit"
+		export CFLAGS=-m32
+		export DEFCONFIG='allnoconfig'
+	;;
 	*)	export DEFCONFIG='allnoconfig'
 	;;
 esac
@@ -659,7 +664,7 @@ MAX="\${3:-5}"		# max running time [seconds] in autotest-mode
 # INITRD3: $(  wc -c <$INITRD_FILE4 ) bytes = $INITRD_FILE4
 #   decompress: gzip -cd $INITRD_FILE | cpio -idm
 
-QEMU='qemu-system-x86_64'
+QEMU='qemu-system-$( has_arg '32bit' && echo 'i386' || echo 'x86_64' )'
 KERNEL_ARGS='console=ttyS0'
 
 grep -q svm /proc/cpuinfo && KVM_SUPPORT='-enable-kvm -cpu host'
