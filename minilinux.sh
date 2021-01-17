@@ -29,7 +29,7 @@
 KERNEL="$1"
 [ -n "$2" ] && {
 	shift
-	OPTIONS="$*"		# e.g. 64bit,32bit,no_pie,no_printk and 'toybox' and 'UML' and 'menuconfig'
+	OPTIONS="$*"		# e.g. 64bit,32bit,no_pie,no_printk,net and 'toybox' and 'UML' and 'menuconfig'
 }
 
 CPU="$( nproc || echo 1 )"
@@ -101,36 +101,24 @@ kernels()
 		 2) echo 'https://mirrors.edge.kernel.org/pub/linux/kernel/v2.6/linux-2.6.39.tar.xz' ;;	# TODO: 32bit?
 		 3) echo 'https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-4.9.222.tar.xz' ;;
 		 4) echo 'https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-4.19.121.tar.xz' ;;
-		 5) echo 'https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.4.39.tar.xz' ;;
-		 6) echo 'https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.5.19.tar.xz' ;;
-		 7) echo 'https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.6.11.tar.xz' ;;
-		 8) echo 'https://git.kernel.org/torvalds/t/linux-5.7-rc4.tar.gz' ;;
-		 9) echo 'https://mirrors.edge.kernel.org/pub/linux/kernel/v2.6/linux-2.6.39.4.tar.xz' ;;
-		10) echo 'https://mirrors.edge.kernel.org/pub/linux/kernel/v5.x/linux-5.0.1.tar.gz' ;;
-		11) echo 'https://git.kernel.org/pub/scm/linux/kernel/git/wtarreau/linux-2.4.git/snapshot/linux-2.4-2.4.37.11.tar.gz' ;;
-		12) echo 'https://git.kernel.org/torvalds/t/linux-5.7-rc6.tar.gz' ;;
-		13) echo 'https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.7.tar.xz' ;;
-		14) echo 'https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.8.12.tar.xz' ;;
-		15) echo 'https://git.kernel.org/torvalds/t/linux-5.9-rc1.tar.gz' ;;
-		16) echo 'https://git.kernel.org/torvalds/t/linux-5.9-rc2.tar.gz' ;;
-		17) echo 'https://git.kernel.org/torvalds/t/linux-5.9-rc3.tar.gz' ;;
-		18) echo 'https://git.kernel.org/torvalds/t/linux-5.9-rc4.tar.gz' ;;
-		19) echo 'https://git.kernel.org/torvalds/t/linux-5.9-rc5.tar.gz' ;;
-		20) echo 'https://git.kernel.org/torvalds/t/linux-5.9-rc6.tar.gz' ;;
-		21) echo 'https://git.kernel.org/torvalds/t/linux-5.9-rc7.tar.gz' ;;
-		22) echo 'https://git.kernel.org/torvalds/t/linux-5.9-rc8.tar.gz' ;;
-		23) echo 'https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.9.tar.xz' ;;
-		24) echo 'https://cdn.kernel.org/pub/linux/kernel/v3.x/linux-3.10.1.tar.bz2' ;;
-		25) echo 'https://cdn.kernel.org/pub/linux/kernel/v3.x/linux-3.17.tar.xz' ;;
-		26) echo 'https://cdn.kernel.org/pub/linux/kernel/v3.x/linux-3.18.tar.xz' ;;
-		27) echo 'https://cdn.kernel.org/pub/linux/kernel/v3.x/linux-3.19.tar.xz' ;;
-		28) echo 'https://cdn.kernel.org/pub/linux/kernel/v3.x/linux-3.19.8.tar.xz' ;;
-		29) echo 'https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.9.1.tar.xz' ;;
-		30) echo 'https://git.kernel.org/torvalds/t/linux-5.10-rc1.tar.gz' ;;
-		31) echo 'https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.10.1.tar.xz' ;;
-		32) echo 'https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.10.6.tar.xz' ;;
-		33) echo 'https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-4.14.215.tar.xz' ;;
-		34) echo 'https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.4.89.tar.xz' ;;
+		 5) echo 'https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.5.19.tar.xz' ;;
+		 6) echo 'https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.6.11.tar.xz' ;;
+		 7) echo 'https://git.kernel.org/torvalds/t/linux-5.7-rc4.tar.gz' ;;
+		 8) echo 'https://mirrors.edge.kernel.org/pub/linux/kernel/v2.6/linux-2.6.39.4.tar.xz' ;;
+		 9) echo 'https://mirrors.edge.kernel.org/pub/linux/kernel/v5.x/linux-5.0.1.tar.gz' ;;
+		10) echo 'https://git.kernel.org/pub/scm/linux/kernel/git/wtarreau/linux-2.4.git/snapshot/linux-2.4-2.4.37.11.tar.gz' ;;
+		11) echo 'https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.7.tar.xz' ;;
+		12) echo 'https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.8.12.tar.xz' ;;
+		13) echo 'https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.9.tar.xz' ;;
+		14) echo 'https://cdn.kernel.org/pub/linux/kernel/v3.x/linux-3.10.1.tar.bz2' ;;
+		15) echo 'https://cdn.kernel.org/pub/linux/kernel/v3.x/linux-3.17.tar.xz' ;;
+		16) echo 'https://cdn.kernel.org/pub/linux/kernel/v3.x/linux-3.18.tar.xz' ;;
+		17) echo 'https://cdn.kernel.org/pub/linux/kernel/v3.x/linux-3.19.tar.xz' ;;
+		18) echo 'https://cdn.kernel.org/pub/linux/kernel/v3.x/linux-3.19.8.tar.xz' ;;
+		19) echo 'https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.9.1.tar.xz' ;;
+		20) echo 'https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.10.6.tar.xz' ;;
+		21) echo 'https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-4.14.215.tar.xz' ;;
+		22) echo 'https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.4.89.tar.xz' ;;
 		latest) wget -qO - https://www.kernel.org | grep -A1 "latest_link" | tail -n1 | cut -d'"' -f2 ;;
 		 *) false ;;
 	esac
@@ -192,8 +180,17 @@ case "$KERNEL" in
 		KERNEL_URL="$( kernels $KERNEL )"
 		echo "[OK] choosing '$KERNEL_URL'"
 	;;
+	[0-9].*)
+		# e.g. 5.4.89 -> dir v5.x + file 5.4.89
+		KERNEL_URL="https://cdn.kernel.org/pub/linux/kernel/v${KERNEL%.*}.x/linux-${KERNEL}.tar.xz"
+		echo "[OK] choosing '$KERNEL_URL'"
+	;;
+	'http'*)
+		KERNEL_URL="$KERNEL"
+		echo "[OK] choosing '$KERNEL_URL'"
+	;;
 	'')
-		echo "Usage: <number or clean or fill_cache> <option>"
+		echo "Usage: <number> or <url> or '5.4.89' or 'clean' or 'fill_cache' <option>"
 		echo
 		echo "choose 0,1,2,3..."
 		echo
