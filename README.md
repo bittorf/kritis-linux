@@ -43,5 +43,5 @@ kritis-linux/ci_helper.sh \
 * --arch uml|armel|armhf|arm64|i386|x86_64 (more planned)
 * --clib glibc|musl|dietlibc
 * --features busybox|toybox|net|dash|bash
-** add several with e.g. --features a,b,c
+  * add several with --features a,b,c
 * --debug true
