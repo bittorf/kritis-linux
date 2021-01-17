@@ -251,7 +251,7 @@ mkdir -p "$LINUX_BUILD"
 # CONFIG_SERIAL_8250_CONSOLE=y		| Device Drivers ---> Character devices ---> Serial drivers ---> Console on 8250/16550 and compatible serial port
 # CONFIG_PROC_FS=y			| File systems ---> Pseudo filesystems ---> /proc file system support
 # CONFIG_SYSFS=y			| File systems ---> Pseudo filesystems ---> sysfs file system support
-
+# CONFIG_IA32_EMULATION=y
 
 list_kernel_symbols_arm64()
 {
@@ -284,6 +284,7 @@ list_kernel_symbols()
 				echo '# CONFIG_64BIT is not set'
 			else
 				echo 'CONFIG_64BIT=y'
+				echo 'CONFIG_IA32_EMULATION=y'		# support for 32bit binaries
 			fi
 		;;
 	esac
