@@ -36,10 +36,12 @@ kritis-linux/ci_helper.sh \
 * starts qemu with 384mb RAM and waits till --pattern shows up
 * aborts the run, when over 550 seconds
 
-### switches and options
+### more switches and options
 
 * --initrd /path/to/initial-ramdisk.tgz
-* --debug true
 * --kconfig /path/to/.kernel-config
-* --arch uml|armel|armhf|arm64|i386|x86_64 (more is one the way)
-
+* --arch uml|armel|armhf|arm64|i386|x86_64 (more planned)
+* --clib glibc|musl|dietlibc
+* --features busybox|toybox|net|dash|bash
+** add several with e.g. --features a,b,c
+* --debug true
