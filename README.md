@@ -29,19 +29,21 @@ kritis-linux/ci_helper.sh \
 	--pattern "unittest_ready"
 ```
 
-* above command builds latest 64bit 'Linux' and adds 'Busybox'
-* removes all symlinks, except those in --keep
-* adds directory in --diradd to initial ramdisk
-* uses 'script.xy' as /sbin/init
-* starts qemu with 384mb RAM and waits till --pattern shows up
-* aborts the run, when over 550 seconds
+* above command builds latest 64bit `Linux` and adds `Busybox`
+* removes all files/symlinks, except those in `--keep`
+* adds directory in `--diradd` to initial ramdisk
+* uses `script.xy` as `/sbin/init`
+* starts qemu with `384mb` RAM and waits till `--pattern` shows up
+* aborts the run, when over `550 seconds`
 
 ### more switches and options
 
-* --initrd /path/to/initial-ramdisk.tgz
-* --kconfig /path/to/.kernel-config
-* --arch uml|armel|armhf|arm64|i386|x86_64 (more planned)
-* --clib glibc|musl|dietlibc
-* --features busybox|toybox|net|dash|bash
+* `--initrd` /path/to/initial-ramdisk.tgz
+* `--kconfig` /path/to/.kernel-config
+* `--arch` uml|armel|armhf|arm64|i386|x86_64 (more planned)
+* `--clib` glibc|musl|dietlibc
+* `--features` busybox|toybox|net|dash|bash
   * add several with --features a,b,c
-* --debug true
+  * e.g. printk,sysfs,procfs,tinyconfig,allnoconfig,defconfig
+* `--debug` true
+

@@ -72,11 +72,15 @@ case "$DSTARCH" in
 	i386)
 		OPTIONS="$OPTIONS,32bit"
 		export CFLAGS=-m32
-		export DEFCONFIG='allnoconfig'
+		export DEFCONFIG='tinyconfig'
 	;;
-	*)	export DEFCONFIG='allnoconfig'
+	*)	export DEFCONFIG='tinyconfig'
 	;;
 esac
+#
+has_arg 'tinyconfig'  && DEFCONFIG='tinyconfig'
+has_arg 'allnoconfig' && DEFCONFIG='allnoconfig'
+has_arg 'defconfig'   && DEFCONFIG='defconfig'
 
 deps_check()
 {
@@ -267,8 +271,9 @@ CONFIG_PRINTK=y
 CONFIG_SERIAL_AMBA_PL011=y
 CONFIG_SERIAL_AMBA_PL011_CONSOLE=y
 CONFIG_SLUB=y
-CONFIG_PROC_FS=y
-CONFIG_SYSFS=y
+# CONFIG_PROC_FS=y
+# CONFIG_SYSFS=y
+#
 # ARM64_PTR_AUTH is not set
 # ARM64_TLB_RANGE is not set
 EOF
@@ -314,6 +319,12 @@ list_kernel_symbols()
 
 	cat <<!
 CONFIG_BLK_DEV_INITRD=y
+# CONFIG_RD_BZIP2 is not set
+# CONFIG_RD_LZMA is not set
+# CONFIG_RD_XZ is not set
+# CONFIG_RD_LZO is not set
+# CONFIG_RD_LZ4 is not set
+# CONFIG_RD_ZSTD is not set
 CONFIG_BINFMT_ELF=y
 CONFIG_BINFMT_SCRIPT=y
 CONFIG_DEVTMPFS=y
@@ -321,9 +332,12 @@ CONFIG_DEVTMPFS_MOUNT=y
 CONFIG_TTY=y
 CONFIG_SERIAL_8250=y
 CONFIG_SERIAL_8250_CONSOLE=y
-CONFIG_PROC_FS=y
-CONFIG_SYSFS=y
+# CONFIG_PRINTK is not set
 !
+
+	has_arg 'printk' && echo 'CONFIG_PRINTK=y'
+	has_arg 'procfs' && echo 'CONFIG_PROC_FS=y'
+	has_arg 'sysfs'  && echo 'CONFIG_SYSFS=y'
 }
 
 apply()
@@ -335,7 +349,17 @@ apply()
 
 	case "$symbol" in
 		'#'*)
-			return 0
+			# e.g. '# CONFIG_PRINTK is not set'
+			set -- $symbol
+
+			if grep -q ^"$2=y" .config; then
+				sed -i "/$2=y/d" '.config'
+				echo "$symbol" >>.config
+				yes "" | make $ARCH oldconfig
+				return
+			else
+				return 0
+			fi
 		;;
 	esac
 
