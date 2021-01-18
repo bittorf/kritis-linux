@@ -1,37 +1,9 @@
 #!/bin/sh
-#
-# TODO:
-# - add maybe -no-reboot?
-# - builddir = mark_cache = no_backup
-# - net: nameserver?
-# - nproc/memsize
-# - UML http://user-mode-linux.sourceforge.net/network.html
-# - api kernel+busybox+toybox+gcc... download/version
-# - different recipes: minimal, net, compiler, net-compiler
-# - which programs where called? hash?
-# - upload/api: good + bad things
-# - upload bootable images
-# - safe versions of all deps (cc, ld, libc)
-# - filesizes
-# - needed space
-
-
-# possible vars to export into this script:
-#
-# MEM=...
-# OWN_INITRD=file
-# OWN_KCONFIG=file
-# DSTARCH=armhf		# https://superuser.com/questions/1009540/difference-between-arm64-armel-and-armhf
-# INITRD_DIR_ADD= ...	# e.g. /tmp/foo
-# KEEP_LIST= ...	# e.g. '/bin/busybox /bin/sh /bin/cat'
-			# busybox find / -xdev -name 'sh'
-			# busybox find / -xdev -type l
-			# busybox find / -xdev -type f
 
 KERNEL="$1"
 [ -n "$2" ] && {
 	shift
-	OPTIONS="$*"		# e.g. 64bit,32bit,no_pie,no_printk,net and 'toybox' and 'UML' and 'menuconfig'
+	OPTIONS="$*"	# see has_arg()
 }
 
 CPU="$( nproc || echo 1 )"
@@ -49,6 +21,7 @@ has_arg()
 	case " $OPTIONS " in *" $1 "*) true ;; *) false ;; esac
 }
 
+# https://superuser.com/questions/1009540/difference-between-arm64-armel-and-armhf
 # FIXME! on arm / qemu-system-arm / we should switch to qemu -M virt without DTB and smaller config
 #   apt: gcc-arm-linux-gnueabi   = armel = older 32bit
 #   apt: gcc-arm-linux-gnueabihf = armhf = arm7 / 32bit with power / hard float
@@ -802,7 +775,7 @@ while [ \$I -gt 0 ]; do {
 
 echo
 echo "# autotest-mode ready after \$(( MAX - I )) (out of max \$MAX) seconds"
-echo "# log written to \$LOG"
+echo "# logfile written to '\$LOG'"
 echo "# you can manually startup again: \$0 in dir '\$(pwd)'"
 echo
 

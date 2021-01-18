@@ -69,3 +69,17 @@ kritis-linux/ci_helper.sh \
 * `--log` /path/to/filename
 * `--debug true`
 
+### ToDo list
+* maybe add -no-reboot?
+* builddir = mark_cache = no_backup
+* net: nameserver?
+* UML http://user-mode-linux.sourceforge.net/network.html
+* api kernel+busybox+toybox+gcc... download/version
+* different recipes: minimal, net, compiler, net-compiler
+* which programs where called? hash?
+* upload/api: good + bad things
+* upload bootable images
+* safe versions of all deps (cc, ld, libc)
+* filesizes
+* needed space
+
