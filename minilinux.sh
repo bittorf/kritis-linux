@@ -679,6 +679,7 @@ ACTION="\$1"		# autotest|boot
 PATTERN="\${2:-READY}"	# in autotest-mode pattern for end-detection
 MAX="\${3:-5}"		# max running time [seconds] in autotest-mode
 [ -z "\$MEM" ] && MEM=$MEM
+[ -z "\$LOG" ] && LOG='/dev/null'
 
 # generated: $( LC_ALL=C date )
 #
@@ -784,7 +785,7 @@ PID=\$!
 				break
 			;;
 		esac
-	} done <"\$PIPE.out"
+	} done <"\$PIPE.out" >"$LOG"
 ) &
 
 I=\$MAX
@@ -800,10 +801,11 @@ while [ \$I -gt 0 ]; do {
 
 echo
 echo "# autotest-mode ready after \$(( MAX - I )) (out of max \$MAX) seconds"
-echo "# manual startup: \$0"
+echo "# log written to \$LOG"
+echo "# you can manually startup again: \$0"
 echo
 
-echo "will stop now QEMU/pid-\$PID"
+echo "will stop now QEMU with pid \$PID"
 \$KVM echo; while \$KVM kill -0 \$PID; do \$KVM_PRE kill \$PID; done
 rm -f "\$PIPE" "\$PIPE.in" "\$PIPE.out"
 !

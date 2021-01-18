@@ -40,10 +40,11 @@ kritis-linux/ci_helper.sh \
 
 * `--initrd` /path/to/initial-ramdisk.tgz
 * `--kconfig` /path/to/.kernel-config
-* `--arch` uml|armel|armhf|arm64|i386|x86_64 (more planned)
-* `--clib` glibc|musl|dietlibc
-* `--features` busybox|toybox|net|dash|bash
-  * add several with --features a,b,c
-  * e.g. printk,sysfs,procfs,tinyconfig,allnoconfig,defconfig
-* `--debug` true
+* `--arch x86_64` or `i386`,`uml`,`armel`,`armhf`,`arm64` (more planned)
+* `--clib glibc` or `musl`,`dietlibc`
+* `--features` `comma,separated,list`
+  * e.g. `busybox` or `toybox`,`net`,`dash`,`bash`,
+  * e.g. `printk`,`sysfs`,`procfs`,`tinyconfig` or `allnoconfig` or `defconfig`
+* `--log` /path/to/filename
+* `--debug true`
 
