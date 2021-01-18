@@ -734,6 +734,8 @@ case "\$ACTION" in
 					initrd=$INITRD_FILE
 			;;
 			*)
+				echo "will start now QEMU: \$KVM_PRE \$QEMU -m \${MEM:-256} \$KVM_SUPPORT ..."
+				echo
 				\$KVM_PRE \$QEMU -m \${MEM:-256} \$KVM_SUPPORT \$BIOS \\
 					-kernel $KERNEL_FILE \\
 					-initrd $INITRD_FILE \\
@@ -757,6 +759,8 @@ mkfifo "\$PIPE.out" || exit
 \$KVM_PRE echo			# cache sudo-pass for (maybe) next interactive run
 
 (
+	echo "will start now QEMU: \$KVM_PRE \$QEMU -m \${MEM:-256} \$KVM_SUPPORT ..."
+	echo
 	\$KVM_PRE \$QEMU -m \${MEM:-256} \$KVM_SUPPORT \$BIOS \\
 		-kernel $KERNEL_FILE \\
 		-initrd $INITRD_FILE \\
@@ -794,13 +798,13 @@ while [ \$I -gt 0 ]; do {
 	esac
 } done
 
-\$KVM_PRE kill -0 \$PID && \$KVM_PRE kill \$PID
-
-rm -f "\$PIPE" "\$PIPE.in" "\$PIPE.out"
-
 echo
 echo "# autotest-mode ready after \$(( MAX - I )) (out of max \$MAX) seconds"
 echo "# manual startup: \$0"
+echo
+
+\$KVM_PRE kill -0 \$PID && echo "will stop now QEMU" && \$KVM_PRE kill \$PID
+rm -f "\$PIPE" "\$PIPE.in" "\$PIPE.out"
 !
 
 chmod +x "$LINUX_BUILD/run.sh" && \
