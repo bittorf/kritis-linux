@@ -30,6 +30,7 @@ else
 fi
 
 grep ^'#' minilinux/builds/linux/run.sh && echo
-echo "[OK] starting 'minilinux/builds/linux/run.sh' in autotest-mode, wait max. ${WAIT_SECONDS:=120} sec for pattern '$WAIT_PATTERN'"
+echo "[OK] starting 'minilinux/builds/linux/run.sh' in autotest-mode,"
+echo "     waiting max. ${WAIT_SECONDS:=120} sec for pattern '$WAIT_PATTERN'"
 
 minilinux/builds/linux/run.sh autotest "$WAIT_PATTERN" "$WAIT_SECONDS"

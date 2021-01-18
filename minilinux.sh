@@ -135,7 +135,7 @@ download()
 	local url="$1"
 	local cache="$STORAGE/$( basename "$url" )"
 
-	if [ -f "$cache" ]; then
+	if [ -s "$cache" ]; then
 		echo "[OK] download, using cache: '$cache' url: '$url'"
 		cp "$cache" .
 	else
@@ -188,7 +188,7 @@ case "$KERNEL" in
 	;;
 	[0-9].*)
 		# e.g. 5.4.89 -> dir v5.x + file 5.4.89
-		KERNEL_URL="https://cdn.kernel.org/pub/linux/kernel/v${KERNEL%.*}.x/linux-${KERNEL}.tar.xz"
+		KERNEL_URL="https://cdn.kernel.org/pub/linux/kernel/v${KERNEL%%.*}.x/linux-${KERNEL}.tar.xz"
 		echo "[OK] choosing '$KERNEL_URL'"
 	;;
 	'http'*)
@@ -678,8 +678,9 @@ cat >"$LINUX_BUILD/run.sh" <<!
 ACTION="\$1"		# autotest|boot
 PATTERN="\${2:-READY}"	# in autotest-mode pattern for end-detection
 MAX="\${3:-5}"		# max running time [seconds] in autotest-mode
-[ -z "\$MEM" ] && MEM=$MEM
-[ -z "\$LOG" ] && LOG='/dev/null'
+
+[ -z "\$MEM" ] && MEM="$MEM"	# if not given via ENV
+[ -z "\$LOG" ] && LOG="$LOG"
 
 # generated: $( LC_ALL=C date )
 #
@@ -785,7 +786,7 @@ PID=\$!
 				break
 			;;
 		esac
-	} done <"\$PIPE.out" >"$LOG"
+	} done <"\$PIPE.out" >"\${LOG:-/dev/null}"
 ) &
 
 I=\$MAX
@@ -806,7 +807,7 @@ echo "# you can manually startup again: \$0"
 echo
 
 echo "will stop now QEMU with pid \$PID"
-\$KVM echo; while \$KVM kill -0 \$PID; do \$KVM_PRE kill \$PID; done
+\$KVM_PRE echo; while \$KVM_PRE kill -0 \$PID; do \$KVM_PRE kill \$PID; done
 rm -f "\$PIPE" "\$PIPE.in" "\$PIPE.out"
 !
 
