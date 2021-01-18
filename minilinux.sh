@@ -803,7 +803,8 @@ echo "# autotest-mode ready after \$(( MAX - I )) (out of max \$MAX) seconds"
 echo "# manual startup: \$0"
 echo
 
-\$KVM_PRE kill -0 \$PID && echo "will stop now QEMU" && \$KVM_PRE kill \$PID
+echo "will stop now QEMU/pid-\$PID"
+\$KVM echo; while \$KVM kill -0 \$PID; do \$KVM_PRE kill \$PID; done
 rm -f "\$PIPE" "\$PIPE.in" "\$PIPE.out"
 !
 
