@@ -803,7 +803,7 @@ echo "# manual startup: \$0"
 !
 
 chmod +x "$LINUX_BUILD/run.sh" && \
-	  $LINUX_BUILD/run.sh 'autotest' '# READY'
+	  $LINUX_BUILD/run.sh 'autotest' "# READY" 5
 
 echo
 echo "# see: $LINUX_BUILD/run.sh"
