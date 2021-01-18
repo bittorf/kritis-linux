@@ -16,6 +16,9 @@ export STORAGE="/tmp/storage"
 mkdir -p "$STORAGE"
 echo "[OK] cache/storage is here: '$STORAGE'"
 
+# change from comma to space delimited list
+OPTIONS="$OPTIONS $( echo "$FEATURES" | tr ',' ' ' )"
+
 has_arg()
 {
 	case " $OPTIONS " in *" $1 "*) true ;; *) false ;; esac

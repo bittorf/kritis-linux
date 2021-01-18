@@ -13,7 +13,7 @@ while [ -n "$1" ]; do {
 		--myinit) export MYINIT="$2" ;;		# e.g. 'my_file.sh' (relative to diradd-path)
 		--debug) DEBUG="$2" ;;			# e.g. true
 		--keep) export KEEP_LIST="$2" ;;	# e.g. '/bin/busybox /bin/sh /bin/cat' 
-		--arch) export DSTARCH="$2" ;;		# e.g. i386,x86_64,armel,armhf,arm64,mips,m68k (default is x86_64)
+		--arch) export DSTARCH="$2" ;;		# e.g. one of i386,x86_64,armel,armhf,arm64,mips,m68k (default is x86_64)
 		--log) export LOG="$2" ;;		# e.g. '/path/to/file.txt'
 	esac && shift
 } done
