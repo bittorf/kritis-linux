@@ -1,8 +1,9 @@
 ### KRITIS Linux
 
+* is a buildsystem for dynamic rebuilding of your systems
 * see [KRITIS](https://de.wikipedia.org/w/index.php?title=KRITIS)
-* still alpha
-* supports musl, glibc and busybox/toybox
+* still a work-in-progress
+* supports musl, glibc, dietlibc and busybox/toybox
 
 ### Syntax
 
@@ -26,8 +27,8 @@ kritis-linux/ci_helper.sh \
 ```
 
 * above command builds 64bit `Linux v4.4.215` and adds `Busybox`
-* also adds support for the kernels `procfs` and `sysfs`
-* and adds your own files, eventually with a `init.user`,
+* also adds support for the kernels `procfs` and `sysfs` and
+* adds your files to the initital ramdisk, eventually with a `init.user`,
 * which is executed directly after our minimal init
 
 #### CI: example two
