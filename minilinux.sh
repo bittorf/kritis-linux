@@ -785,6 +785,7 @@ PID=\$!
 
 I=\$MAX
 while [ \$I -gt 0 ]; do {
+	kill -0 \$PID || break
 	LINE="\$( tail -n1 "\$PIPE" )"
 
 	case "\$LINE" in
