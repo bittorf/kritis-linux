@@ -779,7 +779,7 @@ PID=\$!
 			'# BOOTTIME_SECONDS '*|'# UNAME '*)
 				echo "\$LINE" >>"\$PIPE"
 			;;
-			"\$PATTERN"*|"Kernel panic"*|"ABORTING HARD"*)		# FIXME
+			"\$PATTERN"*|*"Kernel panic - not syncing: Attempted to kill init"*|"ABORTING HARD"*)		# FIXME
 				echo 'READY' >>"\$PIPE"
 				break
 			;;
