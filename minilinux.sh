@@ -84,7 +84,7 @@ has_arg 'defconfig'   && DEFCONFIG='defconfig'
 
 deps_check()
 {
-	local cmd list='gzip xz zstd wget cp basename mkdir rm cat make sed grep tar test find touch chmod file'
+	local cmd list='gzip xz zstd wget cp basename mkdir rm cat make sed grep tar test find touch chmod file tee'
 	# hint: 'vimdiff' and 'logger' are used, but not essential
 
 	for cmd in $list; do {
@@ -700,10 +700,10 @@ $( sed -n '1,5s/^/#                /p' "$CONFIG1" )
 # BUSYBOX_SIZE: $( wc -c <$BB_FILE ) bytes
 # BUSYBOX_CONFIG: $CONFIG2
 #
-# INITRD:  $(  wc -c <$INITRD_FILE ) bytes = $INITRD_FILE
-# INITRD2: $(  wc -c <$INITRD_FILE2 ) bytes = $INITRD_FILE2
-# INITRD3: $(  wc -c <$INITRD_FILE3 ) bytes = $INITRD_FILE3
-# INITRD3: $(  wc -c <$INITRD_FILE4 ) bytes = $INITRD_FILE4
+# INITRD:  $(  wc -c <$INITRD_FILE  || echo 0 ) bytes = $INITRD_FILE
+# INITRD2: $(  wc -c <$INITRD_FILE2 || echo 0 ) bytes = ${INITRD_FILE2:-<nofile>}
+# INITRD3: $(  wc -c <$INITRD_FILE3 || echo 0 ) bytes = ${INITRD_FILE3:-<nofile>}
+# INITRD3: $(  wc -c <$INITRD_FILE4 || echo 0 ) bytes = ${INITRD_FILE4:-<nofile>}
 #   decompress: gzip -cd $INITRD_FILE | cpio -idm
 
 QEMU='qemu-system-$( has_arg '32bit' && echo 'i386' || echo 'x86_64' )'
@@ -786,7 +786,7 @@ PID=\$!
 				break
 			;;
 		esac
-	} done <"\$PIPE.out" >"\${LOG:-/dev/null}"
+	} done <"\$PIPE.out" | tee "\${LOG:-/dev/null}"
 ) &
 
 I=\$MAX
@@ -803,7 +803,7 @@ while [ \$I -gt 0 ]; do {
 echo
 echo "# autotest-mode ready after \$(( MAX - I )) (out of max \$MAX) seconds"
 echo "# log written to \$LOG"
-echo "# you can manually startup again: \$0"
+echo "# you can manually startup again: \$0 in dir '\$(pwd)'"
 echo
 
 echo "will stop now QEMU with pid \$PID"
