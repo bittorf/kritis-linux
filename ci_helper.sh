@@ -18,6 +18,12 @@ while [ -n "$1" ]; do {
 	esac && shift
 } done
 
+# support relative and absolute paths:
+[ -d "$(pwd)/$INITRD_DIR_ADD" ] && INITRD_DIR_ADD="$(pwd)/$INITRD_DIR_ADD"
+[ -f "$(pwd)/$OWN_INITRD" ] && OWN_INITRD="$(pwd)/$OWN_INITRD"
+[ -f "$(pwd)/$OWN_CONFIG" ] && OWN_CONFIG="$(pwd)/$OWN_CONFIG"
+[ -f "$(pwd)/$MYINIT" ] && MYINIT="$(pwd)/$MYINIT"
+
 cd "$( dirname "$0" )" || exit
 TMP1="$( mktemp )" || exit
 TMP2="$( mktemp )" || exit
