@@ -313,6 +313,7 @@ CONFIG_TTY=y
 CONFIG_SERIAL_8250=y
 CONFIG_SERIAL_8250_CONSOLE=y
 # CONFIG_PRINTK is not set
+# CONFIG_STACK_VALIDATION is not set
 !
 
 	has_arg 'printk' && echo 'CONFIG_PRINTK=y'
@@ -708,7 +709,7 @@ $( sed -n '1,5s/^/#                /p' "$CONFIG1" )
 #   show sections with: readelf -S $KERNEL_ELF
 #
 # BUSYBOX: $BB_FILE
-# BUSYBOX_SIZE: $( wc -c <"$BB_FILE" ) bytes
+# BUSYBOX_SIZE: $( wc -c <"$BB_FILE" || echo 0 ) bytes
 # BUSYBOX_CONFIG: $CONFIG2
 #
 # INITRD:  $(  wc -c <"$INITRD_FILE"  || echo 0 ) bytes = $INITRD_FILE
