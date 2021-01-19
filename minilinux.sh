@@ -109,7 +109,9 @@ kernels()
 download()
 {
 	local url="$1"
-	local cache="$STORAGE/$( basename "$url" )"
+	local cache
+
+	cache="$STORAGE/$( basename "$url" )"
 
 	if [ -s "$cache" ]; then
 		echo "[OK] download, using cache: '$cache' url: '$url'"
@@ -135,7 +137,7 @@ msg_and_die()
 	local txt="$2"
 
 	echo >&2 "[ERROR] rc:$rc | pwd: $PWD | $txt"
-	exit $rc
+	exit "$rc"
 }
 
 case "$KERNEL" in
@@ -159,7 +161,7 @@ case "$KERNEL" in
 		exit
 	;;
 	[0-9]|[0-9][0-9]|latest)
-		KERNEL_URL="$( kernels $KERNEL )"
+		KERNEL_URL="$( kernels "$KERNEL" )"
 		echo "[OK] choosing '$KERNEL_URL'"
 	;;
 	[0-9].*)
@@ -205,7 +207,9 @@ case "$KERNEL" in
 esac
 
 rm -fR "$BASEDIR"
-mkdir -p "$BASEDIR" && cd "$BASEDIR"
+mkdir -p "$BASEDIR" && {
+	cd "$BASEDIR" || exit
+}
 
 export OPT="$PWD/opt"
 mkdir -p "$OPT"
@@ -326,6 +330,7 @@ apply()
 	case "$symbol" in
 		'#'*)
 			# e.g. '# CONFIG_PRINTK is not set'
+			# shellcheck disable=SC2086
 			set -- $symbol
 
 			if grep -q ^"$2=y" .config; then
@@ -365,50 +370,51 @@ mkdir -p "$BUSYBOX"
 export BUSYBOX_BUILD="$BUILDS/busybox"
 mkdir -p "$BUSYBOX_BUILD"
 
-cd $BUSYBOX || msg_and_die "$?" "cd $BUSYBOX"
+cd "$BUSYBOX" || msg_and_die "$?" "cd $BUSYBOX"
 
 if [ -f "$OWN_INITRD" ]; then
 	:
 elif has_arg 'toybox'; then
 	download "$URL_TOYBOX" || exit
-	mv *toybox* $BUSYBOX_BUILD/
+	mv ./*toybox* "$BUSYBOX_BUILD/"
 else
 	download "$URL_BUSYBOX" || exit	
 fi
 
 [ -f "$OWN_INITRD" ] || {
 	has_arg 'toybox' && {
-		cd $BUSYBOX_BUILD || exit
+		cd "$BUSYBOX_BUILD" || exit
 	}
 
-	untar *
-	cd * || exit		# there is only 1 dir
+	untar ./*
+	cd ./* || exit		# there is only 1 dir
 }
 
 if [ -f "$OWN_INITRD" ]; then
 	:
 elif has_arg 'toybox'; then
-	BUSYBOX_BUILD=$PWD
+	BUSYBOX_BUILD="$PWD"
 	LDFLAGS="--static" make $ARCH $CROSSCOMPILE root || msg_and_die "$?" "LDFLAGS=--static make $ARCH $CROSSCOMPILE root"
 else
-	make O=$BUSYBOX_BUILD $ARCH $CROSSCOMPILE defconfig || msg_and_die "$?" "make O=$BUSYBOX_BUILD $ARCH $CROSSCOMPILE defconfig"
+	make O="$BUSYBOX_BUILD" $ARCH $CROSSCOMPILE defconfig || msg_and_die "$?" "make O=$BUSYBOX_BUILD $ARCH $CROSSCOMPILE defconfig"
 fi
 
-cd $BUSYBOX_BUILD || msg_and_die "$?" "$_"
+cd "$BUSYBOX_BUILD" || msg_and_die "$?" "$_"
 
 if [ -f "$OWN_INITRD" ]; then
 	:
 elif has_arg 'toybox'; then
 	:
 else
-	for SYMBOL in 'CONFIG_STATIC=y'; do apply "$SYMBOL" || exit; done
+	apply "CONFIG_STATIC=y" || exit
 fi
 
 has_arg 'menuconfig' && {
 	while :; do {
 		make $ARCH menuconfig || exit
 		vimdiff '.config' '.config.old'
-		echo "$PWD" && echo "press enter for menuconfig or type 'ok' (and press enter) to compile" && read GO && test "$GO" && break
+		echo "$PWD" && echo "press enter for menuconfig or type 'ok' (and press enter) to compile" && \
+			read -r GO && test "$GO" && break
 	} done
 
 #	comparing manually configured vs. apply()
@@ -420,11 +426,11 @@ CONFIG2="$PWD/.config"
 if [ -f "$OWN_INITRD" ]; then
 	:
 elif has_arg 'toybox'; then
-	LDFLAGS="--static" make -j$CPU $ARCH $CROSSCOMPILE toybox || \
+	LDFLAGS="--static" make -j"$CPU" $ARCH $CROSSCOMPILE toybox || \
 		msg_and_die "$?" "LDFLAGS=--static make -j$CPU $ARCH $CROSSCOMPILE toybox"
 	test -s toybox || msg_and_die "$?" "test -s toybox"
 
-	LDFLAGS="--static" make -j$CPU $ARCH $CROSSCOMPILE sh || \
+	LDFLAGS="--static" make -j"$CPU" $ARCH $CROSSCOMPILE sh || \
 		msg_and_die "$?" "LDFLAGS=--static make -j$CPU $ARCH $CROSSCOMPILE toybox"
 	test -s sh || msg_and_die "$?" "test -s sh"
 
@@ -432,7 +438,7 @@ elif has_arg 'toybox'; then
 	PREFIX="$BUSYBOX_BUILD/_install" make $ARCH $CROSSCOMPILE install || msg_and_die "$?" "PREFIX='$BUSYBOX_BUILD/_install' make $ARCH $CROSSCOMPILE install"
 else
 	# busybox:
-	make -j$CPU $ARCH $CROSSCOMPILE || msg_and_die "$?" "make -j$CPU $ARCH $CROSSCOMPILE"
+	make -j"$CPU" $ARCH $CROSSCOMPILE || msg_and_die "$?" "make -j$CPU $ARCH $CROSSCOMPILE"
 	make $ARCH $CROSSCOMPILE install || msg_and_die "$?" "make $ARCH $CROSSCOMPILE install"
 fi
 
@@ -441,12 +447,12 @@ cd ..
 if [ -f "$OWN_INITRD" ]; then
 	:
 else
-	export INITRAMFS_BUILD=$BUILDS/initramfs
-	mkdir -p $INITRAMFS_BUILD
-	cd $INITRAMFS_BUILD || exit
+	export INITRAMFS_BUILD="$BUILDS/initramfs"
+	mkdir -p "$INITRAMFS_BUILD"
+	cd "$INITRAMFS_BUILD" || exit
 
 	mkdir -p bin sbin etc proc sys usr/bin usr/sbin dev tmp
-	cp -a $BUSYBOX_BUILD/_install/* .
+	cp -a "$BUSYBOX_BUILD/_install/"* .
 fi
 
 [ -n "$KEEP_LIST" ] && {
@@ -525,10 +531,10 @@ esac
 if [ -f "$OWN_INITRD" ]; then
 	INITRD_FILE="$OWN_INITRD"
 else
-	find . -print0 | cpio --create --null --format=newc | xz -9  --format=lzma    >$BUILDS/initramfs.cpio.xz
-	find . -print0 | cpio --create --null --format=newc | xz -9e --format=lzma    >$BUILDS/initramfs.cpio.xz.xz
-	find . -print0 | cpio --create --null --format=newc | zstd -v -T0 --ultra -22 >$BUILDS/initramfs.cpio.zstd
-	find . -print0 | cpio --create --null --format=newc | gzip -9                 >$BUILDS/initramfs.cpio.gz
+	find . -print0 | cpio --create --null --format=newc | xz -9  --format=lzma    >"$BUILDS/initramfs.cpio.xz"
+	find . -print0 | cpio --create --null --format=newc | xz -9e --format=lzma    >"$BUILDS/initramfs.cpio.xz.xz"
+	find . -print0 | cpio --create --null --format=newc | zstd -v -T0 --ultra -22 >"$BUILDS/initramfs.cpio.zstd"
+	find . -print0 | cpio --create --null --format=newc | gzip -9                 >"$BUILDS/initramfs.cpio.gz"
 
 	INITRD_FILE="$(  readlink -e "$BUILDS/initramfs.cpio.gz"    )"
 	INITRD_FILE2="$( readlink -e "$BUILDS/initramfs.cpio.xz"    )"
@@ -545,8 +551,8 @@ has_arg 'toybox' && BB_FILE="$BUSYBOX_BUILD/toybox"
 
 cd "$LINUX" || exit
 download "$KERNEL_URL" || exit
-untar *
-cd * || exit		# there is only 1 dir
+untar ./*
+cd ./* || exit		# there is only 1 dir
 
 # kernel 2,3,4 but nut 5.x - FIXME!
 # sed -i 's|-Wall -Wundef|& -fno-pie|' Makefile
@@ -560,9 +566,9 @@ cd * || exit		# there is only 1 dir
 # TODO:
 # home/bastian/software/minilinux/minilinux/opt/linux/linux-3.19.8/include/linux/compiler-gcc.h:106:1: fatal error: linux/compiler-gcc9.h: Datei oder Verzeichnis nicht gefunden 
 
-make $ARCH O=$LINUX_BUILD distclean		# needed?
-make $ARCH O=$LINUX_BUILD $DEFCONFIG || exit
-cd $LINUX_BUILD
+make $ARCH O="$LINUX_BUILD" distclean		# needed?
+make $ARCH O="$LINUX_BUILD" $DEFCONFIG || exit
+cd "$LINUX_BUILD" || exit
 
 if [ -f "$OWN_KCONFIG" ]; then
 	cp -v "$OWN_KCONFIG" .config
@@ -607,7 +613,8 @@ has_arg 'menuconfig' && {
 	while :; do {
 		make $ARCH menuconfig || exit
 		vimdiff '.config' '.config.old'
-		echo "$PWD" && echo "press enter for menuconfig or type 'ok' (and press enter) to compile" && read GO && test "$GO" && break
+		echo "$PWD" && echo "press enter for menuconfig or type 'ok' (and press enter) to compile" && \
+			read -r GO && test "$GO" && break
 	} done
 }
 
@@ -619,12 +626,12 @@ CONFIG1="$PWD/.config"
 if has_arg 'no_pie'; then
 	T0="$( date +%s )"
 	echo "make $ARCH $CROSSCOMPILE CFLAGS=-fno-pie LDFLAGS=-no-pie -j$CPU"
-	make       $ARCH $CROSSCOMPILE CFLAGS=-fno-pie LDFLAGS=-no-pie -j$CPU || exit
+	make       $ARCH $CROSSCOMPILE CFLAGS=-fno-pie LDFLAGS=-no-pie -j"$CPU" || exit
 	T1="$( date +%s )"
 else
 	T0="$( date +%s )"
 	echo "make $ARCH $CROSSCOMPILE -j$CPU"
-	make       $ARCH $CROSSCOMPILE -j$CPU || exit
+	make       $ARCH $CROSSCOMPILE -j"$CPU" || exit
 	T1="$( date +%s )"
 fi
 KERNEL_TIME=$(( T1 - T0 ))
@@ -669,7 +676,7 @@ case "$DSTARCH" in
 			qemu-system-aarch64 -machine "$BOARD" -cpu max -machine dumpdtb=auto.dtb -nographic
 			DTB="$( pwd )/auto.dtb"
 		else
-			DTB="$( find $LINUX_BUILD/ -type f -name "$DTB" )"
+			DTB="$( find "$LINUX_BUILD/" -type f -name "$DTB" )"
 		fi
 	;;
 esac
@@ -696,18 +703,18 @@ $( sed -n '1,5s/^/#                /p' "$CONFIG1" )
 # KERNEL_BUILD_TIME: $KERNEL_TIME sec
 # KERNEL: $KERNEL_FILE
 # KERNEL_ELF: $KERNEL_ELF
-# KERNEL_SIZE: $( wc -c <$KERNEL_FILE ) bytes compressed
-# KERNEL_ELF: $(  wc -c <$KERNEL_ELF ) bytes
+# KERNEL_SIZE: $( wc -c <"$KERNEL_FILE" ) bytes compressed
+# KERNEL_ELF: $(  wc -c <"$KERNEL_ELF" ) bytes
 #   show sections with: readelf -S $KERNEL_ELF
 #
 # BUSYBOX: $BB_FILE
-# BUSYBOX_SIZE: $( wc -c <$BB_FILE ) bytes
+# BUSYBOX_SIZE: $( wc -c <"$BB_FILE" ) bytes
 # BUSYBOX_CONFIG: $CONFIG2
 #
-# INITRD:  $(  wc -c <$INITRD_FILE  || echo 0 ) bytes = $INITRD_FILE
-# INITRD2: $(  wc -c <$INITRD_FILE2 || echo 0 ) bytes = ${INITRD_FILE2:-<nofile>}
-# INITRD3: $(  wc -c <$INITRD_FILE3 || echo 0 ) bytes = ${INITRD_FILE3:-<nofile>}
-# INITRD3: $(  wc -c <$INITRD_FILE4 || echo 0 ) bytes = ${INITRD_FILE4:-<nofile>}
+# INITRD:  $(  wc -c <"$INITRD_FILE"  || echo 0 ) bytes = $INITRD_FILE
+# INITRD2: $(  wc -c <"$INITRD_FILE2" || echo 0 ) bytes = ${INITRD_FILE2:-<nofile>}
+# INITRD3: $(  wc -c <"$INITRD_FILE3" || echo 0 ) bytes = ${INITRD_FILE3:-<nofile>}
+# INITRD3: $(  wc -c <"$INITRD_FILE4" || echo 0 ) bytes = ${INITRD_FILE4:-<nofile>}
 #   decompress: gzip -cd $INITRD_FILE | cpio -idm
 
 QEMU='qemu-system-$( has_arg '32bit' && echo 'i386' || echo 'x86_64' )'
@@ -817,7 +824,7 @@ rm -f "\$PIPE" "\$PIPE.in" "\$PIPE.out"
 !
 
 chmod +x "$LINUX_BUILD/run.sh" && \
-	  $LINUX_BUILD/run.sh 'autotest' "# READY" 5
+	 "$LINUX_BUILD/run.sh" 'autotest' '# READY' 5
 
 echo
 echo "# see: $LINUX_BUILD/run.sh"
