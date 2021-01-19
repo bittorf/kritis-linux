@@ -748,8 +748,9 @@ case "\$ACTION" in
 					initrd=$INITRD_FILE
 			;;
 			*)
-				echo "will start now QEMU: \$KVM_PRE \$QEMU -m \${MEM:-256} \$KVM_SUPPORT ..."
+				echo "INTERACTIVE: will start now QEMU: \$KVM_PRE \$QEMU -m \${MEM:-256} \$KVM_SUPPORT ..."
 				echo
+
 				\$KVM_PRE \$QEMU -m \${MEM:-256} \$KVM_SUPPORT \$BIOS \\
 					-kernel $KERNEL_FILE \\
 					-initrd $INITRD_FILE \\
@@ -773,8 +774,9 @@ mkfifo "\$PIPE.out" || exit
 \$KVM_PRE echo			# cache sudo-pass for (maybe) next interactive run
 
 (
-	echo "will start now QEMU: \$KVM_PRE \$QEMU -m \${MEM:-256} \$KVM_SUPPORT ..."
+	echo "AUTOTEST: will start now QEMU: \$KVM_PRE \$QEMU -m \${MEM:-256} \$KVM_SUPPORT ..."
 	echo
+
 	\$KVM_PRE \$QEMU -m \${MEM:-256} \$KVM_SUPPORT \$BIOS \\
 		-kernel $KERNEL_FILE \\
 		-initrd $INITRD_FILE \\
@@ -818,7 +820,8 @@ while [ \$I -gt 0 ]; do {
 echo
 echo "# autotest-mode ready after \$(( MAX - I )) (out of max \$MAX) seconds"
 echo "# logfile written to '\$LOG'"
-echo "# you can manually startup again: \$0 in dir '\$(pwd)'"
+echo "# you can manually startup again:"
+echo "# \$0 in dir '\$(pwd)'"
 echo
 
 echo "will now stop QEMU with pid \$PID" && \$KVM_PRE echo
@@ -828,8 +831,11 @@ rm -f "\$PIPE" "\$PIPE.in" "\$PIPE.out"
 test \$RC -eq 0
 !
 
+ABORT_PATTERN='# READY'
+[ -f "$OWN_INITRD" ] && ABORT_PATTERN=
+
 chmod +x "$LINUX_BUILD/run.sh" && \
-	 "$LINUX_BUILD/run.sh" 'autotest' '# READY' 5
+	 "$LINUX_BUILD/run.sh" 'autotest' "$ABORT_PATTERN" 5
 RC=$?
 
 echo
