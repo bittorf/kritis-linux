@@ -801,13 +801,14 @@ PID=\$!
 	} done <"\$PIPE.out" | tee "\$LOG"
 ) &
 
+RC=1
 I=\$MAX
 while [ \$I -gt 0 ]; do {
 	kill -0 \$PID || break
 	LINE="\$( tail -n1 "\$PIPE" )"
 
 	case "\$LINE" in
-		READY) break ;;
+		READY) RC=0 && break ;;
 		*) sleep 1; I=\$(( I - 1 )) ;;
 	esac
 } done
@@ -821,10 +822,13 @@ echo
 echo "will now stop QEMU with pid \$PID" && \$KVM_PRE echo
 while \$KVM_PRE kill -0 \$PID; do \$KVM_PRE kill \$PID \$( pidof \$QEMU ); sleep 1; done
 rm -f "\$PIPE" "\$PIPE.in" "\$PIPE.out"
+
+test \$RC -eq 0
 !
 
 chmod +x "$LINUX_BUILD/run.sh" && \
 	 "$LINUX_BUILD/run.sh" 'autotest' '# READY' 5
+RC=$?
 
 echo
 echo "# see: $LINUX_BUILD/run.sh"
@@ -832,3 +836,5 @@ echo "#"
 echo "# thanks for using:"
 echo "# https://github.com/bittorf/kritis-linux"
 echo
+
+test $RC -eq 0
