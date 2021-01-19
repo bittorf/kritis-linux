@@ -806,6 +806,7 @@ PID=\$!
 
 RC=1
 [ -z "\$PATTERN" ] && RC=0
+[ "\$PATTERN" = '<hopefully_this_pattern_will_never_match>' ] && RC=0
 
 I=\$MAX
 while [ \$I -gt 0 ]; do {
