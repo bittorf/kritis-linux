@@ -32,7 +32,7 @@ echo "[OK] executing ./minilinux.sh '${LINUX_VERSION:=latest}'"
 if ./minilinux.sh "$LINUX_VERSION" >"$TMP1" 2>"$TMP2"; then
 	[ -n "$DEBUG" ] && cat "$TMP1" "$TMP2"
 else
-	RC="$?" && { cat "$TMP1" "$TMP2"; exit "$RC"; }
+	RC="$?" && { cat "$TMP1" "$TMP2"; echo; echo "ERROR:$RC"; exit "$RC"; }
 fi
 
 grep ^'#' minilinux/builds/linux/run.sh && echo

@@ -802,6 +802,8 @@ PID=\$!
 ) &
 
 RC=1
+[ -z "\$PATTERN" ] && RC=0
+
 I=\$MAX
 while [ \$I -gt 0 ]; do {
 	kill -0 \$PID || break
