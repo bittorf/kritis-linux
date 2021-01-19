@@ -683,7 +683,7 @@ PATTERN="\${2:-READY}"	# in autotest-mode pattern for end-detection
 MAX="\${3:-5}"		# max running time [seconds] in autotest-mode
 
 [ -z "\$MEM" ] && MEM="$MEM"	# if not given via ENV
-[ -z "\$LOG" ] && LOG="$LOG"
+[ -z "\$LOG" ] && LOG="${LOG:-/dev/null}"
 
 # generated: $( LC_ALL=C date )
 #
@@ -790,7 +790,7 @@ PID=\$!
 				break
 			;;
 		esac
-	} done <"\$PIPE.out" | tee "\${LOG:-/dev/null}"
+	} done <"\$PIPE.out" | tee "\$LOG"
 ) &
 
 I=\$MAX
@@ -810,8 +810,8 @@ echo "# logfile written to '\$LOG'"
 echo "# you can manually startup again: \$0 in dir '\$(pwd)'"
 echo
 
-echo "will now stop QEMU with pid \$PID"
-\$KVM_PRE echo; while \$KVM_PRE kill -0 \$PID; do set -x; \$KVM_PRE kill \$PID; set +x; sleep 1; done
+echo "will now stop QEMU with pid \$PID" && \$KVM_PRE echo
+while \$KVM_PRE kill -0 \$PID; do \$KVM_PRE kill \$PID \$( pidof \$QEMU ); sleep 1; done
 rm -f "\$PIPE" "\$PIPE.in" "\$PIPE.out"
 !
 
