@@ -840,7 +840,7 @@ chmod +x "$LINUX_BUILD/run.sh" && \
 RC=$?
 
 echo
-echo "# see: $LINUX_BUILD/run.sh"
+echo "# RC:$RC | see: $LINUX_BUILD/run.sh"
 echo "#"
 echo "# thanks for using:"
 echo "# https://github.com/bittorf/kritis-linux"
