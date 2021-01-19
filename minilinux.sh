@@ -787,10 +787,27 @@ mkfifo "\$PIPE.out" || exit
 ) &
 
 PID=\$!
+T0="\$( date +%s )"
+LOGTIME=true
 
 (
 	while read -r LINE; do {
-		printf '%s\n' "\$LINE"
+		case "\$LOGTIME" in
+			true)
+				DIFF="\$( date +%s )"
+				DIFF=\$(( DIFF - T0 ))
+
+				HOUR=\$(( DIFF / 3600 ))
+				REST=\$(( DIFF - (HOUR*3600) ))
+				MINU=\$(( REST / 60 ))
+				REST=\$(( REST - (MINU * 60) ))
+
+				# e.g. 01h45m23s
+				printf '%02d%s%02d%s%02d%s | %s\n' "\$HOUR" h "\$MINU" m "\$REST" s "\$LINE"
+			*)
+				printf '%s\n' "\$LINE"
+			;;
+		esac
 
 		case "\$LINE" in
 			'# BOOTTIME_SECONDS '*|'# UNAME '*)
