@@ -679,8 +679,8 @@ cat >"$LINUX_BUILD/run.sh" <<!
 #!/bin/sh
 
 ACTION="\$1"		# autotest|boot
-PATTERN="\${2:-READY}"	# in autotest-mode pattern for end-detection
-MAX="\${3:-5}"		# max running time [seconds] in autotest-mode
+PATTERN="\$2"		# in autotest-mode pattern for end-detection
+MAX="\${3:-86400}"	# max running time [seconds] in autotest-mode
 
 [ -z "\$MEM" ] && MEM="$MEM"	# if not given via ENV
 [ -z "\$LOG" ] && LOG="${LOG:-/dev/null}"
@@ -712,6 +712,7 @@ $( sed -n '1,5s/^/#                /p' "$CONFIG1" )
 
 QEMU='qemu-system-$( has_arg '32bit' && echo 'i386' || echo 'x86_64' )'
 KERNEL_ARGS='console=ttyS0'
+[ -z "\$PATTERN" ] && PATTERN="<hopefully_this_pattern_will_never_match>"
 
 grep -q svm /proc/cpuinfo && KVM_SUPPORT='-enable-kvm -cpu host'
 grep -q vmx /proc/cpuinfo && KVM_SUPPORT='-enable-kvm -cpu host'
@@ -785,7 +786,7 @@ PID=\$!
 			'# BOOTTIME_SECONDS '*|'# UNAME '*)
 				echo "\$LINE" >>"\$PIPE"
 			;;
-			"\$PATTERN"*|*"Kernel panic - not syncing: Attempted to kill init"*|"ABORTING HARD"*)		# FIXME
+			"\$PATTERN"*|*' Attempted to kill init'*|'ABORTING HARD'*)
 				echo 'READY' >>"\$PIPE"
 				break
 			;;

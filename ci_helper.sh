@@ -36,8 +36,8 @@ else
 fi
 
 grep ^'#' minilinux/builds/linux/run.sh && echo
-echo "[OK] starting 'minilinux/builds/linux/run.sh' in autotest-mode,"
-echo "     waiting max. ${WAIT_SECONDS:=120} sec for pattern '$WAIT_PATTERN'"
+echo "[OK] generated 'minilinux/builds/linux/run.sh', and run it in autotest-mode,"
+echo "     waiting max. ${WAIT_SECONDS:-<unlimited>} sec for pattern '${WAIT_PATTERN:-<no pattern set>}'"
 
 minilinux/builds/linux/run.sh autotest "$WAIT_PATTERN" "$WAIT_SECONDS"
 
