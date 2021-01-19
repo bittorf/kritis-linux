@@ -820,9 +820,11 @@ while [ \$I -gt 0 ]; do {
 
 echo
 echo "# autotest-mode ready after \$(( MAX - I )) (out of max \$MAX) seconds"
-echo "# logfile written to '\$LOG'"
+echo "# RC:\$RC | PATTERN:\$PATTERN | logfile written to '\$LOG'"
+echo "#"
 echo "# you can manually startup again:"
-echo "# \$0 in dir '\$(pwd)'"
+echo "# \$0"
+echo "# in dir '\$(pwd)'"
 echo
 
 echo "will now stop QEMU with pid \$PID" && \$KVM_PRE echo
