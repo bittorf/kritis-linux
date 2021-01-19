@@ -811,7 +811,7 @@ echo "# you can manually startup again: \$0 in dir '\$(pwd)'"
 echo
 
 echo "will now stop QEMU with pid \$PID"
-\$KVM_PRE echo; while \$KVM_PRE kill -0 \$PID; do set -x; \$KVM_PRE kill \$PID; sleep 1; set +x; done
+\$KVM_PRE echo; while \$KVM_PRE kill -0 \$PID; do set -x; \$KVM_PRE kill \$PID; set +x; sleep 1; done
 rm -f "\$PIPE" "\$PIPE.in" "\$PIPE.out"
 !
 

@@ -94,8 +94,11 @@ Default is building `make tinyconfig` and change some switches:
 * disable most of kernel debug messages
   * `CONFIG_PRINTK` is not set
 
-If this does not fit to your needs, you can enable stuff
-using `--features` or just provide your own `--kconfig`
+Kernel with less features are smaller and compiling is faster.  
+A typical kernel needs ~30 seconds to compile and is ~680k compressed.  
+  
+If this does not fit to your needs, you can enable stuff  
+using `--features` or just provide your own `--kconfig`  
 
 ### ToDo list
 * maybe add -no-reboot?
