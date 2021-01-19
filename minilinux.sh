@@ -367,19 +367,27 @@ mkdir -p "$BUSYBOX_BUILD"
 
 cd $BUSYBOX || msg_and_die "$?" "cd $BUSYBOX"
 
-if has_arg 'toybox'; then
+if [ -f "$OWN_INITRD" ]; then
+	:
+elif has_arg 'toybox'; then
 	download "$URL_TOYBOX" || exit
 	mv *toybox* $BUSYBOX_BUILD/
 else
 	download "$URL_BUSYBOX" || exit	
 fi
 
-has_arg 'toybox' && cd $BUSYBOX_BUILD
+[ -f "$OWN_INITRD" ] || {
+	has_arg 'toybox' && {
+		cd $BUSYBOX_BUILD || exit
+	}
 
-untar *
-cd * || exit		# there is only 1 dir
+	untar *
+	cd * || exit		# there is only 1 dir
+}
 
-if has_arg 'toybox'; then
+if [ -f "$OWN_INITRD" ]; then
+	:
+elif has_arg 'toybox'; then
 	BUSYBOX_BUILD=$PWD
 	LDFLAGS="--static" make $ARCH $CROSSCOMPILE root || msg_and_die "$?" "LDFLAGS=--static make $ARCH $CROSSCOMPILE root"
 else
@@ -388,7 +396,9 @@ fi
 
 cd $BUSYBOX_BUILD || msg_and_die "$?" "$_"
 
-if has_arg 'toybox'; then
+if [ -f "$OWN_INITRD" ]; then
+	:
+elif has_arg 'toybox'; then
 	:
 else
 	for SYMBOL in 'CONFIG_STATIC=y'; do apply "$SYMBOL" || exit; done
@@ -407,25 +417,37 @@ has_arg 'menuconfig' && {
 
 CONFIG2="$PWD/.config"
 
-if has_arg 'toybox'; then
-	LDFLAGS="--static" make -j$CPU $ARCH $CROSSCOMPILE toybox || msg_and_die "$?" "LDFLAGS=--static make -j$CPU $ARCH $CROSSCOMPILE toybox"
-	test -f toybox || msg_and_die "$?" "test -f toybox"
+if [ -f "$OWN_INITRD" ]; then
+	:
+elif has_arg 'toybox'; then
+	LDFLAGS="--static" make -j$CPU $ARCH $CROSSCOMPILE toybox || \
+		msg_and_die "$?" "LDFLAGS=--static make -j$CPU $ARCH $CROSSCOMPILE toybox"
+	test -s toybox || msg_and_die "$?" "test -s toybox"
+
+	LDFLAGS="--static" make -j$CPU $ARCH $CROSSCOMPILE sh || \
+		msg_and_die "$?" "LDFLAGS=--static make -j$CPU $ARCH $CROSSCOMPILE toybox"
+	test -s sh || msg_and_die "$?" "test -s sh"
 
 	mkdir '_install'
 	PREFIX="$BUSYBOX_BUILD/_install" make $ARCH $CROSSCOMPILE install || msg_and_die "$?" "PREFIX='$BUSYBOX_BUILD/_install' make $ARCH $CROSSCOMPILE install"
 else
+	# busybox:
 	make -j$CPU $ARCH $CROSSCOMPILE || msg_and_die "$?" "make -j$CPU $ARCH $CROSSCOMPILE"
 	make $ARCH $CROSSCOMPILE install || msg_and_die "$?" "make $ARCH $CROSSCOMPILE install"
 fi
 
 cd ..
 
-export INITRAMFS_BUILD=$BUILDS/initramfs
-mkdir -p $INITRAMFS_BUILD
-cd $INITRAMFS_BUILD || exit
+if [ -f "$OWN_INITRD" ]; then
+	:
+else
+	export INITRAMFS_BUILD=$BUILDS/initramfs
+	mkdir -p $INITRAMFS_BUILD
+	cd $INITRAMFS_BUILD || exit
 
-mkdir -p bin sbin etc proc sys usr/bin usr/sbin dev tmp
-cp -a $BUSYBOX_BUILD/_install/* .
+	mkdir -p bin sbin etc proc sys usr/bin usr/sbin dev tmp
+	cp -a $BUSYBOX_BUILD/_install/* .
+fi
 
 [ -n "$KEEP_LIST" ] && {
 	find . | while read -r LINE; do {
