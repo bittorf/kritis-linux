@@ -75,13 +75,13 @@ Default is building `make tinyconfig` and change some switches:
 
 * add support for a gzipped initial ramdisk
   * `CONFIG_BLK_DEV_INITRD=y`
-  * `CONFIG_RD_BZIP2 is not set`
-  * `CONFIG_RD_LZMA is not set`
-  * `CONFIG_RD_XZ is not set`
-  * `CONFIG_RD_LZO is not set`
-  * `CONFIG_RD_LZ4 is not set`
-  * `CONFIG_RD_ZSTD is not set`
-* add support for ELF binaries
+    * `CONFIG_RD_BZIP2 is not set`
+    * `CONFIG_RD_LZMA is not set`
+    * `CONFIG_RD_XZ is not set`
+    * `CONFIG_RD_LZO is not set`
+    * `CONFIG_RD_LZ4 is not set`
+    * `CONFIG_RD_ZSTD is not set`
+* add support for ELF binaries and shebang
   * `CONFIG_BINFMT_ELF=y`
   * `CONFIG_BINFMT_SCRIPT=y`
 * add support for /dev/null
@@ -94,8 +94,8 @@ Default is building `make tinyconfig` and change some switches:
 * disable most of kernel debug messages
   * `CONFIG_PRINTK` is not set
 
-Kernel with less features are smaller and compiling is faster.  
-A typical kernel needs ~30 seconds to compile and is ~680k compressed.  
+Kernels with less features are smaller and compile faster.  
+Typically it needs ~30 seconds to compile and the kernel is ~680k compressed.  
   
 If this does not fit to your needs, you can enable stuff  
 using `--features` or just provide your own `--kconfig`  
