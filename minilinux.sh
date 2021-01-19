@@ -804,6 +804,7 @@ LOGTIME=true
 
 				# e.g. 01h45m23s
 				printf '%02d%s%02d%s%02d%s | %s\n' "\$HOUR" h "\$MINU" m "\$REST" s "\$LINE"
+			;;
 			*)
 				printf '%s\n' "\$LINE"
 			;;
