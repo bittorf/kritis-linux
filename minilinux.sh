@@ -617,12 +617,17 @@ CONFIG1="$PWD/.config"
 # read NOP
 
 if has_arg 'no_pie'; then
+	T0="$( date +%s )"
 	echo "make $ARCH $CROSSCOMPILE CFLAGS=-fno-pie LDFLAGS=-no-pie -j$CPU"
 	make       $ARCH $CROSSCOMPILE CFLAGS=-fno-pie LDFLAGS=-no-pie -j$CPU || exit
+	T1="$( date +%s )"
 else
+	T0="$( date +%s )"
 	echo "make $ARCH $CROSSCOMPILE -j$CPU"
 	make       $ARCH $CROSSCOMPILE -j$CPU || exit
+	T1="$( date +%s )"
 fi
+KERNEL_TIME=$(( T1 - T0 ))
 
 # e.g. $LINUX_BUILD/arch/x86_64/boot/bzImage
 # e.g. $LINUX_BUILD/arch/arm/boot/zImage
@@ -688,6 +693,7 @@ MAX="\${3:-5}"		# max running time [seconds] in autotest-mode
 # KERNEL_URL: $KERNEL_URL
 # KERNEL_CONFIG: $CONFIG1
 $( sed -n '1,5s/^/#                /p' "$CONFIG1" )
+# KERNEL_BUILD_TIME: $KERNEL_TIME sec
 # KERNEL: $KERNEL_FILE
 # KERNEL_ELF: $KERNEL_ELF
 # KERNEL_SIZE: $( wc -c <$KERNEL_FILE ) bytes compressed
@@ -804,8 +810,8 @@ echo "# logfile written to '\$LOG'"
 echo "# you can manually startup again: \$0 in dir '\$(pwd)'"
 echo
 
-echo "will stop now QEMU with pid \$PID"
-\$KVM_PRE echo; while \$KVM_PRE kill -0 \$PID; do \$KVM_PRE kill \$PID; done
+echo "will now stop QEMU with pid \$PID"
+\$KVM_PRE echo; while \$KVM_PRE kill -0 \$PID; do set -x; \$KVM_PRE kill \$PID; sleep 1; set +x; done
 rm -f "\$PIPE" "\$PIPE.in" "\$PIPE.out"
 !
 
