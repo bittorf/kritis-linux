@@ -60,8 +60,8 @@ has_arg 'defconfig'   && DEFCONFIG='defconfig'
 
 deps_check()
 {
-	local cmd list='gzip xz zstd wget cp basename mkdir rm cat make sed grep tar test find touch chmod file tee'
-	# hint: 'vimdiff' and 'logger' are used, but not essential
+	local cmd list='gzip wget cp basename mkdir rm cat make sed grep tar test find touch chmod file tee'
+	# hint: vimdiff, logger, xz, zstd are used - but are not essential
 
 	for cmd in $list; do {
 		command -v "$cmd" >/dev/null || {
@@ -177,6 +177,7 @@ case "$KERNEL" in
 
 		case "$KERNEL" in
 			*'-rc'*)
+				# recent mainline:
 				KERNEL_URL="https://git.kernel.org/torvalds/t/linux-${KERNEL}.tar.gz"
 			;;
 			*)
@@ -550,15 +551,16 @@ esac
 if [ -f "$OWN_INITRD" ]; then
 	INITRD_FILE="$OWN_INITRD"
 else
-	find . -print0 | cpio --create --null --format=newc | xz -9  --format=lzma    >"$BUILDS/initramfs.cpio.xz"
-	find . -print0 | cpio --create --null --format=newc | xz -9e --format=lzma    >"$BUILDS/initramfs.cpio.xz.xz"
-	find . -print0 | cpio --create --null --format=newc | zstd -v -T0 --ultra -22 >"$BUILDS/initramfs.cpio.zstd"
+	# xz + zstd only for comparison, not productive
+	find . -print0 | cpio --create --null --format=newc | xz -9  --format=lzma    >"$BUILDS/initramfs.cpio.xz"    || true
+	find . -print0 | cpio --create --null --format=newc | xz -9e --format=lzma    >"$BUILDS/initramfs.cpio.xz.xz" || true
+	find . -print0 | cpio --create --null --format=newc | zstd -v -T0 --ultra -22 >"$BUILDS/initramfs.cpio.zstd"  || true
 	find . -print0 | cpio --create --null --format=newc | gzip -9                 >"$BUILDS/initramfs.cpio.gz"
 
-	INITRD_FILE="$(  readlink -e "$BUILDS/initramfs.cpio.gz"    )"
-	INITRD_FILE2="$( readlink -e "$BUILDS/initramfs.cpio.xz"    )"
-	INITRD_FILE3="$( readlink -e "$BUILDS/initramfs.cpio.xz.xz" )"
-	INITRD_FILE4="$( readlink -e "$BUILDS/initramfs.cpio.zstd"  )"
+	INITRD_FILE="$(  readlink -e "$BUILDS/initramfs.cpio.gz" )"
+	INITRD_FILE2="$( readlink -e "$BUILDS/initramfs.cpio.xz"    || true )"
+	INITRD_FILE3="$( readlink -e "$BUILDS/initramfs.cpio.xz.xz" || true )"
+	INITRD_FILE4="$( readlink -e "$BUILDS/initramfs.cpio.zstd"  || true )"
 fi
 
 BB_FILE="$BUSYBOX_BUILD/busybox"
