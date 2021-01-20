@@ -1,6 +1,6 @@
 #!/bin/sh
 
-KERNEL="$1"
+KERNEL="$1"		# e.g. 'latest' or '5.4.89' or '4.19.x' or URL-to-tarball
 [ -n "$2" ] && {
 	shift
 	OPTIONS="$*"	# see has_arg()
@@ -165,6 +165,15 @@ case "$KERNEL" in
 		echo "[OK] choosing '$KERNEL_URL'"
 	;;
 	[0-9].*)
+		# e.g. 4.19.x -> 4.19.169
+		case "$KERNEL" in
+			*'.x')
+				# this will fail, if not on mainpage anymore!
+				KERNEL="$( echo "$KERNEL" | cut -d'x' -f1 )"
+				KERNEL="$( wget -qO - https://www.kernel.org | sed -n "s/.*<strong>\(${KERNEL}[0-9]*\)<.*/\1/p" )"
+			;;
+		esac
+
 		# e.g. 5.4.89 -> dir v5.x + file 5.4.89
 		KERNEL_URL="https://cdn.kernel.org/pub/linux/kernel/v${KERNEL%%.*}.x/linux-${KERNEL}.tar.xz"
 		echo "[OK] choosing '$KERNEL_URL'"

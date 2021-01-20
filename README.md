@@ -30,6 +30,7 @@ kritis-linux/ci_helper.sh \
 * also adds support for the kernels `procfs` and `sysfs` and
 * adds your files to the initital ramdisk, eventually with a `init.user`,
 * which is executed directly after our minimal init
+* note: you can use `--kernel 4.4.x` for latest 4.4-branch
 
 #### CI: example two
 
@@ -50,7 +51,7 @@ kritis-linux/ci_helper.sh \
 ```
 
 * above command checks out stable tag `v0.4` and
-* builds `latest` 64bit `Linux` and adds `Busybox`
+* builds `latest` mainline 64bit `Linux` and adds `Busybox`
 * removes all files/symlinks, except those in `--keep`
 * adds directory in `--diradd` to initial ramdisk
 * uses `script.xy` as `/sbin/init`
