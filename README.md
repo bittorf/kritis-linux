@@ -35,7 +35,7 @@ kritis-linux/ci_helper.sh \
 
 ```
 # https://github.com/bittorf/kritis-linux
-git clone --depth 1 --branch v0.3 https://github.com/bittorf/kritis-linux.git
+git clone --depth 1 --branch v0.4 https://github.com/bittorf/kritis-linux.git
 
 kritis-linux/ci_helper.sh \
 	--arch x86_64 \
@@ -49,7 +49,8 @@ kritis-linux/ci_helper.sh \
 	--pattern "unittest_ready"
 ```
 
-* above command builds `latest` 64bit `Linux` and adds `Busybox`
+* above command checks out stable tag `v0.4` and
+* builds `latest` 64bit `Linux` and adds `Busybox`
 * removes all files/symlinks, except those in `--keep`
 * adds directory in `--diradd` to initial ramdisk
 * uses `script.xy` as `/sbin/init`
