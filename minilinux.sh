@@ -161,6 +161,7 @@ case "$KERNEL" in
 		exit
 	;;
 	[0-9]|[0-9][0-9]|latest)
+		# e.g. 1 or 22 or latest
 		KERNEL_URL="$( kernels "$KERNEL" )"
 		echo "[OK] choosing '$KERNEL_URL'"
 	;;
@@ -174,8 +175,16 @@ case "$KERNEL" in
 			;;
 		esac
 
-		# e.g. 5.4.89 -> dir v5.x + file 5.4.89
-		KERNEL_URL="https://cdn.kernel.org/pub/linux/kernel/v${KERNEL%%.*}.x/linux-${KERNEL}.tar.xz"
+		case "$KERNEL" in
+			*'-rc'*)
+				KERNEL_URL="https://git.kernel.org/torvalds/t/linux-${KERNEL}.tar.gz"
+			;;
+			*)
+				# e.g. 5.4.89 -> dir v5.x + file 5.4.89
+				KERNEL_URL="https://cdn.kernel.org/pub/linux/kernel/v${KERNEL%%.*}.x/linux-${KERNEL}.tar.xz"
+			;;
+		esac
+
 		echo "[OK] choosing '$KERNEL_URL'"
 	;;
 	'http'*)

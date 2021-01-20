@@ -51,7 +51,7 @@ kritis-linux/ci_helper.sh \
 ```
 
 * above command checks out stable tag `v0.4` and
-* builds `latest` mainline 64bit `Linux` and adds `Busybox`
+* builds `latest` stable 64bit `Linux` and adds `Busybox`
 * removes all files/symlinks, except those in `--keep`
 * adds directory in `--diradd` to initial ramdisk
 * uses `script.xy` as `/sbin/init`
