@@ -692,6 +692,7 @@ MAX="\${3:-86400}"	# max running time [seconds] in autotest-mode
 
 [ -z "\$MEM" ] && MEM="$MEM"	# if not given via ENV
 [ -z "\$LOG" ] && LOG="${LOG:-/dev/null}"
+[ -z "\$LOGTIME" ] && LOGTIME=true
 
 # generated: $( LC_ALL=C date )
 #
@@ -788,7 +789,6 @@ mkfifo "\$PIPE.out" || exit
 
 PID=\$!
 T0="\$( date +%s )"
-LOGTIME=true
 
 (
 	while read -r LINE; do {
@@ -802,7 +802,7 @@ LOGTIME=true
 				MINU=\$(( REST / 60 ))
 				REST=\$(( REST - (MINU * 60) ))
 
-				# e.g. 01h45m23s
+				# e.g. 01h45m23s | message_xy
 				printf '%02d%s%02d%s%02d%s | %s\n' "\$HOUR" h "\$MINU" m "\$REST" s "\$LINE"
 			;;
 			*)
@@ -814,7 +814,7 @@ LOGTIME=true
 			'# BOOTTIME_SECONDS '*|'# UNAME '*)
 				echo "\$LINE" >>"\$PIPE"
 			;;
-			"\$PATTERN"*|*' Attempted to kill init'*|'ABORTING HARD'*)
+			"\$PATTERN"*|*' Attempted to kill init'*|'ABORTING HARD'*|'Bootstrapping completed.')
 				echo 'READY' >>"\$PIPE"
 				break
 			;;

@@ -67,6 +67,7 @@ kritis-linux/ci_helper.sh \
   * e.g. `printk`,`sysfs`,`procfs`,`menuconfig`,
   * e.g. `tinyconfig` or `allnoconfig` or `defconfig`
 * `--log` /path/to/filename
+* `--logtime false` for disabling timestamps
 * `--debug true`
 
 ### kernel configuration and features
