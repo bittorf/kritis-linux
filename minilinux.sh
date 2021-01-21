@@ -6,11 +6,13 @@ KERNEL="$1"		# e.g. 'latest' or '5.4.89' or '4.19.x' or URL-to-tarball
 	OPTIONS="$*"	# see has_arg()
 }
 
-CPU="$( nproc || echo 1 )"
 BASEDIR='minilinux'
+CPU="$( nproc || sysctl -n hw.ncpu || lsconf | grep -c 'proc[0-9]' )"
+[ "${CPU:-0}" -lt 1 ] && CPU=1
 
 URL_TOYBOX='http://landley.net/toybox/downloads/toybox-0.8.4.tar.gz'
 URL_BUSYBOX='https://busybox.net/downloads/busybox-1.33.0.tar.bz2'
+URL_DASH='https://git.kernel.org/pub/scm/utils/dash/dash.git/snapshot/dash-0.5.11.3.tar.gz'
 
 export STORAGE="/tmp/storage"
 mkdir -p "$STORAGE"
@@ -60,7 +62,7 @@ has_arg 'defconfig'   && DEFCONFIG='defconfig'
 
 deps_check()
 {
-	local cmd list='gzip wget cp basename mkdir rm cat make sed grep tar test find touch chmod file tee'
+	local cmd list='gzip wget cp basename mkdir rm cat make sed grep tar test find touch chmod file tee strip'
 	# hint: vimdiff, logger, xz, zstd are used - but are not essential
 
 	for cmd in $list; do {
@@ -381,8 +383,30 @@ apply()
 }
 
 ###
-### busybox + rootfs/initrd ####
+### busybox|tyobox|dash + rootfs/initrd ####
 ###
+
+export DASH="$OPT/dash"
+mkdir -p "$DASH"
+
+export DASH_BUILD="$BUILDS/dash"
+mkdir -p "$DASH_BUILD"
+
+has_arg 'dash' && {
+	download "$URL_DASH" || exit
+	mv ./*dash* "$DASH_BUILD/"
+	cd "$DASH_BUILD" || exit
+	untar ./*
+	cd ./* || exit		# there is only 1 dir
+
+	# https://github.com/amuramatsu/dash-static/blob/master/build.sh
+	./autogen.sh			# -> ./configure
+	./configure --enable-static	# FIXME! for other archs
+	make "-j$CPU" || exit
+
+	DASH="$(pwd)/src/dash"
+	strip "$DASH"
+}
 
 export BUSYBOX="$OPT/busybox"
 mkdir -p "$BUSYBOX"
@@ -446,11 +470,11 @@ CONFIG2="$PWD/.config"
 if [ -f "$OWN_INITRD" ]; then
 	:
 elif has_arg 'toybox'; then
-	LDFLAGS="--static" make -j"$CPU" $ARCH $CROSSCOMPILE toybox || \
+	LDFLAGS="--static" make "-j$CPU" $ARCH $CROSSCOMPILE toybox || \
 		msg_and_die "$?" "LDFLAGS=--static make -j$CPU $ARCH $CROSSCOMPILE toybox"
 	test -s toybox || msg_and_die "$?" "test -s toybox"
 
-	LDFLAGS="--static" make -j"$CPU" $ARCH $CROSSCOMPILE sh || \
+	LDFLAGS="--static" make "-j$CPU" $ARCH $CROSSCOMPILE sh || \
 		msg_and_die "$?" "LDFLAGS=--static make -j$CPU $ARCH $CROSSCOMPILE toybox"
 	test -s sh || msg_and_die "$?" "test -s sh"
 
@@ -458,7 +482,7 @@ elif has_arg 'toybox'; then
 	PREFIX="$BUSYBOX_BUILD/_install" make $ARCH $CROSSCOMPILE install || msg_and_die "$?" "PREFIX='$BUSYBOX_BUILD/_install' make $ARCH $CROSSCOMPILE install"
 else
 	# busybox:
-	make -j"$CPU" $ARCH $CROSSCOMPILE || msg_and_die "$?" "make -j$CPU $ARCH $CROSSCOMPILE"
+	make "-j$CPU" $ARCH $CROSSCOMPILE || msg_and_die "$?" "make -j$CPU $ARCH $CROSSCOMPILE"
 	make $ARCH $CROSSCOMPILE install || msg_and_die "$?" "make $ARCH $CROSSCOMPILE install"
 fi
 
@@ -485,6 +509,8 @@ fi
 		esac
 	} done
 }
+
+[ -s "$DASH" ] && cp -v "$DASH" bin/sh
 
 # TODO: https://stackoverflow.com/questions/36529881/qemu-bin-sh-cant-access-tty-job-control-turned-off?rq=1
 
