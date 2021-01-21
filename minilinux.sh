@@ -13,6 +13,10 @@ CPU="$( nproc || sysctl -n hw.ncpu || lsconf | grep -c 'proc[0-9]' )"
 URL_TOYBOX='http://landley.net/toybox/downloads/toybox-0.8.4.tar.gz'
 URL_BUSYBOX='https://busybox.net/downloads/busybox-1.33.0.tar.bz2'
 URL_DASH='https://git.kernel.org/pub/scm/utils/dash/dash.git/snapshot/dash-0.5.11.3.tar.gz'
+URL_MUSL='https://musl.libc.org/releases/musl-1.2.2.tar.gz'
+
+SILENT_MAKE='-s'
+SILENT_CONF='--enable-silent-rules'
 
 export STORAGE="/tmp/storage"
 mkdir -p "$STORAGE"
@@ -386,6 +390,12 @@ apply()
 ### busybox|tyobox|dash + rootfs/initrd ####
 ###
 
+export MUSL="$OPT/musl"
+mkdir -p "$MUSL"
+
+export MUSL_BUILD="$BUILDS/musl"
+mkdir -p "$MUSL_BUILD"
+
 export DASH="$OPT/dash"
 mkdir -p "$DASH"
 
@@ -393,19 +403,28 @@ export DASH_BUILD="$BUILDS/dash"
 mkdir -p "$DASH_BUILD"
 
 has_arg 'dash' && {
+	download "$URL_MUSL" || exit
+	mv ./*musl* "$MUSL_BUILD/" || exit
+	cd "$MUSL_BUILD" || exit
+	untar ./*
+	cd ./* || exit
+	./configure $SILENT_CONF --prefix="$MUSL" --disable-shared || exit
+	make $SILENT_MAKE install || exit
+	export CC_MUSL="$MUSL/bin/musl-gcc"
+
 	download "$URL_DASH" || exit
-	mv ./*dash* "$DASH_BUILD/"
+	mv ./*dash* "$DASH_BUILD/" || exit
 	cd "$DASH_BUILD" || exit
 	untar ./*
 	cd ./* || exit		# there is only 1 dir
 
 	# https://github.com/amuramatsu/dash-static/blob/master/build.sh
-	./autogen.sh			# -> ./configure
-	./configure --enable-static	# FIXME! for other archs
-	make "-j$CPU" || exit
+	./autogen.sh || exit			# -> ./configure
+	./configure $SILENT_CONF "CC=$CC_MUSL -static" "CPP=$CC_MUSL -static -E" --enable-static || exit
+	make $SILENT_MAKE "-j$CPU" || exit
 
 	DASH="$(pwd)/src/dash"
-	strip "$DASH"
+	strip "$DASH" || exit
 }
 
 export BUSYBOX="$OPT/busybox"
@@ -510,7 +529,7 @@ fi
 	} done
 }
 
-[ -s "$DASH" ] && cp -v "$DASH" bin/sh
+[ -s "$DASH" ] && cp -v "$DASH" bin/dash	# FIXME! it still does not run
 
 # TODO: https://stackoverflow.com/questions/36529881/qemu-bin-sh-cant-access-tty-job-control-turned-off?rq=1
 
