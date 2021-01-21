@@ -362,7 +362,7 @@ apply()
 			if grep -q ^"$2=y" .config; then
 				sed -i "/$2=y/d" '.config'
 				echo "$symbol" >>.config
-				yes "" | make $ARCH oldconfig
+				yes "" | make $SILENT_MAKE $ARCH oldconfig
 				return
 			else
 				return 0
@@ -375,7 +375,7 @@ apply()
 	echo "$symbol" >>'.config'
 
 	# see: https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/scripts/config
-	yes "" | make $ARCH oldconfig || return 1
+	yes "" | make $SILENT_MAKE $ARCH oldconfig || return 1
 
 	grep -q ^"$symbol"$ .config || {
 		echo "#"
@@ -457,9 +457,9 @@ if [ -f "$OWN_INITRD" ]; then
 	:
 elif has_arg 'toybox'; then
 	BUSYBOX_BUILD="$PWD"
-	LDFLAGS="--static" make $ARCH $CROSSCOMPILE root || msg_and_die "$?" "LDFLAGS=--static make $ARCH $CROSSCOMPILE root"
+	LDFLAGS="--static" make $SILENT_MAKE $ARCH $CROSSCOMPILE root || msg_and_die "$?" "LDFLAGS=--static make $ARCH $CROSSCOMPILE root"
 else
-	make O="$BUSYBOX_BUILD" $ARCH $CROSSCOMPILE defconfig || msg_and_die "$?" "make O=$BUSYBOX_BUILD $ARCH $CROSSCOMPILE defconfig"
+	make $SILENT_MAKE O="$BUSYBOX_BUILD" $ARCH $CROSSCOMPILE defconfig || msg_and_die "$?" "make O=$BUSYBOX_BUILD $ARCH $CROSSCOMPILE defconfig"
 fi
 
 cd "$BUSYBOX_BUILD" || msg_and_die "$?" "$_"
@@ -474,7 +474,7 @@ fi
 
 has_arg 'menuconfig' && {
 	while :; do {
-		make $ARCH menuconfig || exit
+		make $SILENT_MAKE $ARCH menuconfig || exit
 		vimdiff '.config' '.config.old'
 		echo "$PWD" && echo "press enter for menuconfig or type 'ok' (and press enter) to compile" && \
 			read -r GO && test "$GO" && break
@@ -489,20 +489,20 @@ CONFIG2="$PWD/.config"
 if [ -f "$OWN_INITRD" ]; then
 	:
 elif has_arg 'toybox'; then
-	LDFLAGS="--static" make "-j$CPU" $ARCH $CROSSCOMPILE toybox || \
+	LDFLAGS="--static" make $SILENT_MAKE "-j$CPU" $ARCH $CROSSCOMPILE toybox || \
 		msg_and_die "$?" "LDFLAGS=--static make -j$CPU $ARCH $CROSSCOMPILE toybox"
 	test -s toybox || msg_and_die "$?" "test -s toybox"
 
-	LDFLAGS="--static" make "-j$CPU" $ARCH $CROSSCOMPILE sh || \
+	LDFLAGS="--static" make $SILENT_MAKE "-j$CPU" $ARCH $CROSSCOMPILE sh || \
 		msg_and_die "$?" "LDFLAGS=--static make -j$CPU $ARCH $CROSSCOMPILE toybox"
 	test -s sh || msg_and_die "$?" "test -s sh"
 
 	mkdir '_install'
-	PREFIX="$BUSYBOX_BUILD/_install" make $ARCH $CROSSCOMPILE install || msg_and_die "$?" "PREFIX='$BUSYBOX_BUILD/_install' make $ARCH $CROSSCOMPILE install"
+	PREFIX="$BUSYBOX_BUILD/_install" make $SILENT_MAKE $ARCH $CROSSCOMPILE install || msg_and_die "$?" "PREFIX='$BUSYBOX_BUILD/_install' make $ARCH $CROSSCOMPILE install"
 else
 	# busybox:
-	make "-j$CPU" $ARCH $CROSSCOMPILE || msg_and_die "$?" "make -j$CPU $ARCH $CROSSCOMPILE"
-	make $ARCH $CROSSCOMPILE install || msg_and_die "$?" "make $ARCH $CROSSCOMPILE install"
+	make $SILENT_MAKE "-j$CPU" $ARCH $CROSSCOMPILE || msg_and_die "$?" "make -j$CPU $ARCH $CROSSCOMPILE"
+	make $SILENT_MAKE $ARCH $CROSSCOMPILE install || msg_and_die "$?" "make $ARCH $CROSSCOMPILE install"
 fi
 
 cd ..
@@ -632,16 +632,16 @@ cd ./* || exit		# there is only 1 dir
 # TODO:
 # home/bastian/software/minilinux/minilinux/opt/linux/linux-3.19.8/include/linux/compiler-gcc.h:106:1: fatal error: linux/compiler-gcc9.h: Datei oder Verzeichnis nicht gefunden 
 
-make $ARCH O="$LINUX_BUILD" distclean		# needed?
-make $ARCH O="$LINUX_BUILD" $DEFCONFIG || exit
+make $SILENT_MAKE $ARCH O="$LINUX_BUILD" distclean		# needed?
+make $SILENT_MAKE $ARCH O="$LINUX_BUILD" $DEFCONFIG || exit
 cd "$LINUX_BUILD" || exit
 
 if [ -f "$OWN_KCONFIG" ]; then
 	cp -v "$OWN_KCONFIG" .config
 elif has_arg 'UML'; then
-	make mrproper
-	make mrproper $ARCH
-	make defconfig $ARCH
+	make $SILENT_MAKE mrproper
+	make $SILENT_MAKE mrproper $ARCH
+	make $SILENT_MAKE defconfig $ARCH
 
 	if has_arg '32bit'; then
 		echo '# CONFIG_64BIT is not set'
@@ -677,7 +677,7 @@ fi
 
 has_arg 'menuconfig' && {
 	while :; do {
-		make $ARCH menuconfig || exit
+		make $SILENT_MAKE $ARCH menuconfig || exit
 		vimdiff '.config' '.config.old'
 		echo "$PWD" && echo "press enter for menuconfig or type 'ok' (and press enter) to compile" && \
 			read -r GO && test "$GO" && break
@@ -691,13 +691,13 @@ CONFIG1="$PWD/.config"
 
 if has_arg 'no_pie'; then
 	T0="$( date +%s )"
-	echo "make $ARCH $CROSSCOMPILE CFLAGS=-fno-pie LDFLAGS=-no-pie -j$CPU"
-	make       $ARCH $CROSSCOMPILE CFLAGS=-fno-pie LDFLAGS=-no-pie -j"$CPU" || exit
+	echo "make        $ARCH $CROSSCOMPILE CFLAGS=-fno-pie LDFLAGS=-no-pie -j$CPU"
+	make $SILENT_MAKE $ARCH $CROSSCOMPILE CFLAGS=-fno-pie LDFLAGS=-no-pie -j"$CPU" || exit
 	T1="$( date +%s )"
 else
 	T0="$( date +%s )"
-	echo "make $ARCH $CROSSCOMPILE -j$CPU"
-	make       $ARCH $CROSSCOMPILE -j"$CPU" || exit
+	echo "make        $ARCH $CROSSCOMPILE -j$CPU"
+	make $SILENT_MAKE $ARCH $CROSSCOMPILE -j"$CPU" || exit
 	T1="$( date +%s )"
 fi
 KERNEL_TIME=$(( T1 - T0 ))
