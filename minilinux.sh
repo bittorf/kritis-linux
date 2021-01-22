@@ -40,7 +40,7 @@ has_arg 'UML' && DSTARCH='uml'
 #
 case "$DSTARCH" in
 	uml)	export ARCH='ARCH=um'
-		export DEFCONFIG='allnoconfig'
+		export DEFCONFIG='tinyconfig'
 	;;
 	armel)	export ARCH='ARCH=arm' CROSSCOMPILE='CROSS_COMPILE=arm-linux-gnueabi-'
 		export BOARD='versatilepb' DTB='versatile-pb.dtb' DEFCONFIG='versatile_defconfig'
