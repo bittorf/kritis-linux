@@ -811,6 +811,9 @@ case "\$ACTION" in
 
 		case "$DSTARCH" in
 			uml)
+				echo "INTERACTIVE: will start now UML-linux:"
+				echo
+
 				$KERNEL_FILE \\
 					initrd=$INITRD_FILE
 			;;
@@ -841,15 +844,26 @@ mkfifo "\$PIPE.out" || exit
 \$KVM_PRE echo			# cache sudo-pass for (maybe) next interactive run
 
 (
-	echo "AUTOTEST: will start now QEMU: \$KVM_PRE \$QEMU -m \${MEM:-256} \$KVM_SUPPORT ..."
-	echo
+	case "$DSTARCH" in
+		uml)
+			echo "AUTOTEST: will start now UML-linux"
+			echo
 
-	\$KVM_PRE \$QEMU -m \${MEM:-256} \$KVM_SUPPORT \$BIOS \\
-		-kernel $KERNEL_FILE \\
-		-initrd $INITRD_FILE \\
-		-nographic \\
-		-serial pipe:\$PIPE \\
-		-append "\$KERNEL_ARGS" \$QEMU_OPTIONS
+			$KERNEL_FILE \\
+				initrd=$INITRD_FILE
+		;;
+		*)
+			echo "AUTOTEST: will start now QEMU: \$KVM_PRE \$QEMU -m \${MEM:-256} \$KVM_SUPPORT ..."
+			echo
+
+			\$KVM_PRE \$QEMU -m \${MEM:-256} \$KVM_SUPPORT \$BIOS \\
+				-kernel $KERNEL_FILE \\
+				-initrd $INITRD_FILE \\
+				-nographic \\
+				-serial pipe:\$PIPE \\
+				-append "\$KERNEL_ARGS" \$QEMU_OPTIONS
+		;;
+	esac
 ) &
 
 PID=\$!
