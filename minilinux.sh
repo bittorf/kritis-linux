@@ -860,7 +860,7 @@ mkfifo "\$PIPE.out" || exit
 			$KERNEL_FILE mem=\$MEM \\
 				initrd=$INITRD_FILE
 
-			rm -f$ "\$DIR"
+			rm -fR "\$DIR"
 		;;
 		*)
 			echo "AUTOTEST: will start now QEMU: \$KVM_PRE \$QEMU -m \$MEM \$KVM_SUPPORT ..."
