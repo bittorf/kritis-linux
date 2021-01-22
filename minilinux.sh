@@ -287,7 +287,7 @@ EOF
 list_kernel_symbols()
 {
 	case "$DSTARCH" in
-		uml|armel|armhf)
+		armel|armhf)
 			echo '# CONFIG_64BIT is not set'
 		;;
 		*)
