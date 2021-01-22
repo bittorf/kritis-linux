@@ -814,14 +814,13 @@ case "\$ACTION" in
 				echo "INTERACTIVE: will start now UML-linux:"
 				echo
 
-#				DIR="\$( mktemp -d )" || exit
-#				chown \$USER.\$USER "\$DIR" || exit
-#				chmod 777 "\$DIR"
-#				export TMPDIR="\$DIR"
+				DIR="\$( mktemp -d )" || exit
+				export TMPDIR="\$DIR"
+
 				$KERNEL_FILE mem=\$MEM \\
 					initrd=$INITRD_FILE
 
-#				rm -fR "\$DIR"
+				rm -fR "\$DIR"
 			;;
 			*)
 				echo "INTERACTIVE: will start now QEMU: \$KVM_PRE \$QEMU -m \$MEM \$KVM_SUPPORT ..."
@@ -855,8 +854,13 @@ mkfifo "\$PIPE.out" || exit
 			echo "AUTOTEST: will start now UML-linux"
 			echo
 
+			DIR="\$( mktemp -d )" || exit
+			export TMPDIR="\$DIR"
+
 			$KERNEL_FILE mem=\$MEM \\
 				initrd=$INITRD_FILE
+
+			rm -f$ "\$DIR"
 		;;
 		*)
 			echo "AUTOTEST: will start now QEMU: \$KVM_PRE \$QEMU -m \$MEM \$KVM_SUPPORT ..."
