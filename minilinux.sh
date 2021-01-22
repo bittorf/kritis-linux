@@ -755,7 +755,7 @@ ACTION="\$1"		# autotest|boot
 PATTERN="\$2"		# in autotest-mode pattern for end-detection
 MAX="\${3:-86400}"	# max running time [seconds] in autotest-mode
 
-[ -z "\$MEM" ] && MEM="$MEM"	# if not given via ENV
+[ -z "\$MEM" ] && MEM="${MEM:-256M}"	# if not given via ENV
 [ -z "\$LOG" ] && LOG="${LOG:-/dev/null}"
 [ -z "\$LOGTIME" ] && LOGTIME=true
 
@@ -814,14 +814,20 @@ case "\$ACTION" in
 				echo "INTERACTIVE: will start now UML-linux:"
 				echo
 
-				$KERNEL_FILE \\
+#				DIR="\$( mktemp -d )" || exit
+#				chown \$USER.\$USER "\$DIR" || exit
+#				chmod 777 "\$DIR"
+#				export TMPDIR="\$DIR"
+				$KERNEL_FILE mem=\$MEM \\
 					initrd=$INITRD_FILE
+
+#				rm -fR "\$DIR"
 			;;
 			*)
-				echo "INTERACTIVE: will start now QEMU: \$KVM_PRE \$QEMU -m \${MEM:-256} \$KVM_SUPPORT ..."
+				echo "INTERACTIVE: will start now QEMU: \$KVM_PRE \$QEMU -m \$MEM \$KVM_SUPPORT ..."
 				echo
 
-				\$KVM_PRE \$QEMU -m \${MEM:-256} \$KVM_SUPPORT \$BIOS \\
+				\$KVM_PRE \$QEMU -m \$MEM \$KVM_SUPPORT \$BIOS \\
 					-kernel $KERNEL_FILE \\
 					-initrd $INITRD_FILE \\
 					-nographic \\
@@ -849,14 +855,14 @@ mkfifo "\$PIPE.out" || exit
 			echo "AUTOTEST: will start now UML-linux"
 			echo
 
-			$KERNEL_FILE \\
+			$KERNEL_FILE mem=\$MEM \\
 				initrd=$INITRD_FILE
 		;;
 		*)
-			echo "AUTOTEST: will start now QEMU: \$KVM_PRE \$QEMU -m \${MEM:-256} \$KVM_SUPPORT ..."
+			echo "AUTOTEST: will start now QEMU: \$KVM_PRE \$QEMU -m \$MEM \$KVM_SUPPORT ..."
 			echo
 
-			\$KVM_PRE \$QEMU -m \${MEM:-256} \$KVM_SUPPORT \$BIOS \\
+			\$KVM_PRE \$QEMU -m \$MEM \$KVM_SUPPORT \$BIOS \\
 				-kernel $KERNEL_FILE \\
 				-initrd $INITRD_FILE \\
 				-nographic \\
