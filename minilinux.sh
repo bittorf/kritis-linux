@@ -383,6 +383,7 @@ apply()
 		;;
 	esac
 
+	# TODO: work without -i
 	sed -i "/^$word=.*/d" '.config'
 	sed -i "/.*$word .*/d" '.config'
 	echo "$symbol" >>'.config'
@@ -786,6 +787,11 @@ case "${DSTARCH:-\$( arch || echo native )}" in armel|armhf|arm|arm64)
 	DTB='$DTB'
 	KVM_SUPPORT="-M $BOARD \${DTB:+-dtb }\$DTB" ; KVM_PRE=; QEMU='qemu-system-arm'; KERNEL_ARGS='console=ttyAMA0'
 	[ "$DSTARCH" = arm64 ] && QEMU='qemu-system-aarch64' && KVM_SUPPORT="\$KVM_SUPPORT -cpu max"
+	;;
+	uml)
+		QEMU="$( basename $KERNEL_FILE )"	# for later kill
+		KVM_PRE=				# sudo unneeded?
+	;;
 esac
 
 $( test -f "$BIOS" && echo "BIOS='-bios \"$BIOS\"'" )
@@ -837,8 +843,6 @@ PIPE="\$( mktemp )" || exit
 mkfifo "\$PIPE.in"  || exit
 mkfifo "\$PIPE.out" || exit
 \$KVM_PRE echo			# cache sudo-pass for (maybe) next interactive run
-
-case "$DSTARCH" in uml) QEMU="$( basename $KERNEL_FILE )" ;; esac	# for later kill
 
 (
 	case "$DSTARCH" in
