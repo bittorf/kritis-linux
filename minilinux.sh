@@ -837,6 +837,8 @@ mkfifo "\$PIPE.in"  || exit
 mkfifo "\$PIPE.out" || exit
 \$KVM_PRE echo			# cache sudo-pass for (maybe) next interactive run
 
+case "$DSTARCH" in uml) QEMU="$( basename $KERNEL_FILE )" ;; esac	# for later kill
+
 (
 	case "$DSTARCH" in
 		uml)
