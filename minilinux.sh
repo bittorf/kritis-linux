@@ -58,6 +58,7 @@ case "$DSTARCH" in
 		DSTARCH='i686'		# 32bit
 
 		# apt: gcc-i686-linux-gnu
+		OPTIONS="$OPTIONS 32bit"
 		has_arg '32bit' && test "$(arch)" != i686 && CROSSCOMPILE='CROSS_COMPILE=i686-linux-gnu-'
 		export DEFCONFIG='tinyconfig'
 	;;
@@ -676,12 +677,12 @@ if has_arg 'no_pie'; then
 	T0="$( date +%s )"
 	echo "make        $ARCH $CROSSCOMPILE CFLAGS=-fno-pie LDFLAGS=-no-pie -j$CPU"
 	make $SILENT_MAKE $ARCH $CROSSCOMPILE CFLAGS=-fno-pie LDFLAGS=-no-pie -j"$CPU" || \
-		msg_and_die "make $ARCH $CROSSCOMPILE CFLAGS=-fno-pie LDFLAGS=-no-pie"
+		msg_and_die "$?" "make $ARCH $CROSSCOMPILE CFLAGS=-fno-pie LDFLAGS=-no-pie"
 	T1="$( date +%s )"
 else
 	T0="$( date +%s )"
 	echo "make        $ARCH $CROSSCOMPILE -j$CPU"
-	make $SILENT_MAKE $ARCH $CROSSCOMPILE -j"$CPU" || msg_and_die "make $ARCH $CROSSCOMPILE"
+	make $SILENT_MAKE $ARCH $CROSSCOMPILE -j"$CPU" || msg_and_die "$?" "make $ARCH $CROSSCOMPILE"
 	T1="$( date +%s )"
 fi
 KERNEL_TIME=$(( T1 - T0 ))
