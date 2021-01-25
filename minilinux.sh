@@ -30,6 +30,13 @@ has_arg()
 	case " $OPTIONS " in *" $1 "*) true ;; *) false ;; esac
 }
 
+install_dep()
+{
+	local package="$1"	# e.g. gcc-i686-linux-gnu
+
+	dpkg -l "$package" >/dev/null || sudo apt-get install -y "$package"
+}
+
 # https://superuser.com/questions/1009540/difference-between-arm64-armel-and-armhf
 # FIXME! on arm / qemu-system-arm / we should switch to qemu -M virt without DTB and smaller config
 #   apt: gcc-arm-linux-gnueabi   = armel = older 32bit
@@ -51,16 +58,18 @@ case "$DSTARCH" in
 	um|uml)	export ARCH='ARCH=um'
 		export DEFCONFIG='tinyconfig'
 
-		# apt: gcc-i686-linux-gnu
-		has_arg '32bit' && test "$(arch)" != i686 && CROSSCOMPILE='CROSS_COMPILE=i686-linux-gnu-'
+		has_arg '32bit' && test "$(arch)" != i686 && \
+			CROSSCOMPILE='CROSS_COMPILE=i686-linux-gnu-' \
+			install_dep 'gcc-i686-linux-gnu'
 	;;
 	i386|i486|i586|i686)
 		DSTARCH='i686'		# 32bit
-
-		# apt: gcc-i686-linux-gnu
-		OPTIONS="$OPTIONS 32bit"
-		has_arg '32bit' && test "$(arch)" != i686 && CROSSCOMPILE='CROSS_COMPILE=i686-linux-gnu-'
 		export DEFCONFIG='tinyconfig'
+
+		OPTIONS="$OPTIONS 32bit"
+		has_arg '32bit' && test "$(arch)" != i686 && \
+			CROSSCOMPILE='CROSS_COMPILE=i686-linux-gnu-'
+			install_dep 'gcc-i686-linux-gnu'
 	;;
 	*)	export DEFCONFIG='tinyconfig'
 	;;
@@ -789,7 +798,7 @@ case "${DSTARCH:-\$( arch || echo native )}" in armel|armhf|arm|arm64)
 	[ "$DSTARCH" = arm64 ] && QEMU='qemu-system-aarch64' && KVM_SUPPORT="\$KVM_SUPPORT -cpu max"
 	;;
 	uml)
-		QEMU="$( basename $KERNEL_FILE )"	# for later kill
+		QEMU="$( basename "$KERNEL_FILE" )"	# for later kill
 		KVM_PRE=				# sudo unneeded?
 	;;
 esac
