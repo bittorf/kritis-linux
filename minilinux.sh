@@ -409,13 +409,13 @@ mkdir -p "$MUSL"
 export MUSL_BUILD="$BUILDS/musl"
 mkdir -p "$MUSL_BUILD"
 
-export DASH="$OPT/dash"
-mkdir -p "$DASH"
-
-export DASH_BUILD="$BUILDS/dash"
-mkdir -p "$DASH_BUILD"
-
 has_arg 'dash' && {
+	export DASH="$OPT/dash"
+	mkdir -p "$DASH"
+
+	export DASH_BUILD="$BUILDS/dash"
+	mkdir -p "$DASH_BUILD"
+
 	download "$URL_MUSL" || exit
 	mv ./*musl* "$MUSL_BUILD/" || exit
 	cd "$MUSL_BUILD" || exit
