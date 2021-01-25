@@ -39,9 +39,6 @@ has_arg()
 has_arg 'UML' && DSTARCH='uml'
 #
 case "$DSTARCH" in
-	uml)	export ARCH='ARCH=um'
-		export DEFCONFIG='tinyconfig'
-	;;
 	armel)	export ARCH='ARCH=arm' CROSSCOMPILE='CROSS_COMPILE=arm-linux-gnueabi-'
 		export BOARD='versatilepb' DTB='versatile-pb.dtb' DEFCONFIG='versatile_defconfig'
 	;;
@@ -51,9 +48,17 @@ case "$DSTARCH" in
 	arm64)	export ARCH='ARCH=arm64' CROSSCOMPILE='CROSS_COMPILE=aarch64-linux-gnu-'
 		export BOARD='virt' DEFCONFIG='allnoconfig'
 	;;
-	i386)
-		OPTIONS="$OPTIONS,32bit"
-		export CFLAGS=-m32
+	um|uml)	export ARCH='ARCH=um'
+		export DEFCONFIG='tinyconfig'
+
+		# apt: gcc-i686-linux-gnu
+		has_arg '32bit' && test "$(arch)" != i686 && CROSSCOMPILE='CROSS_COMPILE=i686-linux-gnu-'
+	;;
+	i386|i486|i586|i686)
+		DSTARCH='i686'		# 32bit
+
+		# apt: gcc-i686-linux-gnu
+		has_arg '32bit' && test "$(arch)" != i686 && CROSSCOMPILE='CROSS_COMPILE=i686-linux-gnu-'
 		export DEFCONFIG='tinyconfig'
 	;;
 	*)	export DEFCONFIG='tinyconfig'
@@ -295,7 +300,10 @@ list_kernel_symbols()
 				echo '# CONFIG_64BIT is not set'
 			else
 				echo 'CONFIG_64BIT=y'
-				echo 'CONFIG_IA32_EMULATION=y'		# support for 32bit binaries
+
+				# support for 32bit binaries
+				# note: does not work/exist in uml: https://uml.devloop.org.uk/faq.html
+				echo 'CONFIG_IA32_EMULATION=y'
 			fi
 		;;
 	esac
@@ -341,9 +349,13 @@ CONFIG_SERIAL_8250_CONSOLE=y
 # CONFIG_STACK_VALIDATION is not set
 !
 
+	test "$DSTARCH" = 'uml' && echo 'CONFIG_STATIC_LINK=y'
+
 	has_arg 'printk' && echo 'CONFIG_PRINTK=y'
 	has_arg 'procfs' && echo 'CONFIG_PROC_FS=y'
 	has_arg 'sysfs'  && echo 'CONFIG_SYSFS=y'
+
+	true
 }
 
 apply()
@@ -490,19 +502,19 @@ if [ -f "$OWN_INITRD" ]; then
 	:
 elif has_arg 'toybox'; then
 	LDFLAGS="--static" make $SILENT_MAKE "-j$CPU" $ARCH $CROSSCOMPILE toybox || \
-		msg_and_die "$?" "LDFLAGS=--static make -j$CPU $ARCH $CROSSCOMPILE toybox"
+		msg_and_die "$?" "LDFLAGS=--static make $ARCH $CROSSCOMPILE toybox"
 	test -s toybox || msg_and_die "$?" "test -s toybox"
 
 	LDFLAGS="--static" make $SILENT_MAKE "-j$CPU" $ARCH $CROSSCOMPILE sh || \
-		msg_and_die "$?" "LDFLAGS=--static make -j$CPU $ARCH $CROSSCOMPILE toybox"
+		msg_and_die "$?" "LDFLAGS=--static make $ARCH $CROSSCOMPILE sh"
 	test -s sh || msg_and_die "$?" "test -s sh"
 
 	mkdir '_install'
 	PREFIX="$BUSYBOX_BUILD/_install" make $SILENT_MAKE $ARCH $CROSSCOMPILE install || msg_and_die "$?" "PREFIX='$BUSYBOX_BUILD/_install' make $ARCH $CROSSCOMPILE install"
 else
 	# busybox:
-	make $SILENT_MAKE "-j$CPU" $ARCH $CROSSCOMPILE || msg_and_die "$?" "make -j$CPU $ARCH $CROSSCOMPILE"
-	make $SILENT_MAKE $ARCH $CROSSCOMPILE install || msg_and_die "$?" "make $ARCH $CROSSCOMPILE install"
+	make $SILENT_MAKE "-j$CPU" $ARCH $CROSSCOMPILE || msg_and_die "$?" "make $ARCH $CROSSCOMPILE"
+	make $SILENT_MAKE $ARCH $CROSSCOMPILE install  || msg_and_die "$?" "make $ARCH $CROSSCOMPILE install"
 fi
 
 cd ..
@@ -638,37 +650,8 @@ cd "$LINUX_BUILD" || exit
 
 if [ -f "$OWN_KCONFIG" ]; then
 	cp -v "$OWN_KCONFIG" .config
-elif has_arg 'UML'; then
-	make $SILENT_MAKE mrproper
-	make $SILENT_MAKE mrproper $ARCH
-	make $SILENT_MAKE defconfig $ARCH
-
-	if has_arg '32bit'; then
-		echo '# CONFIG_64BIT is not set'
-	else
-		echo 'CONFIG_64BIT=y'
-	fi
-
-	apply "CONFIG_BLK_DEV_INITRD=y"
-
-	apply "CONFIG_RD_GZIP=y"
-	apply "CONFIG_ZLIB_INFLATE=y"
-	apply "CONFIG_LZO_DECOMPRESS=y"
-	apply "CONFIG_LZ4_DECOMPRESS=y"
-	apply "CONFIG_XZ_DEC=y"
-	apply "CONFIG_DECOMPRESS_GZIP=y"
-	apply "CONFIG_DECOMPRESS_BZIP2=y"
-	apply "CONFIG_DECOMPRESS_LZMA=y"
-	apply "CONFIG_DECOMPRESS_XZ=y"
-	apply "CONFIG_DECOMPRESS_LZO=y"
-	apply "CONFIG_DECOMPRESS_LZ4=y"
-
-#	set -x
-#	apply "CONFIG_INITRAMFS_SOURCE=\"$INITRD_FILE\""
-#	grep CONFIG_INITRAMFS_SOURCE= .config || {
-#		echo "FIXME!" && exit
-#	}
 else
+#	TODO: apply "CONFIG_INITRAMFS_SOURCE=\"$INITRD_FILE\""
 #	list_kernel_symbols_arm64 | while read -r SYMBOL; do {
 	list_kernel_symbols | while read -r SYMBOL; do {
 		apply "$SYMBOL" || exit
@@ -692,12 +675,13 @@ CONFIG1="$PWD/.config"
 if has_arg 'no_pie'; then
 	T0="$( date +%s )"
 	echo "make        $ARCH $CROSSCOMPILE CFLAGS=-fno-pie LDFLAGS=-no-pie -j$CPU"
-	make $SILENT_MAKE $ARCH $CROSSCOMPILE CFLAGS=-fno-pie LDFLAGS=-no-pie -j"$CPU" || exit
+	make $SILENT_MAKE $ARCH $CROSSCOMPILE CFLAGS=-fno-pie LDFLAGS=-no-pie -j"$CPU" || \
+		msg_and_die "make $ARCH $CROSSCOMPILE CFLAGS=-fno-pie LDFLAGS=-no-pie"
 	T1="$( date +%s )"
 else
 	T0="$( date +%s )"
 	echo "make        $ARCH $CROSSCOMPILE -j$CPU"
-	make $SILENT_MAKE $ARCH $CROSSCOMPILE -j"$CPU" || exit
+	make $SILENT_MAKE $ARCH $CROSSCOMPILE -j"$CPU" || msg_and_die "make $ARCH $CROSSCOMPILE"
 	T1="$( date +%s )"
 fi
 KERNEL_TIME=$(( T1 - T0 ))
@@ -709,6 +693,11 @@ KERNEL_FILE="$( find "$LINUX_BUILD" -type f -name '*zImage' )"
 
 if [ -f "$KERNEL_FILE" ]; then
 	logger -s "pwd: $( pwd ) found: '$KERNEL_FILE'"
+
+	case "$( LC_ALL=C file "$KERNEL_FILE" )" in
+		*'statically linked'*) ;;
+		*) strip "$KERNEL_FILE" ;;
+	esac
 else
 	logger -s "pwd: $( pwd ) no file found: '$KERNEL_FILE'"
 	exit 1

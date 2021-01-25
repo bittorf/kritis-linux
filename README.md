@@ -40,7 +40,7 @@ git clone --depth 1 --branch v0.4 https://github.com/bittorf/kritis-linux.git
 
 kritis-linux/ci_helper.sh \
 	--arch x86_64 \
-	--ramsize 384 \
+	--ramsize 384M \
 	--kernel latest \
 	--features busybox \
 	--keep "/bin/busybox /bin/sh /bin/cat" \
