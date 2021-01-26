@@ -659,8 +659,12 @@ cd ./* || exit		# there is only 1 dir
 # TODO:
 # home/bastian/software/minilinux/minilinux/opt/linux/linux-3.19.8/include/linux/compiler-gcc.h:106:1: fatal error: linux/compiler-gcc9.h: Datei oder Verzeichnis nicht gefunden 
 
-make $SILENT_MAKE $ARCH O="$LINUX_BUILD" distclean		# needed?
-make $SILENT_MAKE $ARCH O="$LINUX_BUILD" $DEFCONFIG || exit
+make $SILENT_MAKE $ARCH O="$LINUX_BUILD" distclean  || msg_and_die "$?" "make $ARCH O=$LINUX_BUILD distclean"	# needed?
+make $SILENT_MAKE $ARCH O="$LINUX_BUILD" $DEFCONFIG || {
+	RC=$?
+	make $ARCH help
+	msg_and_die "$RC" "make $ARCH O=$LINUX_BUILD $DEFCONFIG"
+}
 cd "$LINUX_BUILD" || exit
 
 if [ -f "$OWN_KCONFIG" ]; then

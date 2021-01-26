@@ -116,4 +116,4 @@ using `--features` or just provide your own `--kconfig`
 * safe versions of all deps (cc, ld, libc)
 * filesizes
 * needed space
-
+* tinyconfig only available for 3.17-rc1+
