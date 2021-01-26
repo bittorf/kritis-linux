@@ -37,26 +37,30 @@ install_dep()
 	dpkg -l "$package" >/dev/null || sudo apt-get install -y "$package"
 }
 
-# https://superuser.com/questions/1009540/difference-between-arm64-armel-and-armhf
-# FIXME! on arm / qemu-system-arm / we should switch to qemu -M virt without DTB and smaller config
-#   apt: gcc-arm-linux-gnueabi   = armel = older 32bit
-#   apt: gcc-arm-linux-gnueabihf = armhf = arm7 / 32bit with power / hard float
-#   apt: gcc-aarch64-linux-gnu   = arm64 = 64bit
-#
 has_arg 'UML' && DSTARCH='uml'
 #
 case "$DSTARCH" in
-	armel)	export ARCH='ARCH=arm' CROSSCOMPILE='CROSS_COMPILE=arm-linux-gnueabi-'
+	armel)	# FIXME! on arm / qemu-system-arm / we should switch to qemu -M virt without DTB and smaller config
+		# old ARM, 32bit
+		export ARCH='ARCH=arm' CROSSCOMPILE='CROSS_COMPILE=arm-linux-gnueabi-'
 		export BOARD='versatilepb' DTB='versatile-pb.dtb' DEFCONFIG='versatile_defconfig'
+		install_dep 'gcc-arm-linux-gnueabi'
 	;;
-	armhf)	export ARCH='ARCH=arm' CROSSCOMPILE='CROSS_COMPILE=arm-linux-gnueabihf-'
+	armhf)	# https://superuser.com/questions/1009540/difference-between-arm64-armel-and-armhf
+		# arm7 / 32bit with power / hard float
+		export ARCH='ARCH=arm' CROSSCOMPILE='CROSS_COMPILE=arm-linux-gnueabihf-'
 		export BOARD='vexpress-a9' DTB='vexpress-v2p-ca9.dtb' DEFCONFIG='vexpress_defconfig'
+		install_dep 'gcc-arm-linux-gnueabihf'
 	;;
-	arm64)	export ARCH='ARCH=arm64' CROSSCOMPILE='CROSS_COMPILE=aarch64-linux-gnu-'
+	arm64)	# new arm, 64bit
+		export ARCH='ARCH=arm64' CROSSCOMPILE='CROSS_COMPILE=aarch64-linux-gnu-'
 		export BOARD='virt' DEFCONFIG='allnoconfig'
+		install_dep 'gcc-aarch64-linux-gnu'
 	;;
 	um|uml)	export ARCH='ARCH=um'
 		export DEFCONFIG='tinyconfig'
+
+		# https://unix.stackexchange.com/questions/90078/which-one-is-lighter-security-and-cpu-wise-lxc-versus-uml
 
 		has_arg '32bit' && test "$(arch)" != i686 && \
 			CROSSCOMPILE='CROSS_COMPILE=i686-linux-gnu-' \
@@ -81,8 +85,8 @@ has_arg 'defconfig'   && DEFCONFIG='defconfig'
 
 deps_check()
 {
-	local cmd list='gzip wget cp basename mkdir rm cat make sed grep tar test find touch chmod file tee strip'
-	# hint: vimdiff, logger, xz, zstd are used - but are not essential
+	local cmd list='basename cat chmod cp file find grep gzip make mkdir rm sed strip tar tee test touch tr wget'
+	# hint: logger, vimdiff, xz, zstd are used - but are not essential
 
 	for cmd in $list; do {
 		command -v "$cmd" >/dev/null || {
