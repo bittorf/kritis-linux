@@ -64,7 +64,7 @@ case "$DSTARCH" in
 		# https://unix.stackexchange.com/questions/90078/which-one-is-lighter-security-and-cpu-wise-lxc-versus-uml
 
 		has_arg '32bit' && test "$(arch)" != i686 && \
-			CROSSCOMPILE='CROSS_COMPILE=i686-linux-gnu-' \
+			export CROSSCOMPILE='CROSS_COMPILE=i686-linux-gnu-' && \
 			install_dep 'gcc-i686-linux-gnu'
 	;;
 	i386|i486|i586|i686)
@@ -73,13 +73,13 @@ case "$DSTARCH" in
 
 		OPTIONS="$OPTIONS 32bit"
 		has_arg '32bit' && test "$(arch)" != i686 && \
-			CROSSCOMPILE='CROSS_COMPILE=i686-linux-gnu-'
+			export CROSSCOMPILE='CROSS_COMPILE=i686-linux-gnu-' && \
 			install_dep 'gcc-i686-linux-gnu'
 	;;
 	*)	export DEFCONFIG='tinyconfig'
 	;;
 esac
-#
+
 has_arg 'tinyconfig'	&& DEFCONFIG='tinyconfig'
 has_arg 'allnoconfig'	&& DEFCONFIG='allnoconfig'
 has_arg 'defconfig'	&& DEFCONFIG='defconfig'
