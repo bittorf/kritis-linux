@@ -15,9 +15,6 @@ URL_BUSYBOX='https://busybox.net/downloads/busybox-1.33.0.tar.bz2'
 URL_DASH='https://git.kernel.org/pub/scm/utils/dash/dash.git/snapshot/dash-0.5.11.3.tar.gz'
 URL_MUSL='https://musl.libc.org/releases/musl-1.2.2.tar.gz'
 
-SILENT_MAKE='-s'
-SILENT_CONF='--enable-silent-rules'
-
 export STORAGE="/tmp/storage"
 mkdir -p "$STORAGE"
 echo "[OK] cache/storage is here: '$STORAGE'"
@@ -34,7 +31,10 @@ install_dep()
 {
 	local package="$1"	# e.g. gcc-i686-linux-gnu
 
-	dpkg -l "$package" >/dev/null || sudo apt-get install -y "$package"
+	dpkg -l "$package" >/dev/null || {
+		sudo apt-get update			|| msg_and_die "$?" "sudo apt-get update"
+		sudo apt-get install -y "$package"	|| msg_and_die "$?" "sudo apt-get install -y $package"
+	}
 }
 
 has_arg 'UML' && DSTARCH='uml'
@@ -59,6 +59,7 @@ case "$DSTARCH" in
 	;;
 	um|uml)	export ARCH='ARCH=um'
 		export DEFCONFIG='tinyconfig'
+		export DSTARCH='uml'
 
 		# https://unix.stackexchange.com/questions/90078/which-one-is-lighter-security-and-cpu-wise-lxc-versus-uml
 
@@ -84,9 +85,22 @@ has_arg 'allnoconfig'	&& DEFCONFIG='allnoconfig'
 has_arg 'defconfig'	&& DEFCONFIG='defconfig'
 has_arg 'config'	&& DEFCONFIG='config'		# e.g. kernel 2.4.x
 
+case "$DSTARCH" in
+	uml)
+	;;
+	*)
+		install_dep 'qemu-system'
+	;;
+esac
+
+has_arg 'debug' || {
+	SILENT_MAKE='-s'
+	SILENT_CONF='--enable-silent-rules'
+}
+
 deps_check()
 {
-	local cmd list='basename cat chmod cp file find grep gzip make mkdir rm sed strip tar tee test touch tr wget'
+	local cmd list='arch basename cat chmod cp file find grep gzip make mkdir rm sed strip tar tee test touch tr wget'
 	# hint: logger, vimdiff, xz, zstd are used - but are not essential
 
 	for cmd in $list; do {
@@ -95,6 +109,8 @@ deps_check()
 			return 1
 		}
 	} done
+
+	install_dep 'build-essential'
 
 	true
 }
@@ -318,16 +334,13 @@ list_kernel_symbols()
 
 				# support for 32bit binaries
 				# note: does not work/exist in uml: https://uml.devloop.org.uk/faq.html
-				echo 'CONFIG_IA32_EMULATION=y'
+				case "$DSTARCH" in
+					uml) ;;
+					*) echo 'CONFIG_IA32_EMULATION=y' ;;
+				esac
 			fi
 		;;
 	esac
-
-	if has_arg 'no_printk'; then
-		:
-	else
-		echo 'CONFIG_PRINTK=y'
-	fi
 
 	has_arg 'net' && {
 		echo 'CONFIG_PCI=y'
@@ -358,15 +371,18 @@ CONFIG_BINFMT_SCRIPT=y
 CONFIG_DEVTMPFS=y
 CONFIG_DEVTMPFS_MOUNT=y
 CONFIG_TTY=y
-CONFIG_SERIAL_8250=y
-CONFIG_SERIAL_8250_CONSOLE=y
-# CONFIG_PRINTK is not set
-# CONFIG_STACK_VALIDATION is not set
 !
+	case "$DSTARCH" in
+		uml)
+			echo 'CONFIG_STATIC_LINK=y'
+		;;
+		*)
+			echo 'CONFIG_SERIAL_8250=y'
+			echo 'CONFIG_SERIAL_8250_CONSOLE=y'
+		;;
+	esac
 
-	test "$DSTARCH" = 'uml' && echo 'CONFIG_STATIC_LINK=y'
-
-	has_arg 'printk' && echo 'CONFIG_PRINTK=y'
+	has_arg 'printk' && echo 'CONFIG_PRINTK=y' || echo '# CONFIG_PRINTK is not set'
 	has_arg 'procfs' && echo 'CONFIG_PROC_FS=y'
 	has_arg 'sysfs'  && echo 'CONFIG_SYSFS=y'
 
@@ -606,7 +622,7 @@ UNAME="\$( command -v uname || printf '%s' false )"
 printf '%s\n' "# BOOTTIME_SECONDS \${UP:--1}"
 printf '%s\n' "# MEMFREE_KILOBYTES \${MEMAVAIL_KB:--1}"
 printf '%s\n' "# UNAME \$( \$UNAME -a || printf uname_unavailable )"
-printf '%s\n' "# READY - to quit $( if has_arg 'UML'; then echo "type 'exit'"; else echo "press once CTRL+A and then 'x' or kill qemu"; fi )"
+printf '%s\n' "# READY - to quit $( test "$DSTARCH" = uml && echo "type 'exit'" || echo "press once CTRL+A and then 'x' or kill qemu" )"
 
 # hack for MES:
 test -f init.user && busybox sleep 2 && AUTO=true ./init.user	# wait for dmesg-trash

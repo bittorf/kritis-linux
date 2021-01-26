@@ -104,12 +104,14 @@ If this does not fit to your needs, you can enable stuff
 using `--features` or just provide your own `--kconfig`  
 
 ### ToDo list
+* autoremove all unneeded compression schemes in kernel for initrd
+* CI examples: TravisCI, CircleCI, github-action
 * maybe add -no-reboot?
 * builddir = mark_cache = no_backup
 * net: nameserver?
 * UML http://user-mode-linux.sourceforge.net/network.html
 * api kernel+busybox+toybox+gcc... download/version
-* different recipes: minimal, net, compiler, net-compiler
+* different recipes?: minimal, net, compiler, net-compiler
 * which programs where called? hash?
 * upload/api: good + bad things
 * upload bootable images
@@ -117,3 +119,6 @@ using `--features` or just provide your own `--kconfig`
 * filesizes
 * needed space
 * tinyconfig only available for 3.17-rc1+
+* add test and build-matrix: all combinations of
+  * kernel/busybox/toybox/dash/libc/32bit/64bit/archs
+
