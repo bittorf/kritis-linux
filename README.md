@@ -78,12 +78,7 @@ Default is building `make tinyconfig` and change some switches:
 
 * add support for a gzipped initial ramdisk
   * `CONFIG_BLK_DEV_INITRD=y`
-    * `CONFIG_RD_BZIP2 is not set`
-    * `CONFIG_RD_LZMA is not set`
-    * `CONFIG_RD_XZ is not set`
-    * `CONFIG_RD_LZO is not set`
-    * `CONFIG_RD_LZ4 is not set`
-    * `CONFIG_RD_ZSTD is not set`
+    * `CONFIG_RD_GZIP=y`
 * add support for ELF binaries and shebang
   * `CONFIG_BINFMT_ELF=y`
   * `CONFIG_BINFMT_SCRIPT=y`
@@ -97,14 +92,13 @@ Default is building `make tinyconfig` and change some switches:
 * disable most of kernel debug messages
   * `CONFIG_PRINTK` is not set
 
-Kernels with less features are smaller and compile faster.  
-Typically it needs ~30 seconds to compile and the kernel is ~680k compressed.  
+Kernels with less features are smaller and compile faster, so it  
+needs ~20 seconds to compile kernel 3.18, which is ~450k compressed.  
   
 If this does not fit to your needs, you can enable stuff  
 using `--features` or just provide your own `--kconfig`  
 
 ### ToDo list
-* autoremove all unneeded compression schemes in kernel for initrd
 * CI examples: TravisCI, CircleCI, github-action
 * maybe add -no-reboot?
 * builddir = mark_cache = no_backup

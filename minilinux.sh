@@ -21,7 +21,7 @@ mkdir -p "$STORAGE"
 echo "[OK] cache/storage is here: '$STORAGE'"
 
 # change from comma to space delimited list
-OPTIONS="$OPTIONS $( echo "$FEATURES" | tr ',' ' ' )"
+export OPTIONS="$OPTIONS $( echo "$FEATURES" | tr ',' ' ' )"
 
 has_arg()
 {
@@ -322,6 +322,28 @@ CONFIG_SLUB=y
 EOF
 }
 
+initrd_format()
+{
+	local testformat="$1"	# e.g. BZIP2
+	local o=
+
+	case "$( file -b "$INITRD_FILE" )" in
+		'gzip compressed data'*)  o='GZIP' ;;
+		'bzip2 compressed data'*) o='BZIP2' ;;
+		'LZMA compressed data'*)  o='LZMA' ;;
+		'XZ compressed data'*)    o='XZ' ;;
+		'lzop compressed data'*)  o='LZO' ;;
+		'LZ4 compressed data'*)   o='LZ4' ;;
+		'Zstandard compressed '*) o='ZSTD' ;;
+	esac
+
+	case "$testformat" in
+		  '') echo "$o" ;;
+		"$o") true ;;
+		   *) false ;;
+	esac
+}
+
 list_kernel_symbols()
 {
 	case "$DSTARCH" in
@@ -362,12 +384,14 @@ list_kernel_symbols()
 
 	cat <<!
 CONFIG_BLK_DEV_INITRD=y
-# CONFIG_RD_BZIP2 is not set
-# CONFIG_RD_LZMA is not set
-# CONFIG_RD_XZ is not set
-# CONFIG_RD_LZO is not set
-# CONFIG_RD_LZ4 is not set
-# CONFIG_RD_ZSTD is not set
+CONFIG_RD_$( initrd_format )=y
+$( initrd_format GZIP  || echo '# CONFIG_RD_GZIP is not set'  )
+$( initrd_format BZIP2 || echo '# CONFIG_RD_BZIP2 is not set' )
+$( initrd_format LZMA  || echo '# CONFIG_RD_LZMA is not set'  )
+$( initrd_format XZ    || echo '# CONFIG_RD_XZ is not set'    )
+$( initrd_format LZO   || echo '# CONFIG_RD_LZO is not set'   )
+$( initrd_format LZ4   || echo '# CONFIG_RD_LZ4 is not set'   )
+$( initrd_format ZSTD  || echo '# CONFIG_RD_ZSTD is not set'  )
 CONFIG_BINFMT_ELF=y
 CONFIG_BINFMT_SCRIPT=y
 CONFIG_DEVTMPFS=y
@@ -702,8 +726,9 @@ if [ -f "$OWN_KCONFIG" ]; then
 else
 #	TODO: apply "CONFIG_INITRAMFS_SOURCE=\"$INITRD_FILE\""
 #	list_kernel_symbols_arm64 | while read -r SYMBOL; do {
+
 	list_kernel_symbols | while read -r SYMBOL; do {
-		apply "$SYMBOL" || exit
+		apply "$SYMBOL" || msg_and_die "$?" "apply '$SYMBOL'"
 	} done
 fi
 
