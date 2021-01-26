@@ -408,7 +408,20 @@ CONFIG_TTY=y
 		;;
 	esac
 
-	has_arg 'printk' && echo 'CONFIG_PRINTK=y' || echo '# CONFIG_PRINTK is not set'
+	if has_arg 'swap'; then
+		echo 'CONFIG_SWAP=y'
+	else
+		echo '# CONFIG_SWAP is not set'
+	fi
+
+	if has_arg 'printk'; then
+		echo 'CONFIG_PRINTK=y'
+		echo 'CONFIG_EARLY_PRINTK=y'
+	else
+		echo '# CONFIG_PRINTK is not set'
+		echo '# CONFIG_EARLY_PRINTK is not set'
+	fi
+
 	has_arg 'procfs' && echo 'CONFIG_PROC_FS=y'
 	has_arg 'sysfs'  && echo 'CONFIG_SYSFS=y'
 
@@ -766,15 +779,11 @@ KERNEL_FILE="$( find "$LINUX_BUILD" -type f -name '*zImage' )"
 [ -f "$KERNEL_FILE" ] || KERNEL_FILE="$LINUX_BUILD/vmlinux"	# e.g. arm64 or uml
 
 if [ -f "$KERNEL_FILE" ]; then
-	logger -s "pwd: $( pwd ) found: '$KERNEL_FILE'"
-
-	case "$( file "$KERNEL_FILE" )" in
-		*'statically linked'*) ;;
-		*) strip "$KERNEL_FILE" ;;
+	case "$( file -b "$KERNEL_FILE" )" in
+		*'not stripped'*) strip "$KERNEL_FILE" ;;
 	esac
 else
-	logger -s "pwd: $( pwd ) no file found: '$KERNEL_FILE'"
-	exit 1
+	msg_and_die "$?" "no file found: '$KERNEL_FILE' in pwd: $( pwd )"
 fi
 
 cd .. || exit
