@@ -15,6 +15,7 @@ URL_BUSYBOX='https://busybox.net/downloads/busybox-1.33.0.tar.bz2'
 URL_DASH='https://git.kernel.org/pub/scm/utils/dash/dash.git/snapshot/dash-0.5.11.3.tar.gz'
 URL_MUSL='https://musl.libc.org/releases/musl-1.2.2.tar.gz'
 
+export LC_ALL=C
 export STORAGE="/tmp/storage"
 mkdir -p "$STORAGE"
 echo "[OK] cache/storage is here: '$STORAGE'"
@@ -101,7 +102,8 @@ has_arg 'debug' || {
 deps_check()
 {
 	local cmd list='arch basename cat chmod cp file find grep gzip make mkdir rm sed strip tar tee test touch tr wget'
-	# hint: logger, vimdiff, xz, zstd are used - but are not essential
+	# these commands are used, but are not essential:
+	# logger, vimdiff, xz, zstd, dpkg, apt
 
 	for cmd in $list; do {
 		command -v "$cmd" >/dev/null || {
@@ -667,14 +669,19 @@ cd ./* || exit		# there is only 1 dir
 # kernel 2,3,4 but nut 5.x - FIXME!
 # sed -i 's|-Wall -Wundef|& -fno-pie|' Makefile
 
-# FIXME!
-#[ -f 'include/linux/compiler-gcc9.h' ] || {
-#	cp -v include/linux/compiler-gcc5.h include/linux/compiler-gcc9.h
-#	cp -v include/linux/compiler-gcc5.h include/linux/compiler-gcc10.h
-#}
-#
-# TODO:
-# home/bastian/software/minilinux/minilinux/opt/linux/linux-3.19.8/include/linux/compiler-gcc.h:106:1: fatal error: linux/compiler-gcc9.h: Datei oder Verzeichnis nicht gefunden 
+
+# e.g.: gcc (Debian 10.2.1-6) 10.2.1 20210110
+for WORD in $( gcc --version ); do {
+	test "${WORD%%.*}" -gt 1 || continue
+	VERSION="${WORD%%.*}"
+
+	# /home/bastian/software/minilinux/minilinux/opt/linux/linux-3.19.8/include/linux/compiler-gcc.h:106:1:
+	# fatal error: linux/compiler-gcc9.h: file or directory not found
+	[ -f "include/linux/compiler-gcc${VERSION}.h" ] || \
+		cp -v include/linux/compiler-gcc5.h "include/linux/compiler-gcc${VERSION}.h"
+	break
+} done
+
 
 make $SILENT_MAKE $ARCH O="$LINUX_BUILD" distclean  || msg_and_die "$?" "make $ARCH O=$LINUX_BUILD distclean"	# needed?
 
@@ -736,7 +743,7 @@ KERNEL_FILE="$( find "$LINUX_BUILD" -type f -name '*zImage' )"
 if [ -f "$KERNEL_FILE" ]; then
 	logger -s "pwd: $( pwd ) found: '$KERNEL_FILE'"
 
-	case "$( LC_ALL=C file "$KERNEL_FILE" )" in
+	case "$( file "$KERNEL_FILE" )" in
 		*'statically linked'*) ;;
 		*) strip "$KERNEL_FILE" ;;
 	esac
@@ -790,7 +797,7 @@ MAX="\${3:-86400}"	# max running time [seconds] in autotest-mode
 [ -z "\$LOG" ] && LOG="${LOG:-/dev/null}"
 [ -z "\$LOGTIME" ] && LOGTIME=true
 
-# generated: $( LC_ALL=C date )
+# generated: $( date )
 #
 # ARCHITECTURE: ${DSTARCH:-default} / ${ARCH:-default}
 # COMPILER: ${CROSSCOMPILE:-cc}
