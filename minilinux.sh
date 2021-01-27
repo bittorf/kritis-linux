@@ -33,8 +33,15 @@ install_dep()
 	local package="$1"	# e.g. gcc-i686-linux-gnu
 
 	dpkg -l "$package" >/dev/null || {
-		sudo apt-get update			|| msg_and_die "$?" "sudo apt-get update"
-		sudo apt-get install -y "$package"	|| msg_and_die "$?" "sudo apt-get install -y $package"
+		[ -n "$APT_UPDATE" ] || {
+			if sudo apt-get update; then
+				APT_UPDATE='true'
+			else
+				msg_and_die "$?" "sudo apt-get update"
+			fi
+		}
+
+		sudo apt-get install -y "$package" || msg_and_die "$?" "sudo apt-get install -y $package"
 	}
 }
 
@@ -507,6 +514,8 @@ apply()
 ###
 ### busybox|tyobox|dash + rootfs/initrd ####
 ###
+
+install_dep 'build-essential'		# prepare for 'make'
 
 export MUSL="$OPT/musl"
 mkdir -p "$MUSL"
