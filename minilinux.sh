@@ -21,7 +21,7 @@ mkdir -p "$STORAGE"
 echo "[OK] cache/storage is here: '$STORAGE'"
 
 # change from comma to space delimited list
-export OPTIONS="$OPTIONS $( echo "$FEATURES" | tr ',' ' ' )"
+OPTIONS="$OPTIONS $( echo "$FEATURES" | tr ',' ' ' )"
 
 has_arg()
 {
@@ -71,6 +71,7 @@ case "$DSTARCH" in
 	i386|i486|i586|i686)
 		DSTARCH='i686'		# 32bit
 		export DEFCONFIG='tinyconfig'
+		export ARCH='ARCH=i386'
 
 		OPTIONS="$OPTIONS 32bit"
 		has_arg '32bit' && test "$(arch)" != i686 && \
@@ -286,6 +287,8 @@ mkdir -p "$LINUX"
 export LINUX_BUILD="$BUILDS/linux"
 mkdir -p "$LINUX_BUILD"
 
+rm -f "$LINUX_BUILD/doc.txt" 2>/dev/null
+
 # https://gist.github.com/chrisdone/02e165a0004be33734ac2334f215380e
 # CONFIG_64BIT=y			| 64-bit kernel
 # CONFIG_BLK_DEV_INITRD=y		| General setup ---> Initial RAM filesystem and RAM disk (initramfs/initrd) support
@@ -382,7 +385,7 @@ list_kernel_symbols()
 		echo 'CONFIG_IP_PNP_DHCP=y'
 	}
 
-	cat <<!
+	cat <<EOF
 CONFIG_BLK_DEV_INITRD=y
 CONFIG_RD_$( initrd_format )=y
 $( initrd_format GZIP  || echo '# CONFIG_RD_GZIP is not set'  )
@@ -397,7 +400,8 @@ CONFIG_BINFMT_SCRIPT=y
 CONFIG_DEVTMPFS=y
 CONFIG_DEVTMPFS_MOUNT=y
 CONFIG_TTY=y
-!
+EOF
+
 	case "$DSTARCH" in
 		uml)
 			echo 'CONFIG_STATIC_LINK=y'
@@ -428,45 +432,76 @@ CONFIG_TTY=y
 	true
 }
 
+emit_doc()
+{
+	local message="$1"
+	local context file="$LINUX_BUILD/doc.txt"
+
+	context="$( basename "$( pwd )" )"	# e.g. busybox or linux
+
+	echo >>"$file" "# doc | $context | $message"
+}
+
 apply()
 {
-	local symbol="$1"
-	local word="${symbol%=*}"
+	local symbol="$1"		# e.g. CONFIG_PRINTK=y
+	local word="${symbol%=*}"	# e.g. CONFIG_PRINTK
 
 	echo "[OK] applying symbol '$symbol'"
 
 	case "$symbol" in
+		'')
+			return 0
+		;;
 		'#'*)
 			# e.g. '# CONFIG_PRINTK is not set'
+			# e.g. '# CONFIG_64BIT is not set'
 			# shellcheck disable=SC2086
 			set -- $symbol
 
-			if grep -q ^"$2=y" .config; then
-				sed -i "/$2=y/d" '.config'
+			if   grep -q ^"$2=y"$ .config; then
+				sed -i "/^$2=y/d" '.config'
 				echo "$symbol" >>.config
-				yes "" | make $SILENT_MAKE $ARCH oldconfig
-				return
+				emit_doc "delete symbol: $2=y | write symbol: $symbol"
+
+				yes "" | make $SILENT_MAKE $ARCH oldconfig || emit_doc "failed: make $ARCH oldconfig"
+			elif grep -q ^"$symbol"$ .config; then
+				:
+				# emit_doc "already found symbol needed: $symbol"
 			else
-				return 0
+				emit_doc "write unfound symbol: $symbol"
+				echo "$symbol" >>'.config'
+				yes "" | make $SILENT_MAKE $ARCH oldconfig || emit_doc "failed: make $ARCH oldconfig"
 			fi
+
+			return 0
 		;;
 	esac
 
+#	emit_doc "word: $word symbol: $symbol"
+
 	# TODO: work without -i
-	sed -i "/^$word=.*/d" '.config'
-	sed -i "/.*$word .*/d" '.config'
-	echo "$symbol" >>'.config'
+	sed -i "/^$word=.*/d" '.config'		# delete line e.g. 'CONFIG_PRINTK=y'
+	sed -i "/.*$word .*/d" '.config'	# delete line e.g. '# CONFIG_PRINTK is not active'
+	echo "$symbol" >>'.config'		# write line e.g.  'CONFIG_PRINTK=y'
+	emit_doc "write symbol: $symbol"
 
 	# see: https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/scripts/config
-	yes "" | make $SILENT_MAKE $ARCH oldconfig || return 1
+	yes "" | make $SILENT_MAKE $ARCH oldconfig || {
+		emit_doc "failed: make $ARCH oldconfig"
+		# return 0
+	}
 
 	grep -q ^"$symbol"$ .config || {
 		echo "#"
 		echo "[ERROR] added symbol '$symbol' not found in file '.config' pwd '$PWD'"
 		echo "#"
 
+		emit_doc "symbol after make notfound: $symbol"
 		false
 	}
+
+	true	# FIXME!
 }
 
 ###
@@ -709,8 +744,8 @@ cd ./* || exit		# there is only 1 dir
 
 # e.g.: gcc (Debian 10.2.1-6) 10.2.1 20210110
 for WORD in $( gcc --version ); do {
-	test "${WORD%%.*}" -gt 1 || continue
-	VERSION="${WORD%%.*}"
+	test 2>/dev/null "${WORD%%.*}" -gt 1 || continue
+	VERSION="${WORD%%.*}"	# e.g. 10.2.1-6 -> 10
 
 	# /home/bastian/software/minilinux/minilinux/opt/linux/linux-3.19.8/include/linux/compiler-gcc.h:106:1:
 	# fatal error: linux/compiler-gcc9.h: file or directory not found
@@ -741,7 +776,11 @@ else
 #	list_kernel_symbols_arm64 | while read -r SYMBOL; do {
 
 	list_kernel_symbols | while read -r SYMBOL; do {
-		apply "$SYMBOL" || msg_and_die "$?" "apply '$SYMBOL'"
+		apply "$SYMBOL" || emit_doc "error: $?"
+	} done
+
+	list_kernel_symbols | while read -r SYMBOL; do {
+		grep -q ^"$SYMBOL"$ .config || emit_doc "not-in-config | $SYMBOL"
 	} done
 fi
 
@@ -855,6 +894,10 @@ $( sed -n '1,5s/^/#                /p' "$CONFIG1" )
 # INITRD3: $(  wc -c <"$INITRD_FILE3" || echo 0 ) bytes = ${INITRD_FILE3:-<nofile>}
 # INITRD3: $(  wc -c <"$INITRD_FILE4" || echo 0 ) bytes = ${INITRD_FILE4:-<nofile>}
 #   decompress: gzip -cd $INITRD_FILE | cpio -idm
+#
+# ---
+$( cat "$LINUX_BUILD/doc.txt" )
+# ---
 
 QEMU='qemu-system-$( has_arg '32bit' && echo 'i386' || echo 'x86_64' )'
 KERNEL_ARGS='console=ttyS0'
