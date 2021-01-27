@@ -867,6 +867,14 @@ case "$DSTARCH" in
 	;;
 esac
 
+INITRD_TEMP="$( mktemp -d )" || exit
+( cd "$INITRD_TEMP" && gzip -cd "$INITRD_FILE" | cpio -idm )
+INITRD_FILES="$( find "$INITRD_TEMP" -type f | wc -l )"
+INITRD_LINKS="$( find "$INITRD_TEMP" -type l | wc -l )"
+INITRD_DIRS="$(  find "$INITRD_TEMP" -type d | wc -l )"
+INITRD_BYTES="$( find "$INITRD_TEMP" -type f -exec cat {} \; | wc -c )"
+rm -fR "$INITRD_TEMP"
+
 # TODO: include build-instructions
 cat >"$LINUX_BUILD/run.sh" <<!
 #!/bin/sh
@@ -904,6 +912,10 @@ $( sed -n '1,5s/^/#                /p' "$CONFIG1" )
 # INITRD3: $(  wc -c <"$INITRD_FILE4" || echo 0 ) bytes = ${INITRD_FILE4:-<nofile>}
 #   decompress: gzip -cd $INITRD_FILE | cpio -idm
 #
+# INITRD files......: $INITRD_FILES
+#        symlinks...: $INITRD_LINKS
+#        directories: $INITRD_DIRS
+#        bytes......: $INITRD_BYTES
 # ---
 $( cat "$LINUX_BUILD/doc.txt" )
 # ---
@@ -980,7 +992,7 @@ mkfifo "\$PIPE.out" || exit
 (
 	case "$DSTARCH" in
 		uml)
-			echo "AUTOTEST: will start now UML-linux"
+			echo "AUTOTEST for \$MAX sec: will start now UML-linux"
 			echo
 
 			DIR="\$( mktemp -d )" || exit
@@ -992,7 +1004,7 @@ mkfifo "\$PIPE.out" || exit
 			rm -fR "\$DIR"
 		;;
 		*)
-			echo "AUTOTEST: will start now QEMU: \$KVM_PRE \$QEMU -m \$MEM \$KVM_SUPPORT ..."
+			echo "AUTOTEST for \$MAX sec: will start now QEMU: \$KVM_PRE \$QEMU -m \$MEM \$KVM_SUPPORT ..."
 			echo
 
 			\$KVM_PRE \$QEMU -m \$MEM \$KVM_SUPPORT \$BIOS \\

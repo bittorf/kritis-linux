@@ -17,7 +17,6 @@ For continuous integration of your code, use scripts like these, for deploy a mi
 #### CI: example one
 
 ```
-# https://github.com/bittorf/kritis-linux
 git clone --depth 1 https://github.com/bittorf/kritis-linux.git
 
 kritis-linux/ci_helper.sh \
@@ -35,7 +34,6 @@ kritis-linux/ci_helper.sh \
 #### CI: example two
 
 ```
-# https://github.com/bittorf/kritis-linux
 git clone --depth 1 --branch v0.4 https://github.com/bittorf/kritis-linux.git
 
 kritis-linux/ci_helper.sh \
@@ -90,7 +88,9 @@ Default is building `make tinyconfig` and change some switches:
   * `CONFIG_SERIAL_8250=y`
   * `CONFIG_SERIAL_8250_CONSOLE=y`
 * disable most of kernel debug messages
-  * `CONFIG_PRINTK` is not set
+  * `# CONFIG_PRINTK` is not set`
+* disable support for swapping
+  * `# CONFIG_SWAP is not set`
 
 Kernels with less features are smaller and compile faster, so it  
 needs ~20 seconds to compile kernel 3.18, which is ~450k compressed.  
