@@ -978,7 +978,7 @@ mkfifo "\$PIPE.out" || exit
 			export TMPDIR="\$DIR"
 
 			$KERNEL_FILE mem=\$MEM \\
-				initrd=$INITRD_FILE
+				initrd=$INITRD_FILE >"\$PIPE.out"
 
 			rm -fR "\$DIR"
 		;;
