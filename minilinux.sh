@@ -377,7 +377,6 @@ list_kernel_symbols()
 	esac
 
 	has_arg 'net' && {
-		echo 'CONFIG_PCI=y'
 		echo 'CONFIG_NET=y'
 		echo 'CONFIG_NETDEVICES=y'
 
@@ -385,11 +384,17 @@ list_kernel_symbols()
 		echo 'CONFIG_UNIX=y'
 		echo 'CONFIG_INET=y'
 
-#		echo 'CONFIG_E1000=y'		# lspci -nk will show attached driver
-		echo 'CONFIG_8139CP=y'		# needs: -net nic,model=rtl8139 (but kernel is ~32k smaller)
-
 		echo 'CONFIG_IP_PNP=y'
 		echo 'CONFIG_IP_PNP_DHCP=y'
+
+		if [ "$DSTARCH" = uml ]; then
+			echo 'CONFIG_UML_NET=y'
+			echo 'CONFIG_UML_NET_SLIRP=y'
+		else
+			echo 'CONFIG_PCI=y'
+			# echo 'CONFIG_E1000=y'		# lspci -nk will show attached driver
+			echo 'CONFIG_8139CP=y'		# needs: -net nic,model=rtl8139 (but kernel is ~32k smaller)
+		fi
 	}
 
 	cat <<EOF
@@ -690,15 +695,12 @@ command -v mount && {
 
 	# https://github.com/bittorf/slirp-uml-and-compiler-friendly
 	# https://github.com/lubomyr/bochs/blob/master/misc/slirp.conf
-	command -v 'ip' >/dev/null && {
-		ip link show dev eth0 && {
-			ip address add 10.0.2.15/24 dev eth0 && {
-				ip link set dev eth0 up && {
-					ip route add default via 10.0.2.2
-				}
-			}
-		}
-	}
+	command -v 'ip' >/dev/null && \
+	  ip link show dev eth0 && \
+	    ip address add 10.0.2.15/24 dev eth0 && \
+	      ip link set dev eth0 up && \
+	        ip route add default via 10.0.2.2 && \
+	          printf '%s\\n' 'nameserver 8.8.4.4' >/etc/resolv.conf
 }
 
 UNAME="\$( command -v uname || printf '%s' false )"
@@ -865,6 +867,18 @@ case "$DSTARCH" in
 			DTB="$( find "$LINUX_BUILD/" -type f -name "$DTB" )"
 		fi
 	;;
+	uml)
+		has_arg 'net' && {
+			SLIRP_DIR="$( mktemp -d )"
+			cd "$SLIRP_DIR" || exit
+			git clone --depth 1 https://github.com/bittorf/slirp-uml-and-compiler-friendly.git
+
+			cd ./*
+			OK="$( ./run.sh | grep 'everything worked, see folder' )"
+			SLIRP_BIN="$( echo "$OK" | cut -d"'" -f2 )"
+			SLIRP_BIN="$( find "$SLIRP_BIN" -type f -name 'slirp.stripped' )"
+		}
+	;;
 esac
 
 INITRD_TEMP="$( mktemp -d )" || exit
@@ -943,6 +957,7 @@ $( test -f "$BIOS" && echo "BIOS='-bios \"$BIOS\"'" )
 $( has_arg 'net' && echo "KERNEL_ARGS='console=ttyS0 ip=dhcp nameserver=8.8.8.8'" )
 QEMU_OPTIONS=
 $( has_arg 'net' && echo "QEMU_OPTIONS='-net nic,model=rtl8139 -net user'" )
+$( test -x "$SLIRP_BIN" && echo "UMLNET='eth0=slirp,FE:FD:01:02:03:04,$SLIRP_BIN'" )
 
 case "\$ACTION" in
 	autotest)
@@ -958,7 +973,7 @@ case "\$ACTION" in
 				DIR="\$( mktemp -d )" || exit
 				export TMPDIR="\$DIR"
 
-				$KERNEL_FILE mem=\$MEM \\
+				$KERNEL_FILE mem=\$MEM \$UMLNET \\
 					initrd=$INITRD_FILE
 
 				rm -fR "\$DIR"
@@ -998,7 +1013,7 @@ mkfifo "\$PIPE.out" || exit
 			DIR="\$( mktemp -d )" || exit
 			export TMPDIR="\$DIR"
 
-			$KERNEL_FILE mem=\$MEM \\
+			$KERNEL_FILE mem=\$MEM \$UMLNET \\
 				initrd=$INITRD_FILE >"\$PIPE.out"
 
 			rm -fR "\$DIR"
