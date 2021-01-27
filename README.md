@@ -98,6 +98,30 @@ needs ~20 seconds to compile kernel 3.18, which is ~450k compressed.
 If this does not fit to your needs, you can enable stuff  
 using `--features` or just provide your own `--kconfig`  
 
+### CI example for github action
+
+create a file `.github/workflows/action.yml` like this:
+
+```
+on: [push, pull_request]
+name: bootstrap
+jobs:
+  simulate_task:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: run
+        run: |
+          git clone --depth 1 https://github.com/bittorf/kritis-linux.git
+          kritis-linux/ci_helper.sh \
+		--arch uml \
+		--features 32bit \
+		--ramsize 2G \
+		--kernel 4.14.x \
+		--initrd initrd.gz \
+		--log /tmp/mylog.txt
+```
+
 ### ToDo list
 * CI examples: TravisCI, CircleCI, github-action
 * maybe add -no-reboot?
