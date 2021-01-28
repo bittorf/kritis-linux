@@ -153,6 +153,7 @@ kernels()
 		20) echo 'https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.10.6.tar.xz' ;;
 		21) echo 'https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-4.14.215.tar.xz' ;;
 		22) echo 'https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.4.89.tar.xz' ;;
+		23) echo 'https://mirrors.edge.kernel.org/pub/linux/kernel/v2.4/linux-2.4.26.tar.xz' ;;
 		latest) wget -qO - https://www.kernel.org | grep -A1 "latest_link" | tail -n1 | cut -d'"' -f2 ;;
 		 *) false ;;
 	esac
@@ -768,14 +769,16 @@ for WORD in $( gcc --version ); do {
 
 make $SILENT_MAKE $ARCH O="$LINUX_BUILD" distclean  || msg_and_die "$?" "make $ARCH O=$LINUX_BUILD distclean"	# needed?
 
-make $SILENT_MAKE $ARCH O="$LINUX_BUILD" $DEFCONFIG || {
-	RC=$?
-	make $ARCH help
-	msg_and_die "$RC" "make $ARCH O=$LINUX_BUILD $DEFCONFIG"
-}
+[ -f "$OWN_KCONFIG" ] || {
+	make $SILENT_MAKE $ARCH O="$LINUX_BUILD" $DEFCONFIG || {
+		RC=$?
+		make $ARCH help
+		msg_and_die "$RC" "make $ARCH O=$LINUX_BUILD $DEFCONFIG"
+	}
 
-[ "$DEFCONFIG" = config ] && {
-	make $SILENT_MAKE $ARCH O="$LINUX_BUILD" dep || msg_and_die "$?" "make $ARCH O=$LINUX_BUILD dep"
+	[ "$DEFCONFIG" = config ] && {
+		make $SILENT_MAKE $ARCH O="$LINUX_BUILD" dep || msg_and_die "$?" "make $ARCH O=$LINUX_BUILD dep"
+	}
 }
 
 cd "$LINUX_BUILD" || exit

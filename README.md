@@ -123,7 +123,7 @@ jobs:
 ```
 
 ### ToDo list
-* CI examples: TravisCI, CircleCI, github-action
+* CI examples: TravisCI, CircleCI
 * maybe add -no-reboot?
 * builddir = mark_cache = no_backup
 * net: nameserver?
