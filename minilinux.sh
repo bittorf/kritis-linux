@@ -1082,16 +1082,22 @@ while [ \$I -gt 0 ]; do {
 	esac
 } done
 
+[ -s "\$LOG" ] && {
+	LOGLINES="\$( wc -l <"\$LOG" )"
+	LOGSIZE="\$(  wc -c <"\$LOG" )"
+	LOGINFO="(\$LOGLINES lines, \$LOGSIZE bytes) "
+}
+
 echo
 echo "# autotest-mode ready after \$(( MAX - I )) (out of max \$MAX) seconds"
-echo "# RC:\$RC | PATTERN:\$PATTERN | logfile written to '\$LOG'"
+echo "# RC:\$RC | PATTERN:\$PATTERN | logfile \${LOGINFO}written to '\$LOG'"
 echo "#"
 echo "# you can manually startup again:"
 echo "# \$0"
 echo "# in dir '\$(pwd)'"
 echo
 
-echo "will now stop QEMU with pid \$PID" && \$KVM_PRE echo
+echo "will now stop '\$QEMU' with pid \$PID" && \$KVM_PRE echo
 while \$KVM_PRE kill -0 \$PID; do \$KVM_PRE kill \$PID \$( pidof \$QEMU ); sleep 1; done
 rm -f "\$PIPE" "\$PIPE.in" "\$PIPE.out"
 
