@@ -1059,7 +1059,7 @@ T0="\$( date +%s )"
 			'# BOOTTIME_SECONDS '*|'# UNAME '*)
 				echo "\$LINE" >>"\$PIPE"
 			;;
-			"\$PATTERN"*|*' Attempted to kill init'*|'ABORTING HARD'*|'Bootstrapping completed.')
+			"\$PATTERN"*|*' Attempted to kill init'*|'ABORTING HARD'*|'Bootstrapping completed.'|'Aborted (core dumped)')
 				echo 'READY' >>"\$PIPE"
 				break
 			;;
