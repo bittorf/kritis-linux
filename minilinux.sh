@@ -71,9 +71,11 @@ case "$DSTARCH" in
 
 		# https://unix.stackexchange.com/questions/90078/which-one-is-lighter-security-and-cpu-wise-lxc-versus-uml
 
-		has_arg '32bit' && test "$(arch)" != i686 && \
+		has_arg '32bit' && {
+			test "$(arch)" != i686 && \
 			export CROSSCOMPILE='CROSS_COMPILE=i686-linux-gnu-' && \
 			install_dep 'gcc-i686-linux-gnu'
+		}
 	;;
 	i386|i486|i586|i686)
 		DSTARCH='i686'		# 32bit
@@ -81,7 +83,7 @@ case "$DSTARCH" in
 		export ARCH='ARCH=i386'
 
 		OPTIONS="$OPTIONS 32bit"
-		has_arg '32bit' && test "$(arch)" != i686 && \
+		test "$(arch)" != i686 && \
 			export CROSSCOMPILE='CROSS_COMPILE=i686-linux-gnu-' && \
 			install_dep 'gcc-i686-linux-gnu'
 	;;
@@ -706,7 +708,7 @@ command -v mount && {
 	# https://github.com/lubomyr/bochs/blob/master/misc/slirp.conf
 	command -v 'ip' >/dev/null && \\
 	  ip link show dev eth0 && \\
-	    printf '%s\\n' 'nameserver 8.8.4.4' >/etc/resolv.conf \\
+	    printf '%s\\n' 'nameserver 8.8.4.4' >/etc/resolv.conf && \\
 	      ip address add 10.0.2.15/24 dev eth0 && \\
 	        ip link set dev eth0 up && \\
 	          ip route add default via 10.0.2.2
