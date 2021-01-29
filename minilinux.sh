@@ -704,12 +704,12 @@ command -v mount && {
 
 	# https://github.com/bittorf/slirp-uml-and-compiler-friendly
 	# https://github.com/lubomyr/bochs/blob/master/misc/slirp.conf
-	command -v 'ip' >/dev/null && \
-	  ip link show dev eth0 && \
-	    ip address add 10.0.2.15/24 dev eth0 && \
-	      ip link set dev eth0 up && \
-	        ip route add default via 10.0.2.2 && \
-	          printf '%s\\n' 'nameserver 8.8.4.4' >/etc/resolv.conf
+	command -v 'ip' >/dev/null && \\
+	  ip link show dev eth0 && \\
+	    printf '%s\\n' 'nameserver 8.8.4.4' >/etc/resolv.conf \\
+	      ip address add 10.0.2.15/24 dev eth0 && \\
+	        ip link set dev eth0 up && \\
+	          ip route add default via 10.0.2.2
 }
 
 UNAME="\$( command -v uname || printf '%s' false )"
