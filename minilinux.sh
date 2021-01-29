@@ -61,6 +61,7 @@ case "$DSTARCH" in
 		install_dep 'gcc-arm-linux-gnueabihf'
 	;;
 	arm64)	# new arm, 64bit
+		# https://github.com/ssrg-vt/hermitux/wiki/Aarch64-support
 		export ARCH='ARCH=arm64' CROSSCOMPILE='CROSS_COMPILE=aarch64-linux-gnu-'
 		export BOARD='virt' DEFCONFIG='allnoconfig'
 		install_dep 'gcc-aarch64-linux-gnu'
@@ -69,6 +70,7 @@ case "$DSTARCH" in
 		export DEFCONFIG='tinyconfig'
 		export DSTARCH='uml'
 
+		# http://uml.devloop.org.uk/kernels.html
 		# https://unix.stackexchange.com/questions/90078/which-one-is-lighter-security-and-cpu-wise-lxc-versus-uml
 
 		has_arg '32bit' && {
@@ -763,6 +765,7 @@ cd ./* || exit		# there is only 1 dir
 # kernel 2,3,4 but nut 5.x - FIXME!
 # sed -i 's|-Wall -Wundef|& -fno-pie|' Makefile
 
+T0="$( date +%s )"
 
 # e.g.: gcc (Debian 10.2.1-6) 10.2.1 20210110
 for WORD in $( gcc --version ); do {
@@ -813,6 +816,9 @@ else
 		grep -q ^"$SYMBOL"$ .config || emit_doc "not-in-config | $SYMBOL"
 	} done
 fi
+
+T1="$( date +%s )"
+KERNEL_TIME_CONFIG=$(( T1 - T0 ))
 
 has_arg 'menuconfig' && {
 	while :; do {
@@ -943,6 +949,7 @@ MAX="\${3:-86400}"	# max running time [seconds] in autotest-mode
 # KERNEL_URL: $KERNEL_URL
 # KERNEL_CONFIG: $CONFIG1
 $( sed -n '1,5s/^/#                /p' "$CONFIG1" )
+# KERNEL_CONFG_TIME: $KERNEL_TIME_CONFIG sec
 # KERNEL_BUILD_TIME: $KERNEL_TIME sec
 # KERNEL: $KERNEL_FILE
 # KERNEL_ELF: $KERNEL_ELF
