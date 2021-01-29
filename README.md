@@ -65,7 +65,8 @@ kritis-linux/ci_helper.sh \
 * `--features` `is,a,comma,separated,list`
   * e.g. `busybox` or `toybox`,`net`,`dash`,`bash`,
   * e.g. `printk`,`sysfs`,`procfs`,`menuconfig`,
-  * e.g. `tinyconfig` or `allnoconfig` or `defconfig`
+  * e.g. `wireguard`,
+  * e.g. `tinyconfig` or `allnoconfig` or `defconfig` or `config`
 * `--log` /path/to/filename
 * `--logtime false` for disabling timestamps
 * `--debug true`

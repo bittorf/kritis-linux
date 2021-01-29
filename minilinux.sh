@@ -398,6 +398,14 @@ list_kernel_symbols()
 		fi
 	}
 
+	has_arg 'wireguard' && {
+		echo 'CONFIG_NET_FOU=y'
+		echo 'CONFIG_CRYPTO=y'
+		echo 'CONFIG_CRYPTO_MANAGER=y'
+		echo 'CONFIG_WIREGUARD=y'
+		echo 'CONFIG_WIREGUARD_DEBUG=y'
+	}
+
 	cat <<EOF
 CONFIG_BLK_DEV_INITRD=y
 CONFIG_RD_$( initrd_format )=y
