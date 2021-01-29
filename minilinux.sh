@@ -766,10 +766,16 @@ for WORD in $( gcc --version ); do {
 	break
 } done
 
+# or 'make mrproper' ?
+make $SILENT_MAKE $ARCH O="$LINUX_BUILD" distclean || msg_and_die "$?" "make $ARCH O=$LINUX_BUILD distclean"	# needed?
 
-make $SILENT_MAKE $ARCH O="$LINUX_BUILD" distclean  || msg_and_die "$?" "make $ARCH O=$LINUX_BUILD distclean"	# needed?
-
-[ -f "$OWN_KCONFIG" ] || {
+if [ -f "$OWN_KCONFIG" ]; then
+	:
+	# kernel2.4:
+	# make config or oldconfig (when .config provided)
+	# make dep
+	# make bzimage
+else
 	make $SILENT_MAKE $ARCH O="$LINUX_BUILD" $DEFCONFIG || {
 		RC=$?
 		make $ARCH help
@@ -779,7 +785,7 @@ make $SILENT_MAKE $ARCH O="$LINUX_BUILD" distclean  || msg_and_die "$?" "make $A
 	[ "$DEFCONFIG" = config ] && {
 		make $SILENT_MAKE $ARCH O="$LINUX_BUILD" dep || msg_and_die "$?" "make $ARCH O=$LINUX_BUILD dep"
 	}
-}
+fi
 
 cd "$LINUX_BUILD" || exit
 
@@ -1017,7 +1023,7 @@ mkfifo "\$PIPE.out" || exit
 			export TMPDIR="\$DIR"
 
 			$KERNEL_FILE mem=\$MEM \$UMLNET \\
-				initrd=$INITRD_FILE >"\$PIPE.out"
+				initrd=$INITRD_FILE >"\$PIPE.out" 2>&1
 
 			rm -fR "\$DIR"
 		;;
