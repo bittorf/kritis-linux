@@ -113,7 +113,7 @@ deps_check()
 {
 	local cmd list='arch basename cat chmod cp file find grep gzip make mkdir rm sed strip tar tee test touch tr wget'
 	# these commands are used, but are not essential:
-	# logger, vimdiff, xz, zstd, dpkg, apt
+	# apt, bc, dpkg, logger, vimdiff, xz, zstd
 
 	for cmd in $list; do {
 		command -v "$cmd" >/dev/null || {
@@ -908,10 +908,20 @@ INITRD_DIRS="$(  find "$INITRD_TEMP" -type d | wc -l )"
 INITRD_BYTES="$( find "$INITRD_TEMP" -type f -exec cat {} \; | wc -c )"
 rm -fR "$INITRD_TEMP"
 
+gain()
+{
+	echo "scale=2; $1 * 100 / $2" | bc -l
+}
+
 B1="$(  wc -c <"$INITRD_FILE"  || echo 0 )"
 B2="$(  wc -c <"$INITRD_FILE2" || echo 0 )"
 B3="$(  wc -c <"$INITRD_FILE3" || echo 0 )"
 B4="$(  wc -c <"$INITRD_FILE4" || echo 0 )"
+
+P1="[$( gain "$B1" "$INITRD_BYTES" )%]"
+P2="[$( gain "$B2" "$INITRD_BYTES" )%]"
+P3="[$( gain "$B3" "$INITRD_BYTES" )%]"
+P4="[$( gain "$B4" "$INITRD_BYTES" )%]"
 
 # TODO: include build-instructions
 cat >"$LINUX_BUILD/run.sh" <<!
@@ -944,10 +954,10 @@ $( sed -n '1,5s/^/#                /p' "$CONFIG1" )
 # BUSYBOX_SIZE: $( wc -c <"$BB_FILE" || echo 0 ) bytes
 # BUSYBOX_CONFIG: $CONFIG2
 #
-# INITRD:  $B1 bytes = $INITRD_FILE
-# INITRD2: $B2 bytes = ${INITRD_FILE2:-<nofile>}
-# INITRD3: $B3 bytes = ${INITRD_FILE3:-<nofile>}
-# INITRD3: $B4 bytes = ${INITRD_FILE4:-<nofile>}
+# INITRD:  $B1 bytes $P1 = $INITRD_FILE
+# INITRD2: $B2 bytes $P2 = ${INITRD_FILE2:-<nofile>}
+# INITRD3: $B3 bytes $P3 = ${INITRD_FILE3:-<nofile>}
+# INITRD3: $B4 bytes $P4 = ${INITRD_FILE4:-<nofile>}
 #   decompress: gzip -cd $INITRD_FILE | cpio -idm
 #
 # INITRD files......: $INITRD_FILES
