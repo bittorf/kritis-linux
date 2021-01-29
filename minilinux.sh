@@ -892,7 +892,7 @@ case "$DSTARCH" in
 			cd "$SLIRP_DIR" || exit
 			git clone --depth 1 https://github.com/bittorf/slirp-uml-and-compiler-friendly.git
 
-			cd ./*
+			cd ./* || exit
 			OK="$( ./run.sh | grep 'everything worked, see folder' )"
 			SLIRP_BIN="$( echo "$OK" | cut -d"'" -f2 )"
 			SLIRP_BIN="$( find "$SLIRP_BIN" -type f -name 'slirp.stripped' )"
@@ -907,6 +907,11 @@ INITRD_LINKS="$( find "$INITRD_TEMP" -type l | wc -l )"
 INITRD_DIRS="$(  find "$INITRD_TEMP" -type d | wc -l )"
 INITRD_BYTES="$( find "$INITRD_TEMP" -type f -exec cat {} \; | wc -c )"
 rm -fR "$INITRD_TEMP"
+
+B1="$(  wc -c <"$INITRD_FILE"  || echo 0 )"
+B2="$(  wc -c <"$INITRD_FILE2" || echo 0 )"
+B3="$(  wc -c <"$INITRD_FILE3" || echo 0 )"
+B4="$(  wc -c <"$INITRD_FILE4" || echo 0 )"
 
 # TODO: include build-instructions
 cat >"$LINUX_BUILD/run.sh" <<!
@@ -939,10 +944,10 @@ $( sed -n '1,5s/^/#                /p' "$CONFIG1" )
 # BUSYBOX_SIZE: $( wc -c <"$BB_FILE" || echo 0 ) bytes
 # BUSYBOX_CONFIG: $CONFIG2
 #
-# INITRD:  $(  wc -c <"$INITRD_FILE"  || echo 0 ) bytes = $INITRD_FILE
-# INITRD2: $(  wc -c <"$INITRD_FILE2" || echo 0 ) bytes = ${INITRD_FILE2:-<nofile>}
-# INITRD3: $(  wc -c <"$INITRD_FILE3" || echo 0 ) bytes = ${INITRD_FILE3:-<nofile>}
-# INITRD3: $(  wc -c <"$INITRD_FILE4" || echo 0 ) bytes = ${INITRD_FILE4:-<nofile>}
+# INITRD:  $B1 bytes = $INITRD_FILE
+# INITRD2: $B2 bytes = ${INITRD_FILE2:-<nofile>}
+# INITRD3: $B3 bytes = ${INITRD_FILE3:-<nofile>}
+# INITRD3: $B4 bytes = ${INITRD_FILE4:-<nofile>}
 #   decompress: gzip -cd $INITRD_FILE | cpio -idm
 #
 # INITRD files......: $INITRD_FILES
