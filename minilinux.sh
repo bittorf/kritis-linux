@@ -33,6 +33,8 @@ install_dep()
 	local package="$1"	# e.g. gcc-i686-linux-gnu
 
 	dpkg -l "$package" >/dev/null || {
+		echo "[OK] need to install package '$package'"
+
 		[ -n "$APT_UPDATE" ] || {
 			if sudo apt-get update; then
 				APT_UPDATE='true'
@@ -63,7 +65,7 @@ case "$DSTARCH" in
 	arm64)	# new arm, 64bit
 		# https://github.com/ssrg-vt/hermitux/wiki/Aarch64-support
 		export ARCH='ARCH=arm64' CROSSCOMPILE='CROSS_COMPILE=aarch64-linux-gnu-'
-		export BOARD='virt' DEFCONFIG='allnoconfig'
+		export BOARD='virt' DEFCONFIG='tinyconfig'
 		install_dep 'gcc-aarch64-linux-gnu'
 	;;
 	um|uml)	export ARCH='ARCH=um'
@@ -431,6 +433,11 @@ EOF
 		uml)
 			echo 'CONFIG_STATIC_LINK=y'
 		;;
+		arm64)
+			echo 'CONFIG_ARM_AMBA=y'
+			echo 'CONFIG_SERIAL_AMBA_PL011=y'
+			echo 'CONFIG_SERIAL_AMBA_PL011_CONSOLE=y'
+		;;
 		*)
 			echo 'CONFIG_SERIAL_8250=y'
 			echo 'CONFIG_SERIAL_8250_CONSOLE=y'
@@ -782,6 +789,12 @@ for WORD in $( gcc --version ); do {
 # or 'make mrproper' ?
 make $SILENT_MAKE $ARCH O="$LINUX_BUILD" distclean || msg_and_die "$?" "make $ARCH O=$LINUX_BUILD distclean"	# needed?
 
+make $SILENT_MAKE $ARCH O="$LINUX_BUILD" $DEFCONFIG || {
+	RC=$?
+	make $ARCH help
+	msg_and_die "$RC" "make $ARCH O=$LINUX_BUILD $DEFCONFIG"
+}
+
 if [ -f "$OWN_KCONFIG" ]; then
 	:
 	# kernel2.4:
@@ -789,12 +802,6 @@ if [ -f "$OWN_KCONFIG" ]; then
 	# make dep
 	# make bzimage
 else
-	make $SILENT_MAKE $ARCH O="$LINUX_BUILD" $DEFCONFIG || {
-		RC=$?
-		make $ARCH help
-		msg_and_die "$RC" "make $ARCH O=$LINUX_BUILD $DEFCONFIG"
-	}
-
 	[ "$DEFCONFIG" = config ] && {
 		make $SILENT_MAKE $ARCH O="$LINUX_BUILD" dep || msg_and_die "$?" "make $ARCH O=$LINUX_BUILD dep"
 	}
@@ -804,6 +811,7 @@ cd "$LINUX_BUILD" || exit
 
 if [ -f "$OWN_KCONFIG" ]; then
 	cp -v "$OWN_KCONFIG" .config
+	yes "" | make $SILENT_MAKE $ARCH oldconfig || emit_doc "oldconfig failed"
 else
 #	TODO: apply "CONFIG_INITRAMFS_SOURCE=\"$INITRD_FILE\""
 #	list_kernel_symbols_arm64 | while read -r SYMBOL; do {
@@ -837,21 +845,23 @@ CONFIG1="$PWD/.config"
 if has_arg 'no_pie'; then
 	T0="$( date +%s )"
 	echo "make        $ARCH $CROSSCOMPILE CFLAGS=-fno-pie LDFLAGS=-no-pie -j$CPU"
-	make $SILENT_MAKE $ARCH $CROSSCOMPILE CFLAGS=-fno-pie LDFLAGS=-no-pie -j"$CPU" || \
+	yes "" | make $SILENT_MAKE $ARCH $CROSSCOMPILE CFLAGS=-fno-pie LDFLAGS=-no-pie -j"$CPU" || \
 		msg_and_die "$?" "make $ARCH $CROSSCOMPILE CFLAGS=-fno-pie LDFLAGS=-no-pie"
 	T1="$( date +%s )"
 else
 	T0="$( date +%s )"
 	echo "make        $ARCH $CROSSCOMPILE -j$CPU"
-	make $SILENT_MAKE $ARCH $CROSSCOMPILE -j"$CPU" || msg_and_die "$?" "make $ARCH $CROSSCOMPILE"
+	yes "" | make $SILENT_MAKE $ARCH $CROSSCOMPILE -j"$CPU" || msg_and_die "$?" "make $ARCH $CROSSCOMPILE"
 	T1="$( date +%s )"
 fi
 KERNEL_TIME=$(( T1 - T0 ))
 
 # e.g. $LINUX_BUILD/arch/x86_64/boot/bzImage
 # e.g. $LINUX_BUILD/arch/arm/boot/zImage
+# e.g. $LINUX_BUILD/arch/arm64/boot/Image
 KERNEL_FILE="$( find "$LINUX_BUILD" -type f -name '*zImage' )"
-[ -f "$KERNEL_FILE" ] || KERNEL_FILE="$LINUX_BUILD/vmlinux"	# e.g. arm64 or uml
+[ -f "$KERNEL_FILE" ] || KERNEL_FILE="$LINUX_BUILD/arch/arm64/boot/Image"
+[ -f "$KERNEL_FILE" ] || KERNEL_FILE="$LINUX_BUILD/vmlinux"	# e.g. uml
 
 if [ -f "$KERNEL_FILE" ]; then
 	case "$( file -b "$KERNEL_FILE" )" in
