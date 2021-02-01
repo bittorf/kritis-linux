@@ -434,7 +434,6 @@ EOF
 			echo 'CONFIG_STATIC_LINK=y'
 		;;
 		arm64)
-			echo 'CONFIG_ARM_AMBA=y'
 			echo 'CONFIG_SERIAL_AMBA_PL011=y'
 			echo 'CONFIG_SERIAL_AMBA_PL011_CONSOLE=y'
 		;;
@@ -452,10 +451,10 @@ EOF
 
 	if has_arg 'printk'; then
 		echo 'CONFIG_PRINTK=y'
-		echo 'CONFIG_EARLY_PRINTK=y'
+		echo 'CONFIG_EARLY_PRINTK=y'		# n/a on arm64
 	else
 		echo '# CONFIG_PRINTK is not set'
-		echo '# CONFIG_EARLY_PRINTK is not set'
+		echo '# CONFIG_EARLY_PRINTK is not set'	# n/a on arm64
 	fi
 
 	has_arg 'procfs' && echo 'CONFIG_PROC_FS=y'
