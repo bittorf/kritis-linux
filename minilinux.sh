@@ -62,11 +62,15 @@ case "$DSTARCH" in
 		export BOARD='vexpress-a9' DTB='vexpress-v2p-ca9.dtb' DEFCONFIG='vexpress_defconfig'
 		install_dep 'gcc-arm-linux-gnueabihf'
 	;;
-	arm64)	# new arm, 64bit
+	arm64)	# new ARM, 64bit
 		# https://github.com/ssrg-vt/hermitux/wiki/Aarch64-support
 		export ARCH='ARCH=arm64' CROSSCOMPILE='CROSS_COMPILE=aarch64-linux-gnu-'
 		export BOARD='virt' DEFCONFIG='tinyconfig'
 		install_dep 'gcc-aarch64-linux-gnu'
+	;;
+	or1k)
+		# OpenRISC
+		export ARCH='ARCH=or1k' CROSSCOMPILE='CROSS_COMPILE=or1k-elf-'
 	;;
 	um|uml)	export ARCH='ARCH=um'
 		export DEFCONFIG='tinyconfig'
@@ -376,7 +380,7 @@ list_kernel_symbols()
 				# support for 32bit binaries
 				# note: does not work/exist in uml: https://uml.devloop.org.uk/faq.html
 				case "$DSTARCH" in
-					uml) ;;
+					uml|arm64) ;;
 					*) echo 'CONFIG_IA32_EMULATION=y' ;;
 				esac
 			fi
@@ -768,6 +772,15 @@ download "$KERNEL_URL" || exit
 untar ./*
 cd ./* || exit		# there is only 1 dir
 
+
+# Kernel PATCHES:
+#
+# GCC10 + kernel3.18 workaround:
+# https://github.com/Tomoms/android_kernel_oppo_msm8974/commit/11647f99b4de6bc460e106e876f72fc7af3e54a6
+sed -i 's/^YYLTYPE yylloc;/extern &/' scripts/dtc/dtc-lexer.l
+sed -i 's/^YYLTYPE yylloc;/extern &/' scripts/dtc/dtc-lexer.lex.c_shipped
+
+
 # kernel 2,3,4 but nut 5.x - FIXME!
 # sed -i 's|-Wall -Wundef|& -fno-pie|' Makefile
 
@@ -855,9 +868,10 @@ else
 fi
 KERNEL_TIME=$(( T1 - T0 ))
 
+# FIXME! define it initially for every arch
 # e.g. $LINUX_BUILD/arch/x86_64/boot/bzImage
 # e.g. $LINUX_BUILD/arch/arm/boot/zImage
-# e.g. $LINUX_BUILD/arch/arm64/boot/Image
+# e.g. $LINUX_BUILD/arch/arm64/boot/Image.gz
 KERNEL_FILE="$( find "$LINUX_BUILD" -type f -name '*zImage' )"
 [ -f "$KERNEL_FILE" ] || KERNEL_FILE="$LINUX_BUILD/arch/arm64/boot/Image"
 [ -f "$KERNEL_FILE" ] || KERNEL_FILE="$LINUX_BUILD/vmlinux"	# e.g. uml
@@ -894,6 +908,9 @@ fi
 
 case "$DSTARCH" in
 	arm*)
+		KERNEL_ELF="$KERNEL_FILE"
+		KERNEL_FILE="$KERNEL_FILE.gz"
+
 		if [ "$DTB" = 'auto' ]; then
 			qemu-system-aarch64 -machine "$BOARD" -cpu max -machine dumpdtb=auto.dtb -nographic
 			DTB="$( pwd )/auto.dtb"
