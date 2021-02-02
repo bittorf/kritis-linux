@@ -69,8 +69,15 @@ case "$DSTARCH" in
 		install_dep 'gcc-aarch64-linux-gnu'
 	;;
 	or1k)
-		# OpenRISC
-		export ARCH='ARCH=or1k' CROSSCOMPILE='CROSS_COMPILE=or1k-elf-'
+		# OpenRISC, 32bit
+		# https://wiki.qemu.org/Documentation/Platforms/OpenRISC
+		export ARCH='ARCH=openrisc' CROSSCOMPILE='CROSS_COMPILE=or1k-linux-musl-'
+		export PATH="/home/bastian/software/minilinux/or1k-linux-musl-cross/bin:$PATH"
+		export DEFCONFIG='tinyconfig'
+		export BOARD='or1k-sim' DEFCONFIG='defconfig'
+
+		# https://musl.cc/or1k-linux-musl-cross.tgz
+		OPTIONS="$OPTIONS 32bit"
 	;;
 	um|uml)	export ARCH='ARCH=um'
 		export DEFCONFIG='tinyconfig'
@@ -1001,7 +1008,7 @@ $( sed -n '1,5s/^/#                /p' "$CONFIG1" )
 $( cat "$LINUX_BUILD/doc.txt" )
 # ---
 
-QEMU='qemu-system-$( has_arg '32bit' && echo 'i386' || echo 'x86_64' )'
+QEMU='qemu-system-$( has_arg '32bit' && echo 'i386' || echo 'x86_64' )'		# FIXME! define initially
 KERNEL_ARGS='console=ttyS0'
 [ -z "\$PATTERN" ] && PATTERN="<hopefully_this_pattern_will_never_match>"
 
@@ -1013,6 +1020,11 @@ case "${DSTARCH:-\$( arch || echo native )}" in armel|armhf|arm|arm64)
 	DTB='$DTB'
 	KVM_SUPPORT="-M $BOARD \${DTB:+-dtb }\$DTB" ; KVM_PRE=; QEMU='qemu-system-arm'; KERNEL_ARGS='console=ttyAMA0'
 	[ "$DSTARCH" = arm64 ] && QEMU='qemu-system-aarch64' && KVM_SUPPORT="\$KVM_SUPPORT -cpu max"
+	;;
+	or1k)
+		QEMU="/home/bastian/software/minilinux/qemu/build/qemu-system-or1k"
+		KVM_PRE=
+		KVM_SUPPORT="-M $BOARD \${DTB:+-dtb }\$DTB -cpu or1200"
 	;;
 	uml)
 		QEMU="$( basename "$KERNEL_FILE" )"	# for later kill

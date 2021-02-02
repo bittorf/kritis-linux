@@ -125,10 +125,9 @@ jobs:
 
 ### ToDo list
 * CI examples: TravisCI, CircleCI
-* maybe add -no-reboot?
+* debian-minimal testrun for deps
 * builddir = mark_cache = no_backup
 * net: nameserver?
-* UML http://user-mode-linux.sourceforge.net/network.html
 * api kernel+busybox+toybox+gcc... download/version
 * different recipes?: minimal, net, compiler, net-compiler
 * which programs where called? hash?
@@ -137,6 +136,7 @@ jobs:
 * safe versions of all deps (cc, ld, libc)
 * filesizes
 * needed space
+* measure sizes: https://events.static.linuxfound.org/sites/events/files/slides/slaballocators.pdf
 * tinyconfig only available for 3.17-rc1+
 * add test and build-matrix: all combinations of
   * kernel/busybox/toybox/dash/libc/32bit/64bit/archs
