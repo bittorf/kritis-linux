@@ -72,7 +72,7 @@ case "$DSTARCH" in
 		# OpenRISC, 32bit
 		# https://wiki.qemu.org/Documentation/Platforms/OpenRISC
 		export ARCH='ARCH=openrisc' CROSSCOMPILE='CROSS_COMPILE=or1k-linux-musl-'
-		export BOARD='or1k-sim' DEFCONFIG='defconfig'
+		export BOARD='or1k-sim' DEFCONFIG='tinyconfig'
 
 		CROSS_DL="https://musl.cc/or1k-linux-musl-cross.tgz"
 		OPTIONS="$OPTIONS 32bit"
@@ -411,6 +411,12 @@ EOF
 		arm64)
 			echo 'CONFIG_SERIAL_AMBA_PL011=y'
 			echo 'CONFIG_SERIAL_AMBA_PL011_CONSOLE=y'
+		;;
+		or1k)
+			echo 'CONFIG_OPENRISC_BUILTIN_DTB="or1ksim"'
+			echo 'CONFIG_SERIAL_8250=y'
+			echo 'CONFIG_SERIAL_8250_CONSOLE=y'
+			echo 'CONFIG_SERIAL_OF_PLATFORM=y'
 		;;
 		*)
 			echo 'CONFIG_SERIAL_8250=y'
