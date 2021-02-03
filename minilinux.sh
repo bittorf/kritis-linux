@@ -407,20 +407,33 @@ list_kernel_symbols()
 
 	cat <<EOF
 CONFIG_BLK_DEV_INITRD=y
-CONFIG_RD_$( initrd_format )=y
-$( initrd_format GZIP  || echo '# CONFIG_RD_GZIP is not set'  )
-$( initrd_format BZIP2 || echo '# CONFIG_RD_BZIP2 is not set' )
-$( initrd_format LZMA  || echo '# CONFIG_RD_LZMA is not set'  )
-$( initrd_format XZ    || echo '# CONFIG_RD_XZ is not set'    )
-$( initrd_format LZO   || echo '# CONFIG_RD_LZO is not set'   )
-$( initrd_format LZ4   || echo '# CONFIG_RD_LZ4 is not set'   )
-$( initrd_format ZSTD  || echo '# CONFIG_RD_ZSTD is not set'  )
 CONFIG_BINFMT_ELF=y
 CONFIG_BINFMT_SCRIPT=y
 CONFIG_DEVTMPFS=y
 CONFIG_DEVTMPFS_MOUNT=y
 CONFIG_TTY=y
 EOF
+
+	if [ -f "$INITRD_FILE_PLAIN" ]; then
+		echo "CONFIG_INITRAMFS_SOURCE=\"$INITRD_FILE_PLAIN\""
+		echo 'CONFIG_INITRAMFS_COMPRESSION_NONE=y'
+		echo '# CONFIG_RD_GZIP is not set'
+		echo '# CONFIG_RD_BZIP2 is not set'
+		echo '# CONFIG_RD_LZMA is not set'
+		echo '# CONFIG_RD_XZ is not set'
+		echo '# CONFIG_RD_LZO is not set'
+		echo '# CONFIG_RD_LZ4 is not set'
+		echo '# CONFIG_RD_ZSTD is not set'
+	else
+		echo "CONFIG_RD_$( initrd_format )=y"
+		initrd_format GZIP  || echo '# CONFIG_RD_GZIP is not set'
+		initrd_format BZIP2 || echo '# CONFIG_RD_BZIP2 is not set'
+		initrd_format LZMA  || echo '# CONFIG_RD_LZMA is not set'
+		initrd_format XZ    || echo '# CONFIG_RD_XZ is not set'
+		initrd_format LZO   || echo '# CONFIG_RD_LZO is not set'
+		initrd_format LZ4   || echo '# CONFIG_RD_LZ4 is not set'
+		initrd_format ZSTD  || echo '# CONFIG_RD_ZSTD is not set'
+	fi
 
 	case "$DSTARCH" in
 		uml)
@@ -837,16 +850,9 @@ if [ -f "$OWN_KCONFIG" ]; then
 	cp -v "$OWN_KCONFIG" .config
 	yes "" | make $SILENT_MAKE $ARCH oldconfig || emit_doc "oldconfig failed"
 else
-#	list_kernel_symbols_arm64 | while read -r SYMBOL; do {
-
 	list_kernel_symbols | while read -r SYMBOL; do {
 		apply "$SYMBOL" || emit_doc "error: $?"
 	} done
-
-	[ -f "$INITRD_FILE_PLAIN" ] && {
-		apply "CONFIG_INITRAMFS_SOURCE=\"$INITRD_FILE_PLAIN\""
-		apply "CONFIG_INITRAMFS_COMPRESSION_NONE=y"
-	}
 
 	list_kernel_symbols | while read -r SYMBOL; do {
 		grep -q ^"$SYMBOL"$ .config || emit_doc "not-in-config | $SYMBOL"

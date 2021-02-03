@@ -138,6 +138,9 @@ jobs:
 * filesizes
 * needed space
 * measure sizes: https://events.static.linuxfound.org/sites/events/files/slides/slaballocators.pdf
+* add option for size/performance:
+  * `CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y`
+  * `# CONFIG_CC_OPTIMIZE_FOR_SIZE is not set`
 * tinyconfig only available for 3.17-rc1+
 * add test and build-matrix: all combinations of
   * kernel/busybox/toybox/dash/libc/32bit/64bit/archs
