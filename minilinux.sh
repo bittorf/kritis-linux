@@ -955,7 +955,7 @@ fi
 case "$DSTARCH" in
 	arm*)
 		KERNEL_ELF="$KERNEL_FILE"
-		KERNEL_FILE="$KERNEL_FILE.gz"
+		[ -f "$KERNEL_FILE.gz" ] && KERNEL_FILE="$KERNEL_FILE.gz"
 
 		if [ "$DTB" = 'auto' ]; then
 			qemu-system-aarch64 -machine "$BOARD" -cpu max -machine dumpdtb=auto.dtb -nographic
