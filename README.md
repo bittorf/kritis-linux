@@ -69,6 +69,7 @@ kritis-linux/ci_helper.sh \
   * e.g. `tinyconfig` or `allnoconfig` or `defconfig` or `config`
 * `--log` /path/to/filename
 * `--logtime false` for disabling timestamps
+* `--onefile` for including `initrd` into kernel
 * `--debug true`
 
 ### kernel configuration and features

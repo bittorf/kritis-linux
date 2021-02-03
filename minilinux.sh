@@ -72,11 +72,9 @@ case "$DSTARCH" in
 		# OpenRISC, 32bit
 		# https://wiki.qemu.org/Documentation/Platforms/OpenRISC
 		export ARCH='ARCH=openrisc' CROSSCOMPILE='CROSS_COMPILE=or1k-linux-musl-'
-		export PATH="/home/bastian/software/minilinux/or1k-linux-musl-cross/bin:$PATH"
-		export DEFCONFIG='tinyconfig'
 		export BOARD='or1k-sim' DEFCONFIG='defconfig'
 
-		# https://musl.cc/or1k-linux-musl-cross.tgz
+		CROSS_DL="https://musl.cc/or1k-linux-musl-cross.tgz"
 		OPTIONS="$OPTIONS 32bit"
 	;;
 	um|uml)	export ARCH='ARCH=um'
@@ -197,7 +195,8 @@ untar()
 	case "$1" in
 		*.xz)  tar xJf "$1" ;;
 		*.bz2) tar xjf "$1" ;;
-		*.gz)  tar xzf "$1" ;;
+		*.gz|*.tgz)  tar xzf "$1" ;;
+		*) false ;;
 	esac
 }
 
@@ -314,42 +313,6 @@ mkdir -p "$LINUX_BUILD"
 
 rm -f "$LINUX_BUILD/doc.txt" 2>/dev/null
 
-# https://gist.github.com/chrisdone/02e165a0004be33734ac2334f215380e
-# CONFIG_64BIT=y			| 64-bit kernel
-# CONFIG_BLK_DEV_INITRD=y		| General setup ---> Initial RAM filesystem and RAM disk (initramfs/initrd) support
-# CONFIG_PRINTK=y			| General setup ---> Configure standard kernel features ---> Enable support for printk 
-# CONFIG_BINFMT_ELF=y			| Executable file formats / Emulations ---> Kernel support for ELF binaries
-# CONFIG_BINFMT_SCRIPT=y		| Executable file formats / Emulations ---> Kernel support for scripts starting with #!		// support since 3.10?
-# CONFIG_DEVTMPFS=y			| Device Drivers ---> Generic Driver Options ---> Maintain a devtmpfs filesystem to mount at /dev
-# CONFIG_DEVTMPFS_MOUNT=y		| Device Drivers ---> Generic Driver Options ---> Automount devtmpfs at /dev, after the kernel mounted the rootfs
-# CONFIG_TTY=y				| Device Drivers ---> Character devices ---> Enable TTY
-# CONFIG_SERIAL_8250=y			| Device Drivers ---> Character devices ---> Serial drivers ---> 8250/16550 and compatible serial support
-# CONFIG_SERIAL_8250_CONSOLE=y		| Device Drivers ---> Character devices ---> Serial drivers ---> Console on 8250/16550 and compatible serial port
-# CONFIG_PROC_FS=y			| File systems ---> Pseudo filesystems ---> /proc file system support
-# CONFIG_SYSFS=y			| File systems ---> Pseudo filesystems ---> sysfs file system support
-# CONFIG_IA32_EMULATION=y
-
-list_kernel_symbols_arm64()
-{
-	cat <<EOF
-CONFIG_BLK_DEV_INITRD=y
-CONFIG_BINFMT_ELF=y
-CONFIG_BINFMT_SCRIPT=y
-CONFIG_DEVTMPFS=y
-CONFIG_DEVTMPFS_MOUNT=y
-CONFIG_TTY=y
-CONFIG_PRINTK=y
-CONFIG_SERIAL_AMBA_PL011=y
-CONFIG_SERIAL_AMBA_PL011_CONSOLE=y
-CONFIG_SLUB=y
-# CONFIG_PROC_FS=y
-# CONFIG_SYSFS=y
-#
-# ARM64_PTR_AUTH is not set
-# ARM64_TLB_RANGE is not set
-EOF
-}
-
 initrd_format()
 {
 	local testformat="$1"	# e.g. BZIP2
@@ -363,6 +326,7 @@ initrd_format()
 		'lzop compressed data'*)  o='LZO' ;;
 		'LZ4 compressed data'*)   o='LZ4' ;;
 		'Zstandard compressed '*) o='ZSTD' ;;
+		*'cpio archive'*)	  o='CPIO' ;;
 	esac
 
 	case "$testformat" in
@@ -552,6 +516,18 @@ apply()
 
 install_dep 'build-essential'		# prepare for 'make'
 
+[ -n "$CROSS_DL" ] && {
+	export CROSSC="$OPT/cross-${DSTARCH:-native}"
+	mkdir -p "$CROSSC"
+
+	cd "$CROSSC" || exit
+	download "$CROSS_DL" || exit
+	untar ./* || exit
+	cd ./* || exit
+
+	export PATH="$PWD/bin:$PATH"
+}
+
 export MUSL="$OPT/musl"
 mkdir -p "$MUSL"
 
@@ -568,7 +544,7 @@ has_arg 'dash' && {
 	download "$URL_MUSL" || exit
 	mv ./*musl* "$MUSL_BUILD/" || exit
 	cd "$MUSL_BUILD" || exit
-	untar ./*
+	untar ./* || exit
 	cd ./* || exit
 	./configure $SILENT_CONF --prefix="$MUSL" --disable-shared || exit
 	make $SILENT_MAKE install || exit
@@ -577,7 +553,7 @@ has_arg 'dash' && {
 	download "$URL_DASH" || exit
 	mv ./*dash* "$DASH_BUILD/" || exit
 	cd "$DASH_BUILD" || exit
-	untar ./*
+	untar ./* || exit
 	cd ./* || exit		# there is only 1 dir
 
 	# https://github.com/amuramatsu/dash-static/blob/master/build.sh
@@ -611,7 +587,7 @@ fi
 		cd "$BUSYBOX_BUILD" || exit
 	}
 
-	untar ./*
+	untar ./* || exit
 	cd ./* || exit		# there is only 1 dir
 }
 
@@ -693,8 +669,6 @@ fi
 
 [ -s "$DASH" ] && cp -v "$DASH" bin/dash	# FIXME! it still does not run
 
-# TODO: https://stackoverflow.com/questions/36529881/qemu-bin-sh-cant-access-tty-job-control-turned-off?rq=1
-
 [ -d "$INITRD_DIR_ADD" ] && {
 	# FIXME! we do not include a directory names 'x'
 	test -d "$INITRD_DIR_ADD/x" && mv -v "$INITRD_DIR_ADD/x" ~/tmp.cheat.$$
@@ -767,6 +741,11 @@ else
 	INITRD_FILE4="$( readlink -e "$BUILDS/initramfs.cpio.zstd"  || true )"
 fi
 
+[ -n "$ONEFILE" ] && {
+	INITRD_FILE_PLAIN="$BUILDS/initramfs.cpio"
+	gzip -cdk "$INITRD_FILE" >"$INITRD_FILE_PLAIN"
+}
+
 BB_FILE="$BUSYBOX_BUILD/busybox"
 has_arg 'toybox' && BB_FILE="$BUSYBOX_BUILD/toybox"
 
@@ -776,7 +755,7 @@ has_arg 'toybox' && BB_FILE="$BUSYBOX_BUILD/toybox"
 
 cd "$LINUX" || exit
 download "$KERNEL_URL" || exit
-untar ./*
+untar ./* || exit
 cd ./* || exit		# there is only 1 dir
 
 
@@ -784,8 +763,10 @@ cd ./* || exit		# there is only 1 dir
 #
 # GCC10 + kernel3.18 workaround:
 # https://github.com/Tomoms/android_kernel_oppo_msm8974/commit/11647f99b4de6bc460e106e876f72fc7af3e54a6
-sed -i 's/^YYLTYPE yylloc;/extern &/' scripts/dtc/dtc-lexer.l
-sed -i 's/^YYLTYPE yylloc;/extern &/' scripts/dtc/dtc-lexer.lex.c_shipped
+F1="scripts/dtc/dtc-lexer.l"
+F2="scripts/dtc/dtc-lexer.lex.c_shipped"
+[ -f "$F1" ] && sed -i 's/^YYLTYPE yylloc;/extern &/' "$F1"
+[ -f "$F2" ] && sed -i 's/^YYLTYPE yylloc;/extern &/' "$F2"
 
 
 # kernel 2,3,4 but nut 5.x - FIXME!
@@ -832,12 +813,16 @@ if [ -f "$OWN_KCONFIG" ]; then
 	cp -v "$OWN_KCONFIG" .config
 	yes "" | make $SILENT_MAKE $ARCH oldconfig || emit_doc "oldconfig failed"
 else
-#	TODO: apply "CONFIG_INITRAMFS_SOURCE=\"$INITRD_FILE\""
 #	list_kernel_symbols_arm64 | while read -r SYMBOL; do {
 
 	list_kernel_symbols | while read -r SYMBOL; do {
 		apply "$SYMBOL" || emit_doc "error: $?"
 	} done
+
+	[ -f "$INITRD_FILE_PLAIN" ] && {
+		apply "CONFIG_INITRAMFS_SOURCE=\"$INITRD_FILE_PLAIN\""
+		apply "CONFIG_INITRAMFS_COMPRESSION_NONE=y"
+	}
 
 	list_kernel_symbols | while read -r SYMBOL; do {
 		grep -q ^"$SYMBOL"$ .config || emit_doc "not-in-config | $SYMBOL"

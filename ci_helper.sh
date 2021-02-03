@@ -10,6 +10,7 @@ while [ -n "$1" ]; do {
 		--diradd) export INITRD_DIR_ADD="$2" ;;	# e.g. '/path/to/my/files' or e.g. simply "$(pwd)"
 		--initrd) export OWN_INITRD="$2" ;;	# e.g. '/path/to/myinit.tgz'
 		--kernel) LINUX_VERSION="$2" ;;		# e.g. 'latest' (=default) or '5.4.89' or an URL to .tgz/.xz
+		--onefile) export ONEFILE='true' ;;
 		--kconfig) export OWN_KCONFIG="$2" ;;	# e.g. '/path/to/.config'
 		--myinit) export MYINIT="$2" ;;		# e.g. 'my_file.sh' (relative to diradd-path)
 		--debug) DEBUG="$2" ;;			# e.g. true
@@ -18,7 +19,7 @@ while [ -n "$1" ]; do {
 		--log) export LOG="$2" ;;		# e.g. '/path/to/file.txt'
 	esac && shift
 } done
-
+A=7
 # support relative and absolute paths:
 [ -d "$(pwd)/$INITRD_DIR_ADD" ] && INITRD_DIR_ADD="$(pwd)/$INITRD_DIR_ADD"
 [ -f "$(pwd)/$OWN_INITRD" ] && OWN_INITRD="$(pwd)/$OWN_INITRD"
