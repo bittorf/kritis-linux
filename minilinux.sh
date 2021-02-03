@@ -351,7 +351,7 @@ file_iscompressed()
 		esac
 	} done
 
-	test ${word:-99} -lt 3
+	test "${word:-99}" -lt 3
 }
 
 list_kernel_symbols()
