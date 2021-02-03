@@ -450,6 +450,8 @@ EOF
 			echo 'CONFIG_SERIAL_8250=y'
 			echo 'CONFIG_SERIAL_8250_CONSOLE=y'
 			echo 'CONFIG_SERIAL_OF_PLATFORM=y'
+			echo '# CONFIG_VT is not set'
+			echo '# CONFIG_VT_CONSOLE is not set'
 		;;
 		*)
 			echo 'CONFIG_SERIAL_8250=y'
@@ -804,6 +806,7 @@ untar ./* || exit
 cd ./* || exit		# there is only 1 dir
 
 
+# FIXME! autoadd to documentation
 # Kernel PATCHES:
 #
 # GCC10 + kernel3.18 workaround:
@@ -812,6 +815,10 @@ F1="scripts/dtc/dtc-lexer.l"
 F2="scripts/dtc/dtc-lexer.lex.c_shipped"
 [ -f "$F1" ] && sed -i 's/^YYLTYPE yylloc;/extern &/' "$F1"
 [ -f "$F2" ] && sed -i 's/^YYLTYPE yylloc;/extern &/' "$F2"
+#
+# or1k/openrisc/3.x workaround:
+# https://opencores.org/forum/OpenRISC/0/5435
+[ "$DSTARCH" = 'or1k' ] && F1='arch/openrisc/kernel/vmlinux.lds.S' && sed -i 's/elf32-or32/elf32-or1k/g' "$F1"
 
 
 # kernel 2,3,4 but nut 5.x - FIXME!
@@ -1141,6 +1148,7 @@ T0="\$( date +%s )"
 	while read -r LINE; do {
 		case "\$LOGTIME" in
 			true)
+				# TODO: pipe to ts, e.g. foo | ts -i "%H:%M:%.S"
 				DIFF="\$( date +%s )"
 				DIFF=\$(( DIFF - T0 ))
 
