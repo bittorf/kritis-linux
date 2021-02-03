@@ -360,6 +360,8 @@ list_kernel_symbols()
 		armel|armhf)
 			echo '# CONFIG_64BIT is not set'
 		;;
+		or1k)
+		;;
 		*)
 			if has_arg '32bit'; then
 				echo '# CONFIG_64BIT is not set'
@@ -455,7 +457,9 @@ EOF
 		;;
 	esac
 
-	if has_arg 'swap'; then
+	if [ "$DSTARCH" = 'or1k' ]; then
+		:
+	elif has_arg 'swap'; then
 		echo 'CONFIG_SWAP=y'
 	else
 		echo '# CONFIG_SWAP is not set'
@@ -463,7 +467,11 @@ EOF
 
 	if has_arg 'printk'; then
 		echo 'CONFIG_PRINTK=y'
-		echo 'CONFIG_EARLY_PRINTK=y'		# n/a on arm64
+
+		case "$DSTARCH" in
+			or1k|arm64) ;;
+			*) echo 'CONFIG_EARLY_PRINTK=y' ;;
+		esac
 	else
 		echo '# CONFIG_PRINTK is not set'
 		echo '# CONFIG_EARLY_PRINTK is not set'	# n/a on arm64
