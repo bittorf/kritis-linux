@@ -54,35 +54,37 @@ case "$DSTARCH" in
 		# old ARM, 32bit
 		export ARCH='ARCH=arm' CROSSCOMPILE='CROSS_COMPILE=arm-linux-gnueabi-'
 		export BOARD='versatilepb' DTB='versatile-pb.dtb' DEFCONFIG='versatile_defconfig'
+		export QEMU='qemu-system-arm'
 		install_dep 'gcc-arm-linux-gnueabi'
 	;;
 	armhf)	# https://superuser.com/questions/1009540/difference-between-arm64-armel-and-armhf
 		# arm7 / 32bit with power / hard float
 		export ARCH='ARCH=arm' CROSSCOMPILE='CROSS_COMPILE=arm-linux-gnueabihf-'
 		export BOARD='vexpress-a9' DTB='vexpress-v2p-ca9.dtb' DEFCONFIG='vexpress_defconfig'
+		export QEMU='qemu-system-arm'
 		install_dep 'gcc-arm-linux-gnueabihf'
 	;;
 	arm64)	# new ARM, 64bit
 		# https://github.com/ssrg-vt/hermitux/wiki/Aarch64-support
 		export ARCH='ARCH=arm64' CROSSCOMPILE='CROSS_COMPILE=aarch64-linux-gnu-'
 		export BOARD='virt' DEFCONFIG='tinyconfig'
+		export QEMU='qemu-system-aarch64'
 		install_dep 'gcc-aarch64-linux-gnu'
 	;;
-	or1k)
-		# OpenRISC, 32bit
+	or1k)	# OpenRISC, 32bit
 		# https://wiki.qemu.org/Documentation/Platforms/OpenRISC
 		export ARCH='ARCH=openrisc' CROSSCOMPILE='CROSS_COMPILE=or1k-linux-musl-'
 		export BOARD='or1k-sim' DEFCONFIG='tinyconfig'
+		export QEMU='qemu-system-or1k'
 
 		CROSS_DL="https://musl.cc/or1k-linux-musl-cross.tgz"
 		OPTIONS="$OPTIONS 32bit"
 	;;
-	um|uml)	export ARCH='ARCH=um'
+	um|uml)	# http://uml.devloop.org.uk/kernels.html
+		# https://unix.stackexchange.com/questions/90078/which-one-is-lighter-security-and-cpu-wise-lxc-versus-uml
+		export ARCH='ARCH=um'
 		export DEFCONFIG='tinyconfig'
 		export DSTARCH='uml'
-
-		# http://uml.devloop.org.uk/kernels.html
-		# https://unix.stackexchange.com/questions/90078/which-one-is-lighter-security-and-cpu-wise-lxc-versus-uml
 
 		has_arg '32bit' && {
 			test "$(arch)" != i686 && \
@@ -94,13 +96,16 @@ case "$DSTARCH" in
 		DSTARCH='i686'		# 32bit
 		export DEFCONFIG='tinyconfig'
 		export ARCH='ARCH=i386'
+		export QEMU='qemu-system-i386'
 
 		OPTIONS="$OPTIONS 32bit"
 		test "$(arch)" != i686 && \
 			export CROSSCOMPILE='CROSS_COMPILE=i686-linux-gnu-' && \
 			install_dep 'gcc-i686-linux-gnu'
 	;;
-	*)	export DEFCONFIG='tinyconfig'
+	*)
+		export DEFCONFIG='tinyconfig'
+		export QEMU='qemu-system-x86_64'
 	;;
 esac
 
@@ -111,6 +116,10 @@ has_arg 'config'	&& DEFCONFIG='config'		# e.g. kernel 2.4.x
 
 case "$DSTARCH" in
 	uml)
+	;;
+	or1k)
+		install_dep 'qemu-system'
+		install_dep 'qemu-system-misc'
 	;;
 	*)
 		install_dep 'qemu-system'
@@ -1003,6 +1012,7 @@ MAX="\${3:-86400}"	# max running time [seconds] in autotest-mode
 [ -z "\$MEM" ] && MEM="${MEM:-256M}"	# if not given via ENV
 [ -z "\$LOG" ] && LOG="${LOG:-/dev/null}"
 [ -z "\$LOGTIME" ] && LOGTIME=true
+[ -z "\$QEMU" ] && QEMU="${QEMU:-qemu-system-i386}"
 
 # generated: $( date )
 #
@@ -1038,7 +1048,6 @@ $( sed -n '1,5s/^/#                /p' "$CONFIG1" )
 $( cat "$LINUX_BUILD/doc.txt" )
 # ---
 
-QEMU='qemu-system-$( has_arg '32bit' && echo 'i386' || echo 'x86_64' )'		# FIXME! define initially
 KERNEL_ARGS='console=ttyS0'
 [ -z "\$PATTERN" ] && PATTERN="<hopefully_this_pattern_will_never_match>"
 
@@ -1048,11 +1057,10 @@ grep -q vmx /proc/cpuinfo && KVM_SUPPORT='-enable-kvm -cpu host'
 
 case "${DSTARCH:-\$( arch || echo native )}" in armel|armhf|arm|arm64)
 	DTB='$DTB'
-	KVM_SUPPORT="-M $BOARD \${DTB:+-dtb }\$DTB" ; KVM_PRE=; QEMU='qemu-system-arm'; KERNEL_ARGS='console=ttyAMA0'
-	[ "$DSTARCH" = arm64 ] && QEMU='qemu-system-aarch64' && KVM_SUPPORT="\$KVM_SUPPORT -cpu max"
+	KVM_SUPPORT="-M $BOARD \${DTB:+-dtb }\$DTB" ; KVM_PRE=; KERNEL_ARGS='console=ttyAMA0'
+	[ "$DSTARCH" = arm64 ] && KVM_SUPPORT="\$KVM_SUPPORT -cpu max"
 	;;
 	or1k)
-		QEMU="/home/bastian/software/minilinux/qemu/build/qemu-system-or1k"
 		KVM_PRE=
 		KVM_SUPPORT="-M $BOARD \${DTB:+-dtb }\$DTB -cpu or1200"
 	;;
