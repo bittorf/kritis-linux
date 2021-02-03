@@ -126,7 +126,7 @@ deps_check()
 {
 	local cmd list='arch basename cat chmod cp file find grep gzip make mkdir rm sed strip tar tee test touch tr wget'
 	# these commands are used, but are not essential:
-	# apt, bc, dpkg, logger, vimdiff, xz, zstd
+	# apt, bc, dpkg, ent, logger, vimdiff, xz, zstd
 
 	for cmd in $list; do {
 		command -v "$cmd" >/dev/null || {
@@ -334,6 +334,24 @@ initrd_format()
 		"$o") true ;;
 		   *) false ;;
 	esac
+}
+
+file_iscompressed()
+{
+	local file="$1"
+	local line word parse=
+
+	# of this 952040 byte file by 0 percent.
+	line="$( ent "$file" | grep "percent."$ )"
+
+	for word in $line; do {
+		case "$parse" in
+			true) break ;;
+			*) test "$word" = "by" && parse='true' ;;
+		esac
+	} done
+
+	test ${word:-99} -lt 3
 }
 
 list_kernel_symbols()
@@ -977,7 +995,7 @@ $( sed -n '1,5s/^/#                /p' "$CONFIG1" )
 # KERNEL_BUILD_TIME: $KERNEL_TIME sec
 # KERNEL: $KERNEL_FILE
 # KERNEL_ELF: $KERNEL_ELF
-# KERNEL_SIZE: $( wc -c <"$KERNEL_FILE" ) bytes compressed
+# KERNEL_SIZE: $( wc -c <"$KERNEL_FILE" ) bytes [is $( file_iscompressed "$KERNEL_FILE" || echo 'NOT ' )compressed]
 # KERNEL_ELF: $(  wc -c <"$KERNEL_ELF" ) bytes
 #   show sections with: readelf -S $KERNEL_ELF
 #
