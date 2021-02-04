@@ -498,6 +498,8 @@ EOF
 		echo '# CONFIG_SWAP is not set'
 	fi
 
+	echo 'CONFIG_SIGNALFD=y'	# just a test
+
 	if has_arg 'printk'; then
 		echo 'CONFIG_PRINTK=y'
 
