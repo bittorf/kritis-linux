@@ -83,8 +83,10 @@ case "$DSTARCH" in
 	m68k)
 		# see: arch/m68k/Kconfig.cpu
 		# TODO: coldfire vs. m68k_classic vs. freescale/m68000 (nommu)
+		# https://www.reddit.com/r/archlinux/comments/ejkp1x/what_is_the_name_of_this_font/fczfy60/
+		# https://news.ycombinator.com/item?id=25027213
 		export ARCH='ARCH=m68k' CROSSCOMPILE='CROSS_COMPILE=m68k-linux-gnu-'
-		export DEFCONFIG='tinyconfig'
+		export DEFCONFIG='virt_defconfig'
 		export QEMU='qemu-system-m68k'
 		install_dep 'gcc-m68k-linux-gnu'
 	;;
@@ -498,8 +500,6 @@ EOF
 		echo '# CONFIG_SWAP is not set'
 	fi
 
-	echo 'CONFIG_SIGNALFD=y'	# just a test
-
 	if has_arg 'printk'; then
 		echo 'CONFIG_PRINTK=y'
 
@@ -514,6 +514,22 @@ EOF
 
 	has_arg 'procfs' && echo 'CONFIG_PROC_FS=y'
 	has_arg 'sysfs'  && echo 'CONFIG_SYSFS=y'
+
+	has_arg 'meshack' && {
+		echo 'CONFIG_BASE_FULL=y'
+		echo 'CONFIG_ELF_CORE=y'
+		echo 'CONFIG_FUTEX=y'
+		echo 'CONFIG_FUTEX_PI=y'
+		echo 'CONFIG_EPOLL=y'
+		echo 'CONFIG_SIGNALFD=y'
+		echo 'CONFIG_TIMERFD=y'
+		echo 'CONFIG_EVENTFD=y'
+		echo 'CONFIG_SHMEM=y'
+		echo 'CONFIG_RELOCATABLE=y'
+		echo 'CONFIG_MODIFY_LDT_SYSCALL=y'
+		echo 'CONFIG_CRC_CCITT=y'
+		echo 'CONFIG_CRC16=y'
+	}
 
 	true
 }
