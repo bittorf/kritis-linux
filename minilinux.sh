@@ -80,6 +80,14 @@ case "$DSTARCH" in
 		CROSS_DL="https://musl.cc/or1k-linux-musl-cross.tgz"
 		OPTIONS="$OPTIONS 32bit"
 	;;
+	m68k)
+		# see: arch/m68k/Kconfig.cpu
+		# TODO: coldfire vs. m68k_classic vs. freescale/m68000 (nommu)
+		export ARCH='ARCH=m68k' CROSSCOMPILE='CROSS_COMPILE=m68k-linux-gnu-'
+		export DEFCONFIG='tinyconfig'
+		export QEMU='qemu-system-m68k'
+		install_dep 'gcc-m68k-linux-gnu'
+	;;
 	um|uml)	# http://uml.devloop.org.uk/kernels.html
 		# https://unix.stackexchange.com/questions/90078/which-one-is-lighter-security-and-cpu-wise-lxc-versus-uml
 		export ARCH='ARCH=um'
@@ -369,7 +377,7 @@ list_kernel_symbols()
 		armel|armhf)
 			echo '# CONFIG_64BIT is not set'
 		;;
-		or1k)
+		or1k|m68k)
 		;;
 		*)
 			if has_arg '32bit'; then
@@ -449,6 +457,9 @@ EOF
 	case "$DSTARCH" in
 		uml)
 			echo 'CONFIG_STATIC_LINK=y'
+		;;
+		m68k)
+			echo 'CONFIG_MMU=y'
 		;;
 		arm64)
 			echo 'CONFIG_SERIAL_AMBA_PL011=y'
@@ -842,8 +853,11 @@ for WORD in $( gcc --version ); do {
 
 	# /home/bastian/software/minilinux/minilinux/opt/linux/linux-3.19.8/include/linux/compiler-gcc.h:106:1:
 	# fatal error: linux/compiler-gcc9.h: file or directory not found
-	[ -f "include/linux/compiler-gcc${VERSION}.h" ] || \
-		cp -v include/linux/compiler-gcc5.h "include/linux/compiler-gcc${VERSION}.h"
+	[ -f "include/linux/compiler-gcc${VERSION}.h" ] || {
+		[ -f 'include/linux/compiler-gcc5.h' ] && \
+			cp -v include/linux/compiler-gcc5.h "include/linux/compiler-gcc${VERSION}.h"
+	}
+
 	break
 } done
 
@@ -1060,6 +1074,9 @@ case "${DSTARCH:-\$( arch || echo native )}" in armel|armhf|arm|arm64)
 	KVM_SUPPORT="-M $BOARD \${DTB:+-dtb }\$DTB" ; KVM_PRE=; KERNEL_ARGS='console=ttyAMA0'
 	[ "$DSTARCH" = arm64 ] && KVM_SUPPORT="\$KVM_SUPPORT -cpu max"
 	;;
+	m68k)
+		KVM_PRE=
+	;;
 	or1k)
 		KVM_PRE=
 		KVM_SUPPORT="-M $BOARD \${DTB:+-dtb }\$DTB -cpu or1200"
@@ -1177,7 +1194,7 @@ T0="\$( date +%s )"
 			'# BOOTTIME_SECONDS '*|'# UNAME '*)
 				echo "\$LINE" >>"\$PIPE"
 			;;
-			"\$PATTERN"*|*' Attempted to kill init'*|'ABORTING HARD'*|'Bootstrapping completed.'|'Aborted (core dumped)')
+			"\$PATTERN"*|*' Attempted to kill init'*|'ABORTING HARD'*|'Bootstrapping completed.'*|'Aborted (core dumped)')
 				echo 'READY' >>"\$PIPE"
 				break
 			;;
