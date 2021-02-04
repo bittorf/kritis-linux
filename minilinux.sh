@@ -516,18 +516,18 @@ EOF
 	has_arg 'sysfs'  && echo 'CONFIG_SYSFS=y'
 
 	has_arg 'meshack' && {
-		echo 'CONFIG_BASE_FULL=y'
-#		echo 'CONFIG_FUTEX=y'
-#		echo 'CONFIG_FUTEX_PI=y'
+#		echo 'CONFIG_BASE_FULL=y'
+		echo 'CONFIG_FUTEX=y'
+		echo 'CONFIG_FUTEX_PI=y'
 #		echo 'CONFIG_EPOLL=y'
 #		echo 'CONFIG_SIGNALFD=y'
 #		echo 'CONFIG_TIMERFD=y'
 #		echo 'CONFIG_EVENTFD=y'
-		echo 'CONFIG_SHMEM=y'
+#		echo 'CONFIG_SHMEM=y'
 #		echo 'CONFIG_RELOCATABLE=y'
-#		echo 'CONFIG_MODIFY_LDT_SYSCALL=y'
-#		echo 'CONFIG_CRC_CCITT=y'
-#		echo 'CONFIG_CRC16=y'
+		echo 'CONFIG_MODIFY_LDT_SYSCALL=y'
+		echo 'CONFIG_CRC_CCITT=y'
+		echo 'CONFIG_CRC16=y'
 	}
 
 	true
