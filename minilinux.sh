@@ -1197,6 +1197,31 @@ mkfifo "\$PIPE.out" || exit
 PID=\$!
 T0="\$( date +%s )"
 
+{
+	echo "# images generated using:"
+	echo "# https://github.com/bittorf/kritis-linux"
+	echo
+	grep ^'#' "\$0"
+	echo
+	echo "# startup:"
+
+	case "$DSTARCH" in
+		uml)
+			echo "$KERNEL_FILE mem=\$MEM \$UMLNET \\"
+			echo "	initrd=$INITRD_FILE"
+		;;
+		*)
+			echo "\$KVM_PRE \$QEMU -m \$MEM \$KVM_SUPPORT \$BIOS \\"
+			echo "	-kernel $KERNEL_FILE \\"
+			echo "	-initrd $INITRD_FILE \\"
+			echo "	--nographic \\"
+			echo "	-append "\$KERNEL_ARGS" \$QEMU_OPTIONS"
+		;;
+	esac
+
+	echo
+} >"\$LOG"
+
 (
 	while read -r LINE; do {
 		case "\$LOGTIME" in
@@ -1227,7 +1252,7 @@ T0="\$( date +%s )"
 				break
 			;;
 		esac
-	} done <"\$PIPE.out" | tee "\$LOG"
+	} done <"\$PIPE.out" | tee -a "\$LOG"
 ) &
 
 RC=1
@@ -1251,6 +1276,7 @@ while [ \$I -gt 0 ]; do {
 	LOGINFO="(\$LOGLINES lines, \$LOGSIZE bytes) "
 }
 
+sync
 echo
 echo "# autotest-mode ready after \$(( MAX - I )) (out of max \$MAX) seconds"
 echo "# RC:\$RC | PATTERN:\$PATTERN | logfile \${LOGINFO}written to '\$LOG'"
