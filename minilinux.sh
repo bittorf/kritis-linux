@@ -455,6 +455,17 @@ EOF
 	fi
 
 	case "$DSTARCH" in
+		i686)
+			case "$MEM" in
+				*G|[0-9][0-9][0-9][0-9]*)
+					echo 'CONFIG_HIGHMEM=y'
+					echo 'CONFIG_HIGHMEM4G=y'
+				;;
+			esac
+		;;
+	esac
+
+	case "$DSTARCH" in
 		uml)
 			echo 'CONFIG_STATIC_LINK=y'
 		;;
