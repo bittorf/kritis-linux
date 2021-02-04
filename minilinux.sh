@@ -1207,14 +1207,14 @@ T0="\$( date +%s )"
 
 	case "$DSTARCH" in
 		uml)
-			echo "$KERNEL_FILE mem=\$MEM \$UMLNET \\"
+			echo "$KERNEL_FILE mem=\$MEM \$UMLNET \\\\"
 			echo "	initrd=$INITRD_FILE"
 		;;
 		*)
-			echo "\$KVM_PRE \$QEMU -m \$MEM \$KVM_SUPPORT \$BIOS \\"
-			echo "	-kernel $KERNEL_FILE \\"
-			echo "	-initrd $INITRD_FILE \\"
-			echo "	--nographic \\"
+			echo "\$KVM_PRE \$QEMU -m \$MEM \$KVM_SUPPORT \$BIOS \\\\"
+			echo "	-kernel $KERNEL_FILE \\\\"
+			echo "	-initrd $INITRD_FILE \\\\"
+			echo "	-nographic \\\\"
 			echo "	-append "\$KERNEL_ARGS" \$QEMU_OPTIONS"
 		;;
 	esac
