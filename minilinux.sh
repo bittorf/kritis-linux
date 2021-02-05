@@ -104,7 +104,7 @@ case "$DSTARCH" in
 			install_dep 'gcc-i686-linux-gnu'
 		}
 	;;
-	i386|i486|i586|i686)
+	i386|i486|i586|i686|x86|x86_32)
 		DSTARCH='i686'		# 32bit
 		export DEFCONFIG='tinyconfig'
 		export ARCH='ARCH=i386'
@@ -373,7 +373,8 @@ file_iscompressed()
 		esac
 	} done
 
-	test "${word:-99}" -lt 3
+	# e.g. kernel 4.14.x bzImage: of this 724896 byte file by 8 percent.
+	test "${word:-99}" -lt 9
 }
 
 list_kernel_symbols()
