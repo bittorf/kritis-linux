@@ -87,7 +87,8 @@ case "$DSTARCH" in
 		# https://news.ycombinator.com/item?id=25027213
 		# http://users.telenet.be/geertu/Linux/68000/
 		export ARCH='ARCH=m68k' CROSSCOMPILE='CROSS_COMPILE=m68k-linux-gnu-'
-		export BOARD='virt' DEFCONFIG='virt_defconfig'
+		export BOARD='q800' DEFCONFIG='virt_defconfig'
+		DEFCONFIG='mac_defconfig'
 		export QEMU='qemu-system-m68k'
 		install_dep 'gcc-m68k-linux-gnu'
 	;;
@@ -473,7 +474,8 @@ EOF
 			echo 'CONFIG_STATIC_LINK=y'
 		;;
 		m68k)
-			echo 'CONFIG_MMU=y'
+#			echo 'CONFIG_VIRT=y'
+#			echo 'CONFIG_MMU=y'
 		;;
 		arm64)
 			echo 'CONFIG_SERIAL_AMBA_PL011=y'
@@ -518,15 +520,15 @@ EOF
 
 	has_arg 'meshack' && {
 #		echo 'CONFIG_BASE_FULL=y'
-#		echo 'CONFIG_FUTEX=y'
-#		echo 'CONFIG_FUTEX_PI=y'
+		echo 'CONFIG_FUTEX=y'
+		echo 'CONFIG_FUTEX_PI=y'
 #		echo 'CONFIG_EPOLL=y'
 #		echo 'CONFIG_SIGNALFD=y'
 #		echo 'CONFIG_TIMERFD=y'
 #		echo 'CONFIG_EVENTFD=y'
 #		echo 'CONFIG_SHMEM=y'
 #		echo 'CONFIG_RELOCATABLE=y'
-#		echo 'CONFIG_MODIFY_LDT_SYSCALL=y'
+		echo 'CONFIG_MODIFY_LDT_SYSCALL=y'
 		echo 'CONFIG_CRC_CCITT=y'
 		echo 'CONFIG_CRC16=y'
 	}
@@ -1105,6 +1107,7 @@ case "${DSTARCH:-\$( arch || echo native )}" in armel|armhf|arm|arm64)
 	[ "$DSTARCH" = arm64 ] && KVM_SUPPORT="\$KVM_SUPPORT -cpu max"
 	;;
 	m68k)
+		KVM_SUPPORT="-M $BOARD"
 		KVM_PRE=
 	;;
 	or1k)
@@ -1281,7 +1284,8 @@ while [ \$I -gt 0 ]; do {
 sync
 echo
 echo "# autotest-mode ready after \$(( MAX - I )) (out of max \$MAX) seconds"
-echo "# RC:\$RC | PATTERN:\$PATTERN | logfile \${LOGINFO}written to '\$LOG'"
+echo "# RC:\$RC | PATTERN:\$PATTERN | logfile \${LOGINFO}written"
+echo "# to '\$LOG'"
 echo "#"
 echo "# you can manually startup again:"
 echo "# \$0"
