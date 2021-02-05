@@ -3,7 +3,7 @@
 KERNEL="$1"		# e.g. 'latest' or '5.4.89' or '4.19.x' or URL-to-tarball
 [ -n "$2" ] && {
 	shift
-	export OPTIONS="$*"	# see has_arg()
+	export OPTIONS="$*"	# see has_arg(), spaces are not working
 }
 
 BASEDIR='minilinux'
@@ -146,7 +146,7 @@ has_arg 'debug' || {
 
 deps_check()
 {
-	local cmd list='arch basename cat chmod cp file find grep gzip make mkdir rm sed strip tar tee test touch tr wget'
+	local cmd list='arch basename cat chmod cp file find grep gzip head make mkdir rm sed strip tar tee test touch tr wget'
 	# these commands are used, but are not essential:
 	# apt, bc, dpkg, ent, logger, vimdiff, xz, zstd
 
@@ -527,6 +527,21 @@ EOF
 
 	has_arg 'procfs' && echo 'CONFIG_PROC_FS=y'
 	has_arg 'sysfs'  && echo 'CONFIG_SYSFS=y'
+
+	has_arg 'debug' || {
+		echo '# CONFIG_INPUT_MOUSE is not set'
+		echo '# CONFIG_INPUT_MOUSEDEV is not set'
+		echo '# CONFIG_INPUT_KEYBOARD is not set'
+		echo '# CONFIG_HID is not set'
+	}
+
+	# FIXME! spaces are not working
+	# we can overload CONFIG_SYMBOLS via ARGS
+	for _ in $OPTIONS; do {
+		case "$_" in
+			CONFIG_*) echo "$_" ;;
+		esac
+	} done
 
 	true
 }
@@ -919,6 +934,7 @@ else
 		apply "$SYMBOL" || emit_doc "error: $?"
 	} done
 
+	emit_doc "not-in-config \\/ maybe only in newer kernels?"
 	list_kernel_symbols | while read -r SYMBOL; do {
 		grep -q ^"$SYMBOL"$ .config || emit_doc "not-in-config | $SYMBOL"
 	} done
@@ -1019,6 +1035,10 @@ case "$DSTARCH" in
 	;;
 esac
 
+# shellcheck disable=SC2046
+set -- $( head -n3 "$CONFIG1" )
+KERNEL_VERSION="${11}"
+
 INITRD_TEMP="$( mktemp -d )" || exit
 ( cd "$INITRD_TEMP" && gzip -cd "$INITRD_FILE" | cpio -idm )
 INITRD_FILES="$( find "$INITRD_TEMP" -type f | wc -l )"
@@ -1061,10 +1081,11 @@ MAX="\${3:-86400}"	# max running time [seconds] in autotest-mode
 # COMPILER: ${CROSSCOMPILE:-cc}
 # CMDLINE_OPTIONS: $OPTIONS
 #
+# KERNEL_VERSION: $KERNEL_VERSION
 # KERNEL_URL: $KERNEL_URL
 # KERNEL_CONFIG: $CONFIG1
 $( sed -n '1,5s/^/#                /p' "$CONFIG1" )
-# KERNEL_CONFG_TIME: $KERNEL_TIME_CONFIG sec ("$DEFCONFIG" +more)
+# KERNEL_CONFG_TIME: $KERNEL_TIME_CONFIG sec ("make $DEFCONFIG" +more)
 # KERNEL_BUILD_TIME: $KERNEL_TIME sec
 # KERNEL: $KERNEL_FILE
 # KERNEL_ELF: $KERNEL_ELF
@@ -1275,7 +1296,8 @@ while [ \$I -gt 0 ]; do {
 [ -s "\$LOG" ] && {
 	{
 		echo
-		echo "# exit with RC:\$RC | see: $LINUX_BUILD/run.sh"
+		echo "# exit with RC:\$RC"
+		echo "# see: $LINUX_BUILD/run.sh"
 		echo "#"
 		echo "# thanks for using:"
 		echo "# https://github.com/bittorf/kritis-linux"
@@ -1289,10 +1311,12 @@ while [ \$I -gt 0 ]; do {
 echo
 echo "# autotest-mode ready after \$(( MAX - I )) (out of max \$MAX) seconds"
 echo "# RC:\$RC | PATTERN:\$PATTERN"
-echo "# logile \${LOGINFO}written to"
+echo "# logile \${LOGINFO}written to:"
 echo "# \$LOG"
-FILENAME_OFFER='log_${GIT_USERNAME}_${GIT_REPONAME}_${GIT_BRANCH}_${GIT_SHORTHASH}_${DSTARCH}.txt'
-echo "# proposed name: $( test "$GIT_SHORTHASH" && echo "upload: scp '\$LOG' \$FILENAME_OFFER" )"
+
+FILENAME_OFFER='log_${GIT_USERNAME}_${GIT_REPONAME}_${GIT_BRANCH}_${GIT_SHORTHASH}_${DSTARCH}_kernel${KERNEL_VERSION}.txt'
+echo "# proposed name: $( test "$GIT_SHORTHASH" && echo "upload: scp '\$LOG' \$FILENAME_OFFER" || echo 'none' )"
+
 echo "#"
 echo "# you can manually startup again:"
 echo "# \$0"
@@ -1314,7 +1338,8 @@ chmod +x "$LINUX_BUILD/run.sh" && \
 RC=$?
 
 echo
-echo "# RC:$RC | see: $LINUX_BUILD/run.sh"
+echo "# exit with RC:$RC"
+echo "# see: $LINUX_BUILD/run.sh"
 echo "#"
 echo "# thanks for using:"
 echo "# https://github.com/bittorf/kritis-linux"

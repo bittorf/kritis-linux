@@ -67,6 +67,7 @@ kritis-linux/ci_helper.sh \
   * e.g. `printk`,`sysfs`,`procfs`,`menuconfig`,
   * e.g. `wireguard`,
   * e.g. `tinyconfig` or `allnoconfig` or `defconfig` or `config`
+  * e.g. `CONFIG_SYMBOL_XY=y`
 * `--log` /path/to/filename
 * `--logtime false` for disabling timestamps
 * `--onefile` for including `initrd` into kernel
@@ -95,7 +96,7 @@ Default is building `make tinyconfig` and change some switches:
   * `# CONFIG_SWAP is not set`
 
 Kernels with less features are smaller and compile faster, so it  
-needs ~20 seconds to compile kernel 3.18, which is ~450k compressed.  
+needs ~20 seconds to compile kernel 3.18, which is ~425k compressed.  
   
 If this does not fit to your needs, you can enable stuff  
 using `--features` or just provide your own `--kconfig`  
