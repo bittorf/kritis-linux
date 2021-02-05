@@ -116,6 +116,7 @@ case "$DSTARCH" in
 			install_dep 'gcc-i686-linux-gnu'
 	;;
 	*)
+		DSTARCH='x86_64'
 		export DEFCONFIG='tinyconfig'
 		export QEMU='qemu-system-x86_64'
 	;;
@@ -470,6 +471,13 @@ EOF
 	esac
 
 	case "$DSTARCH" in
+		i686|x86_64)
+			# support 16bit or segmented code (e.g. DOSEMU)
+			echo 'CONFIG_MODIFY_LDT_SYSCALL=y'
+		;;
+	esac
+
+	case "$DSTARCH" in
 		uml)
 			echo 'CONFIG_STATIC_LINK=y'
 		;;
@@ -517,21 +525,6 @@ EOF
 
 	has_arg 'procfs' && echo 'CONFIG_PROC_FS=y'
 	has_arg 'sysfs'  && echo 'CONFIG_SYSFS=y'
-
-	has_arg 'meshack' && {
-#		echo 'CONFIG_BASE_FULL=y'
-##		echo 'CONFIG_FUTEX=y'
-##		echo 'CONFIG_FUTEX_PI=y'
-#		echo 'CONFIG_EPOLL=y'
-#		echo 'CONFIG_SIGNALFD=y'
-#		echo 'CONFIG_TIMERFD=y'
-#		echo 'CONFIG_EVENTFD=y'
-#		echo 'CONFIG_SHMEM=y'
-#		echo 'CONFIG_RELOCATABLE=y'
-		echo 'CONFIG_MODIFY_LDT_SYSCALL=y'
-##		echo 'CONFIG_CRC_CCITT=y'
-##		echo 'CONFIG_CRC16=y'
-	}
 
 	true
 }
