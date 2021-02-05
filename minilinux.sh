@@ -520,8 +520,8 @@ EOF
 
 	has_arg 'meshack' && {
 #		echo 'CONFIG_BASE_FULL=y'
-		echo 'CONFIG_FUTEX=y'
-		echo 'CONFIG_FUTEX_PI=y'
+##		echo 'CONFIG_FUTEX=y'
+##		echo 'CONFIG_FUTEX_PI=y'
 #		echo 'CONFIG_EPOLL=y'
 #		echo 'CONFIG_SIGNALFD=y'
 #		echo 'CONFIG_TIMERFD=y'
@@ -529,8 +529,8 @@ EOF
 #		echo 'CONFIG_SHMEM=y'
 #		echo 'CONFIG_RELOCATABLE=y'
 		echo 'CONFIG_MODIFY_LDT_SYSCALL=y'
-		echo 'CONFIG_CRC_CCITT=y'
-		echo 'CONFIG_CRC16=y'
+##		echo 'CONFIG_CRC_CCITT=y'
+##		echo 'CONFIG_CRC16=y'
 	}
 
 	true
@@ -1080,16 +1080,17 @@ $( sed -n '1,5s/^/#                /p' "$CONFIG1" )
 # BUSYBOX_SIZE: $( wc -c <"$BB_FILE" || echo 0 ) bytes
 # BUSYBOX_CONFIG: $CONFIG2
 #
+# INITRD files......: $INITRD_FILES
+#        symlinks...: $INITRD_LINKS
+#        directories: $INITRD_DIRS
+#        bytes......: $INITRD_BYTES [100%]
+#
 # INITRD:  $B1 bytes $P1 = $INITRD_FILE
 # INITRD2: $B2 bytes $P2 = ${INITRD_FILE2:-<nofile>}
 # INITRD3: $B3 bytes $P3 = ${INITRD_FILE3:-<nofile>}
 # INITRD3: $B4 bytes $P4 = ${INITRD_FILE4:-<nofile>}
 #   decompress: gzip -cd $INITRD_FILE | cpio -idm
 #
-# INITRD files......: $INITRD_FILES
-#        symlinks...: $INITRD_LINKS
-#        directories: $INITRD_DIRS
-#        bytes......: $INITRD_BYTES
 # ---
 $( cat "$LINUX_BUILD/doc.txt" )
 # ---
@@ -1284,7 +1285,8 @@ while [ \$I -gt 0 ]; do {
 sync
 echo
 echo "# autotest-mode ready after \$(( MAX - I )) (out of max \$MAX) seconds"
-echo "# RC:\$RC | PATTERN:\$PATTERN | logfile \${LOGINFO}written"
+echo "# RC:\$RC | PATTERN:\$PATTERN"
+echo "# logile \${LOGINFO}written"
 echo "# to '\$LOG'"
 echo "#"
 echo "# you can manually startup again:"
