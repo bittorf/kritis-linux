@@ -27,11 +27,13 @@ while [ -n "$1" ]; do {
 [ -f "$(pwd)/$MYINIT" ] && MYINIT="$(pwd)/$MYINIT"
 
 [ -d '.git' ] && {
+	set -x
 	GIT_REPONAME="$( basename "$( git rev-parse --show-toplevel )" )"
 	GIT_USERNAME="$( basename "$( dirname "$( git config --get remote.origin.url )" )" )"
 	GIT_SHORTHASH="$( git rev-parse --short HEAD )"
 	GIT_BRANCH="$( git rev-parse --abbrev-ref HEAD )"
 	export GIT_REPONAME GIT_USERNAME GIT_SHORTHASH GIT_BRANCH
+	set +x
 }
 
 cd "$( dirname "$0" )" || exit

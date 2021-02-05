@@ -3,7 +3,7 @@
 KERNEL="$1"		# e.g. 'latest' or '5.4.89' or '4.19.x' or URL-to-tarball
 [ -n "$2" ] && {
 	shift
-	OPTIONS="$*"	# see has_arg()
+	export OPTIONS="$*"	# see has_arg()
 }
 
 BASEDIR='minilinux'
@@ -386,6 +386,8 @@ list_kernel_symbols()
 		;;
 		*)
 			if has_arg '32bit'; then
+				echo '# CONFIG_64BIT is not set'
+			elif [ "$DSTARCH" = 'i686' ]; then
 				echo '# CONFIG_64BIT is not set'
 			else
 				echo 'CONFIG_64BIT=y'
@@ -1057,6 +1059,7 @@ MAX="\${3:-86400}"	# max running time [seconds] in autotest-mode
 #
 # ARCHITECTURE: ${DSTARCH:-default} / ${ARCH:-default}
 # COMPILER: ${CROSSCOMPILE:-cc}
+# CMDLINE_OPTIONS: $OPTIONS
 #
 # KERNEL_URL: $KERNEL_URL
 # KERNEL_CONFIG: $CONFIG1
@@ -1264,26 +1267,32 @@ while [ \$I -gt 0 ]; do {
 	LINE="\$( tail -n1 "\$PIPE" )"
 
 	case "\$LINE" in
-		READY) RC=0 && break ;;
+		READY) RC=0 && break ;;		# TODO: more finegraned
 		*) sleep 1; I=\$(( I - 1 )) ;;
 	esac
 } done
 
 [ -s "\$LOG" ] && {
+	{
+		echo
+		echo "# exit with RC:\$RC | see: $LINUX_BUILD/run.sh"
+		echo "#"
+		echo "# thanks for using:"
+		echo "# https://github.com/bittorf/kritis-linux"
+	} >>"\$LOG"
+
 	LOGLINES="\$( wc -l <"\$LOG" )"
 	LOGSIZE="\$(  wc -c <"\$LOG" )"
 	LOGINFO="(\$LOGLINES lines, \$LOGSIZE bytes) "
 }
 
-sync
 echo
 echo "# autotest-mode ready after \$(( MAX - I )) (out of max \$MAX) seconds"
 echo "# RC:\$RC | PATTERN:\$PATTERN"
 echo "# logile \${LOGINFO}written to"
 echo "# \$LOG"
 FILENAME_OFFER='log_${GIT_USERNAME}_${GIT_REPONAME}_${GIT_BRANCH}_${GIT_SHORTHASH}_${DSTARCH}.txt'
-echo "# proposed name:"
-$( test "$GIT_SHORTHASH" && echo "# upload: scp '\$LOG' \$FILENAME_OFFER" )
+echo "# proposed name: $( test "$GIT_SHORTHASH" && echo "upload: scp '\$LOG' \$FILENAME_OFFER" )"
 echo "#"
 echo "# you can manually startup again:"
 echo "# \$0"
