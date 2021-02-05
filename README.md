@@ -128,6 +128,7 @@ jobs:
 * CI examples: TravisCI, CircleCI
 * debian-minimal testrun for deps
 * builddir = mark_cache = no_backup
+* speedcheck: CONFIG_BASE_FULL=y + optimize_for_speed
 * net: nameserver?
 * api kernel+busybox+toybox+gcc... download/version
 * different recipes?: minimal, net, compiler, net-compiler

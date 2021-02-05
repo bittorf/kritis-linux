@@ -1279,8 +1279,11 @@ sync
 echo
 echo "# autotest-mode ready after \$(( MAX - I )) (out of max \$MAX) seconds"
 echo "# RC:\$RC | PATTERN:\$PATTERN"
-echo "# logile \${LOGINFO}written"
-echo "# to '\$LOG'"
+echo "# logile \${LOGINFO}written to"
+echo "# \$LOG"
+FILENAME_OFFER='log_${GIT_USERNAME}_${GIT_REPONAME}_${GIT_BRANCH}_${GIT_SHORTHASH}_${DSTARCH}.txt'
+echo "# proposed name:"
+$( test "$GIT_SHORTHASH" && echo "# upload: scp '\$LOG' \$FILENAME_OFFER" )
 echo "#"
 echo "# you can manually startup again:"
 echo "# \$0"
