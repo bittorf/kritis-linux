@@ -26,14 +26,13 @@ while [ -n "$1" ]; do {
 [ -f "$(pwd)/$OWN_CONFIG" ] && OWN_CONFIG="$(pwd)/$OWN_CONFIG"
 [ -f "$(pwd)/$MYINIT" ] && MYINIT="$(pwd)/$MYINIT"
 
-[ -d "${GITDIR:=.git}" ] && (
-	cd "$GITDIR" || exit
-	[ "$GIT_REPONAME"  ] || GIT_REPONAME="$( basename "$( git rev-parse --show-toplevel )" )"
-	[ "$GIT_USERNAME"  ] || GIT_USERNAME="$( basename "$( dirname "$( git config --get remote.origin.url )" )" )"
-	[ "$GIT_SHORTHASH" ] || GIT_SHORTHASH="$( git rev-parse --short HEAD )"
-	[ "$GIT_BRANCH"    ] || GIT_BRANCH="$( git rev-parse --abbrev-ref HEAD )"
+[ -d "${GITDIR:=.git}" ] && {
+	[ "$GIT_REPONAME"  ] || GIT_REPONAME="$( basename "$( cd "$GITDIR" && git rev-parse --show-toplevel )" )"
+	[ "$GIT_USERNAME"  ] || GIT_USERNAME="$( basename "$( cd "$GITDIR" && dirname "$( git config --get remote.origin.url )" )" )"
+	[ "$GIT_SHORTHASH" ] || GIT_SHORTHASH="$( cd "$GITDIR" && git rev-parse --short HEAD )"
+	[ "$GIT_BRANCH"    ] || GIT_BRANCH="$( cd "$GITDIR" && git rev-parse --abbrev-ref HEAD )"
 	export GIT_REPONAME GIT_USERNAME GIT_SHORTHASH GIT_BRANCH
-)
+}
 
 cd "$( dirname "$0" )" || exit
 TMP1="$( mktemp )" || exit

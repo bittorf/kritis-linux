@@ -1249,6 +1249,12 @@ T0="\$( date +%s )"
 	FIRSTLINE=true
 
 	while read -r LINE; do {
+		LENGTH="\${#LINE}"	# hacky: convert lineend x0D x0A -> x0A
+		case "\$LENGTH" in
+			0) UNIXLINE="%s" ;;
+			*) UNIXLINE="%.\$((LENGTH-1))s"	;;
+		esac
+
 		case "\$FIRSTLINE" in true) FIRSTLINE= ; printf '\n' ;; esac
 
 		case "\$LOGTIME" in
@@ -1263,10 +1269,10 @@ T0="\$( date +%s )"
 				REST=\$(( REST - (MINU * 60) ))
 
 				# e.g. 01h45m23s | message_xy
-				printf '%02d%s%02d%s%02d%s | %s\n' "\$HOUR" h "\$MINU" m "\$REST" s "\$LINE"
+				printf "%02d%s%02d%s%02d%s | \${UNIXLINE}\n" "\$HOUR" h "\$MINU" m "\$REST" s "\$LINE"
 			;;
 			*)
-				printf '%s\n' "\$LINE"
+				printf '\${UNIXLINE}\n' "\$LINE"
 			;;
 		esac
 
