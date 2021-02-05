@@ -1326,7 +1326,8 @@ echo "# logile \${LOGINFO}written to:"
 echo "# \$LOG"
 
 FILENAME_OFFER='log_${GIT_USERNAME}_${GIT_REPONAME}_${GIT_BRANCH}_${GIT_SHORTHASH}_${DSTARCH}_kernel${KERNEL_VERSION}.txt'
-echo "# proposed name: $( test "$GIT_SHORTHASH" && echo "upload: scp '\$LOG' \$FILENAME_OFFER" || echo 'none' )"
+echo "# proposed name:"
+echo "# $( test "$GIT_SHORTHASH" && echo "\$FILENAME_OFFER" || echo 'none' )"
 
 echo "#"
 echo "# you can manually startup again:"
