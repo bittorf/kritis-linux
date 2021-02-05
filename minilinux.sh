@@ -518,8 +518,8 @@ EOF
 
 	has_arg 'meshack' && {
 #		echo 'CONFIG_BASE_FULL=y'
-		echo 'CONFIG_FUTEX=y'
-		echo 'CONFIG_FUTEX_PI=y'
+#		echo 'CONFIG_FUTEX=y'
+#		echo 'CONFIG_FUTEX_PI=y'
 #		echo 'CONFIG_EPOLL=y'
 #		echo 'CONFIG_SIGNALFD=y'
 #		echo 'CONFIG_TIMERFD=y'
@@ -527,8 +527,8 @@ EOF
 #		echo 'CONFIG_SHMEM=y'
 #		echo 'CONFIG_RELOCATABLE=y'
 #		echo 'CONFIG_MODIFY_LDT_SYSCALL=y'
-#		echo 'CONFIG_CRC_CCITT=y'
-#		echo 'CONFIG_CRC16=y'
+		echo 'CONFIG_CRC_CCITT=y'
+		echo 'CONFIG_CRC16=y'
 	}
 
 	true
@@ -893,6 +893,7 @@ for WORD in $( gcc --version ); do {
 # or 'make mrproper' ?
 make $SILENT_MAKE $ARCH O="$LINUX_BUILD" distclean || msg_and_die "$?" "make $ARCH O=$LINUX_BUILD distclean"	# needed?
 
+emit_doc "make $ARCH $DEFCONFIG"
 make $SILENT_MAKE $ARCH O="$LINUX_BUILD" $DEFCONFIG || {
 	RC=$?
 	make $ARCH help
@@ -1065,7 +1066,7 @@ MAX="\${3:-86400}"	# max running time [seconds] in autotest-mode
 # KERNEL_URL: $KERNEL_URL
 # KERNEL_CONFIG: $CONFIG1
 $( sed -n '1,5s/^/#                /p' "$CONFIG1" )
-# KERNEL_CONFG_TIME: $KERNEL_TIME_CONFIG sec
+# KERNEL_CONFG_TIME: $KERNEL_TIME_CONFIG sec ("$DEFCONFIG" +more)
 # KERNEL_BUILD_TIME: $KERNEL_TIME sec
 # KERNEL: $KERNEL_FILE
 # KERNEL_ELF: $KERNEL_ELF
