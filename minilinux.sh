@@ -85,6 +85,7 @@ case "$DSTARCH" in
 		# TODO: coldfire vs. m68k_classic vs. freescale/m68000 (nommu)
 		# https://www.reddit.com/r/archlinux/comments/ejkp1x/what_is_the_name_of_this_font/fczfy60/
 		# https://news.ycombinator.com/item?id=25027213
+		# http://users.telenet.be/geertu/Linux/68000/
 		export ARCH='ARCH=m68k' CROSSCOMPILE='CROSS_COMPILE=m68k-linux-gnu-'
 		export BOARD='virt' DEFCONFIG='virt_defconfig'
 		export QEMU='qemu-system-m68k'
@@ -517,8 +518,8 @@ EOF
 
 	has_arg 'meshack' && {
 #		echo 'CONFIG_BASE_FULL=y'
-#		echo 'CONFIG_FUTEX=y'
-#		echo 'CONFIG_FUTEX_PI=y'
+		echo 'CONFIG_FUTEX=y'
+		echo 'CONFIG_FUTEX_PI=y'
 #		echo 'CONFIG_EPOLL=y'
 #		echo 'CONFIG_SIGNALFD=y'
 #		echo 'CONFIG_TIMERFD=y'
@@ -526,8 +527,8 @@ EOF
 #		echo 'CONFIG_SHMEM=y'
 #		echo 'CONFIG_RELOCATABLE=y'
 #		echo 'CONFIG_MODIFY_LDT_SYSCALL=y'
-		echo 'CONFIG_CRC_CCITT=y'
-		echo 'CONFIG_CRC16=y'
+#		echo 'CONFIG_CRC_CCITT=y'
+#		echo 'CONFIG_CRC16=y'
 	}
 
 	true
