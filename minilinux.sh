@@ -1304,11 +1304,20 @@ while [ \$I -gt 0 ]; do {
 	esac
 } done
 
+FILENAME_OFFER='log_${GIT_USERNAME}_${GIT_REPONAME}_${GIT_BRANCH}_${GIT_SHORTHASH}_${DSTARCH}_kernel${KERNEL_VERSION}.txt'
+
 [ -s "\$LOG" ] && {
 	{
 		echo
 		echo "# exit with RC:\$RC"
+		echo "# autotest-mode ready after \$(( MAX - I )) (out of max \$MAX) seconds"
 		echo "# see: $LINUX_BUILD/run.sh"
+		echo "#"
+		echo "# logile \${LOGINFO}written to:"
+		echo "# \$LOG"
+		echo "#"
+		echo "# proposed name:"
+		echo "# $( test "$GIT_SHORTHASH" && echo "\$FILENAME_OFFER" || echo '(none)' )"
 		echo "#"
 		echo "# thanks for using:"
 		echo "# https://github.com/bittorf/kritis-linux"
@@ -1324,11 +1333,9 @@ echo "# autotest-mode ready after \$(( MAX - I )) (out of max \$MAX) seconds"
 echo "# RC:\$RC | PATTERN:\$PATTERN"
 echo "# logile \${LOGINFO}written to:"
 echo "# \$LOG"
-
-FILENAME_OFFER='log_${GIT_USERNAME}_${GIT_REPONAME}_${GIT_BRANCH}_${GIT_SHORTHASH}_${DSTARCH}_kernel${KERNEL_VERSION}.txt'
+echo "#"
 echo "# proposed name:"
-echo "# $( test "$GIT_SHORTHASH" && echo "\$FILENAME_OFFER" || echo 'none' )"
-
+echo "# $( test "$GIT_SHORTHASH" && echo "\$FILENAME_OFFER" || echo '(none)' )"
 echo "#"
 echo "# you can manually startup again:"
 echo "# \$0"
