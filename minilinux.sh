@@ -1246,7 +1246,11 @@ T0="\$( date +%s )"
 } >"\$LOG"
 
 (
+	FIRSTLINE=true
+
 	while read -r LINE; do {
+		case "\$FIRSTLINE" in true) FIRSTLINE= ; printf '\n' ;; esac
+
 		case "\$LOGTIME" in
 			true)
 				# TODO: pipe to ts, e.g. foo | ts -i "%H:%M:%.S"
