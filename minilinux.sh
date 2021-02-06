@@ -799,16 +799,16 @@ fi
 [ -f init ] || cat >'init' <<EOF
 #!/bin/sh
 command -v mount && {
-	$( has_args 'procfs' || echo 'false ' )mount -t proc  none /proc && {
+	$( has_arg 'procfs' || echo 'false ' )mount -t proc  none /proc && {
 		read -r UP _ </proc/uptime || UP=\$( cut -d' ' -f1 /proc/uptime )
 		while read -r LINE; do case "\$LINE" in MemAvailable:*) set -- \$LINE; MEMAVAIL_KB=\$2; break ;; esac; done </proc/meminfo
 	}
 
-	$( has_args 'sysfs' || echo 'false ' )mount -t sysfs none /sys
+	$( has_arg 'sysfs' || echo 'false ' )mount -t sysfs none /sys
 
 	# https://github.com/bittorf/slirp-uml-and-compiler-friendly
 	# https://github.com/lubomyr/bochs/blob/master/misc/slirp.conf
-	$( has_args 'net' || echo 'false ' )command -v 'ip' >/dev/null && \\
+	$( has_arg 'net' || echo 'false ' )command -v 'ip' >/dev/null && \\
 	  ip link show dev eth0 && \\
 	    printf '%s\\n' 'nameserver 8.8.4.4' >/etc/resolv.conf && \\
 	      ip address add 10.0.2.15/24 dev eth0 && \\
