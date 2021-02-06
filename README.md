@@ -97,7 +97,7 @@ Default is building `make tinyconfig` and change some switches:
   * `# CONFIG_SWAP is not set`
 
 Kernels with less features are smaller and compile faster, so it  
-needs ~20 seconds to compile kernel 3.18, which is ~425k compressed.  
+needs ~20 seconds to compile kernel 3.18, which is ~423k compressed.  
   
 If this does not fit to your needs, you can enable stuff  
 using `--features` or just provide your own `--kconfig`  
@@ -130,7 +130,6 @@ jobs:
 * CI examples: TravisCI, CircleCI
 * debian-minimal testrun for deps
 * builddir = mark_cache = no_backup
-* speedcheck: CONFIG_BASE_FULL=y + optimize_for_speed
 * net: nameserver?
 * api kernel+busybox+toybox+gcc... download/version
 * different recipes?: minimal, net, compiler, net-compiler
@@ -142,9 +141,21 @@ jobs:
 * needed space
 * measure sizes: https://events.static.linuxfound.org/sites/events/files/slides/slaballocators.pdf
 * add option for size/performance:
+  * `CONFIG_BASE_FULL=y`
   * `CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y`
   * `# CONFIG_CC_OPTIMIZE_FOR_SIZE is not set`
 * tinyconfig only available for 3.17-rc1+
 * add test and build-matrix: all combinations of
   * kernel/busybox/toybox/dash/libc/32bit/64bit/archs
 
+### interesting CONFIG_SYLBOLS
+```
+CONFIG_STANDALONE=y
+CONFIG_PREVENT_FIRMWARE_BUILD=y
+# CONFIG_IDE is not set
+CONFIG_SCSI=y
+CONFIG_SCSI_MOD=y
+CONFIG_XZ_DEC=y
+CONFIG_DEBUG_KERNEL=y
+# CONFIG_GPIOLIB is not set
+```

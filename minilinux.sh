@@ -492,8 +492,6 @@ EOF
 			echo 'CONFIG_M68KCLASSIC=y'
 			echo 'CONFIG_M68040=y'
 			echo 'CONFIG_FPU=y'
-			echo 'CONFIG_SERIAL_CORE=y'
-			echo 'CONFIG_SERIAL_CORE_CONSOLE=y'
 			echo 'CONFIG_SERIAL_PMACZILOG=y'
 			echo 'CONFIG_SERIAL_PMACZILOG_TTYS=y'
 			echo 'CONFIG_SERIAL_PMACZILOG_CONSOLE=y'
@@ -533,7 +531,7 @@ EOF
 		esac
 	else
 		echo '# CONFIG_PRINTK is not set'
-		echo '# CONFIG_EARLY_PRINTK is not set'	# n/a on arm64
+		echo '# CONFIG_EARLY_PRINTK is not set'		# n/a on arm64
 	fi
 
 	has_arg 'procfs' && echo 'CONFIG_PROC_FS=y'
@@ -559,7 +557,7 @@ EOF
 
 emit_doc()
 {
-	local message="$1"	# e.g. <any> or 'all'
+	local message="$1"	# e.g. <any> or 'all' or 'apply_order'
 	local context file="$LINUX_BUILD/doc.txt"
 
 	case "$message" in
@@ -567,6 +565,10 @@ emit_doc()
 			cat "$file"
 			echo "see: '$file'"
 			echo "     '$LINUX_BUILD/.config'"
+		;;
+		apply_order)
+			# grep '| applied:' run.sh | grep '| linux' | cut -d: -f2 | grep -v '# CONFIG'
+			grep 'applied' "$file"
 		;;
 		*)
 			context="$( basename "$( pwd )" )"	# e.g. busybox or linux
@@ -600,19 +602,23 @@ apply()
 
 				yes "" | make $SILENT_MAKE $ARCH oldconfig || emit_doc "failed: make $ARCH oldconfig"
 			elif grep -q ^"$symbol"$ .config; then
-				:
-				# emit_doc "already found symbol needed: $symbol"
+				emit_doc "found, no need to apply: $symbol"
+				return 0
 			else
 				emit_doc "write unfound symbol: $symbol"
 				echo "$symbol" >>'.config'
 				yes "" | make $SILENT_MAKE $ARCH oldconfig || emit_doc "failed: make $ARCH oldconfig"
 			fi
 
+			if grep -q ^"$symbol"$ .config; then
+				emit_doc "applied: $symbol"
+			else
+				emit_doc "symbol after make notfound: $symbol"
+			fi
+
 			return 0
 		;;
 	esac
-
-#	emit_doc "word: $word symbol: $symbol"
 
 	# TODO: work without -i
 	sed -i "/^$word=.*/d" '.config'		# delete line e.g. 'CONFIG_PRINTK=y'
@@ -623,17 +629,18 @@ apply()
 	# see: https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/scripts/config
 	yes "" | make $SILENT_MAKE $ARCH oldconfig || {
 		emit_doc "failed: make $ARCH oldconfig"
-		# return 0
 	}
 
-	grep -q ^"$symbol"$ .config || {
+	if grep -q ^"$symbol"$ .config; then
+		emit_doc "applied: $symbol"
+	else
 		echo "#"
 		echo "[ERROR] added symbol '$symbol' not found in file '.config' pwd '$PWD'"
 		echo "#"
 
 		emit_doc "symbol after make notfound: $symbol"
 		false
-	}
+	fi
 
 	true	# FIXME!
 }
@@ -925,12 +932,13 @@ for WORD in $( gcc --version ); do {
 # or 'make mrproper' ?
 make $SILENT_MAKE $ARCH O="$LINUX_BUILD" distclean || msg_and_die "$?" "make $ARCH O=$LINUX_BUILD distclean"	# needed?
 
-emit_doc "make $ARCH $DEFCONFIG"
-make $SILENT_MAKE $ARCH O="$LINUX_BUILD" $DEFCONFIG || {
+if make $SILENT_MAKE $ARCH O="$LINUX_BUILD" $DEFCONFIG; then
+	emit_doc "applied: make $ARCH $DEFCONFIG"
+else
 	RC=$?
 	make $ARCH help
 	msg_and_die "$RC" "make $ARCH O=$LINUX_BUILD $DEFCONFIG"
-}
+fi
 
 if [ -f "$OWN_KCONFIG" ]; then
 	:
@@ -948,7 +956,8 @@ cd "$LINUX_BUILD" || exit
 
 if [ -f "$OWN_KCONFIG" ]; then
 	cp -v "$OWN_KCONFIG" .config
-	yes "" | make $SILENT_MAKE $ARCH oldconfig || emit_doc "oldconfig failed"
+	yes "" | make $SILENT_MAKE $ARCH oldconfig || msg_and_die "$?" "oldconfig failed"
+	emit_doc "applied: cp '$OWN_KCONFIG' .config && make $SILENT_MAKE $ARCH oldconfig"
 else
 	list_kernel_symbols | while read -r SYMBOL; do {
 		apply "$SYMBOL" || emit_doc "error: $?"
@@ -959,9 +968,10 @@ else
 		grep -q ^"$SYMBOL"$ .config || apply "$SYMBOL"
 	} done
 
+	# check still missing symbols
 	emit_doc "not-in-config \\/ maybe only in newer kernels?"
 	list_kernel_symbols | while read -r SYMBOL; do {
-		grep -q ^"$SYMBOL"$ .config || emit_doc "not-in-config | $SYMBOL"
+		grep -q ^"$SYMBOL"$ .config || emit_doc "not applied: $SYMBOL"
 	} done
 fi
 
@@ -1134,7 +1144,7 @@ $( sed -n '1,5s/^/#                /p' "$CONFIG1" )
 #   decompress: gzip -cd $INITRD_FILE | cpio -idm
 #
 # ---
-$( cat "$LINUX_BUILD/doc.txt" )
+$( emit_doc 'apply_order' )
 # ---
 
 KERNEL_ARGS='console=ttyS0'
