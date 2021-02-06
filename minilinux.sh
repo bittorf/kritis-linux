@@ -13,8 +13,8 @@ CPU="$( nproc || sysctl -n hw.ncpu || lsconf | grep -c 'proc[0-9]' )"
 URL_TOYBOX='http://landley.net/toybox/downloads/toybox-0.8.4.tar.gz'
 URL_BUSYBOX='https://busybox.net/downloads/busybox-1.33.0.tar.bz2'
 URL_DASH='https://git.kernel.org/pub/scm/utils/dash/dash.git/snapshot/dash-0.5.11.3.tar.gz'
-URL_MUSL='https://musl.libc.org/releases/musl-1.2.2.tar.gz'
 
+export STRIP=strip
 export LC_ALL=C
 export STORAGE="/tmp/storage"
 mkdir -p "$STORAGE"
@@ -90,6 +90,7 @@ case "$DSTARCH" in
 		export BOARD='q800' DEFCONFIG='tinyconfig'
 		export QEMU='qemu-system-m68k'
 		install_dep 'gcc-m68k-linux-gnu'
+		CROSS_DL='https://musl.cc/m68k-linux-musl-cross.tgz'
 	;;
 	um|uml)	# http://uml.devloop.org.uk/kernels.html
 		# https://unix.stackexchange.com/questions/90078/which-one-is-lighter-security-and-cpu-wise-lxc-versus-uml
@@ -118,6 +119,9 @@ case "$DSTARCH" in
 		DSTARCH='x86_64'
 		export DEFCONFIG='tinyconfig'
 		export QEMU='qemu-system-x86_64'
+
+		CROSS_DL="https://musl.cc/x86_64-linux-musl-cross.tgz"
+		export CROSSCOMPILE='CROSS_COMPILE=x86_64-linux-musl-'
 	;;
 esac
 
@@ -660,7 +664,14 @@ install_dep 'build-essential'		# prepare for 'make'
 	untar ./* || exit
 	cd ./* || exit
 
-	export PATH="$PWD/bin:$PATH"
+	   CC="$PWD/$( find bin/ -name '*-linux-musl-gcc'   )"
+	  CXX="$PWD/$( find bin/ -name '*-linux-musl-g++'   )"
+	STRIP="$PWD/$( find bin/ -name '*-linux-musl-strip' )"
+
+	CONF_HOST="${CROSSCOMPILE#*=}"		# e.g. 'CROSS_COMPILE=i686-linux-gnu-'
+	CONF_HOST="--host=${CONF_HOST%?}"	# -> i686-linux-gnu
+
+	export CC CXX STRIP CONF_HOST PATH="$PWD/bin:$PATH"
 }
 
 export MUSL="$OPT/musl"
@@ -676,28 +687,20 @@ has_arg 'dash' && {
 	export DASH_BUILD="$BUILDS/dash"
 	mkdir -p "$DASH_BUILD"
 
-	download "$URL_MUSL" || exit
-	mv ./*musl* "$MUSL_BUILD/" || exit
-	cd "$MUSL_BUILD" || exit
-	untar ./* || exit
-	cd ./* || exit
-	./configure $SILENT_CONF --prefix="$MUSL" --disable-shared || exit
-	make $SILENT_MAKE install || exit
-	export CC_MUSL="$MUSL/bin/musl-gcc"
-
 	download "$URL_DASH" || exit
 	mv ./*dash* "$DASH_BUILD/" || exit
 	cd "$DASH_BUILD" || exit
 	untar ./* || exit
 	cd ./* || exit		# there is only 1 dir
 
+	# TODO: --enable-glob --with-libedit --enable-fnmatch
 	# https://github.com/amuramatsu/dash-static/blob/master/build.sh
 	./autogen.sh || exit			# -> ./configure
-	./configure $SILENT_CONF "CC=$CC_MUSL -static" "CPP=$CC_MUSL -static -E" --enable-static || exit
-	make $SILENT_MAKE "-j$CPU" || exit
+	./configure $CONF_HOST $SILENT_CONF "CC=$CC -static" "CPP=$CXX -static -E" --enable-static || exit
+	make $SILENT_MAKE $ARCH $CROSSCOMPILE "-j$CPU" || exit
 
 	DASH="$(pwd)/src/dash"
-	strip "$DASH" || exit
+	$STRIP "$DASH" || exit
 }
 
 export BUSYBOX="$OPT/busybox"
@@ -802,7 +805,11 @@ fi
 	} done
 }
 
-[ -s "$DASH" ] && cp -v "$DASH" bin/dash	# FIXME! it still does not run
+[ -s "$DASH" ] && {
+	cp -v "$DASH" bin/dash
+#	rm bin/sh
+#	ln -s bin/dash bin/sh
+}
 
 [ -d "$INITRD_DIR_ADD" ] && {
 	# FIXME! we do not include a directory names 'x'
@@ -822,8 +829,10 @@ fi
 	}
 }
 
+INIT_SHELL="/bin/$( has_arg 'dash' && echo 'da')sh"
+
 [ -f init ] || cat >'init' <<EOF
-#!/bin/sh
+#!$INIT_SHELL
 command -v mount && {
 	$( has_arg 'procfs' || echo 'false ' )mount -t proc  none /proc && {
 		read -r UP _ </proc/uptime || UP=\$( cut -d' ' -f1 /proc/uptime )
@@ -1016,7 +1025,7 @@ KERNEL_FILE="$( find "$LINUX_BUILD" -type f -name '*zImage' )"
 
 if [ -f "$KERNEL_FILE" ]; then
 	case "$( file -b "$KERNEL_FILE" )" in
-		*'not stripped'*) strip "$KERNEL_FILE" ;;
+		*'not stripped'*) $STRIP "$KERNEL_FILE" ;;
 	esac
 else
 	msg_and_die "$?" "no file found: '$KERNEL_FILE' in pwd: $( pwd )"
