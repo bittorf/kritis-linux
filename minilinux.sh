@@ -148,7 +148,7 @@ deps_check()
 {
 	local cmd list='arch basename cat chmod cp file find grep gzip head make mkdir rm sed strip tar tee test touch tr wget'
 	# these commands are used, but are not essential:
-	# apt, bc, dpkg, ent, logger, vimdiff, xz, zstd
+	# apt, bc, curl, dpkg, ent, logger, vimdiff, xz, zstd
 
 	for cmd in $list; do {
 		command -v "$cmd" >/dev/null || {
@@ -1323,6 +1323,7 @@ FILENAME_OFFER='log_${GIT_USERNAME}_${GIT_REPONAME}_${GIT_BRANCH}_${GIT_SHORTHAS
 		echo "# https://github.com/bittorf/kritis-linux"
 	} >>"\$LOG"
 
+	LOGURL="\$( command -v 'curl' >/dev/null && curl -F'file=@\$LOG' https://ttm.sh )"
 	LOGLINES="\$( wc -l <"\$LOG" )"
 	LOGSIZE="\$(  wc -c <"\$LOG" )"
 	LOGINFO="(\$LOGLINES lines, \$LOGSIZE bytes) "
@@ -1336,6 +1337,7 @@ echo "# \$LOG"
 echo "#"
 echo "# proposed name:"
 echo "# $( test "$GIT_SHORTHASH" && echo "\$FILENAME_OFFER" || echo '(none)' )"
+echo "# $( test "\$LOGURL" && echo "uploaded to: \$LOGURL" )"
 echo "#"
 echo "# you can manually startup again:"
 echo "# \$0"
