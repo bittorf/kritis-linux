@@ -1,6 +1,6 @@
 #!/bin/sh
 
-KERNEL="$1"		# e.g. 'latest' or '5.4.89' or '4.19.x' or URL-to-tarball
+KERNEL="$1"		# e.g. 'latest' or 'stable' or '5.4.89' or '4.19.x' or URL-to-tarball
 [ -n "$2" ] && {
 	shift
 	export OPTIONS="$*"	# see has_arg(), spaces are not working
@@ -191,7 +191,7 @@ kernels()
 		21) echo 'https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-4.14.215.tar.xz' ;;
 		22) echo 'https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.4.89.tar.xz' ;;
 		23) echo 'https://mirrors.edge.kernel.org/pub/linux/kernel/v2.4/linux-2.4.26.tar.xz' ;;
-		latest) wget -qO - https://www.kernel.org | grep -A1 "latest_link" | tail -n1 | cut -d'"' -f2 ;;
+		latest|stable) wget -qO - https://www.kernel.org | grep -A1 "latest_link" | tail -n1 | cut -d'"' -f2 ;;
 		 *) false ;;
 	esac
 }
@@ -251,8 +251,8 @@ case "$KERNEL" in
 
 		exit
 	;;
-	[0-9]|[0-9][0-9]|latest)
-		# e.g. 1 or 22 or latest
+	[0-9]|[0-9][0-9]|latest|stable)
+		# e.g. 1 or 22 or 'latest' or 'stable'
 		KERNEL_URL="$( kernels "$KERNEL" )"
 		echo "[OK] choosing '$KERNEL_URL'"
 	;;
