@@ -61,7 +61,7 @@ kritis-linux/ci_helper.sh \
 
 * `--initrd` /path/to/initial-ramdisk.tgz
 * `--kconfig` /path/to/.kernel-config
-* `--arch x86_64` or `i386`,`uml`,`armel`,`armhf`,`arm64` (more planned)
+* `--arch x86_64` or `i386`,`uml`,`armel`,`armhf`,`arm64`,`m68k`,`or1k` (more planned)
 * `--clib glibc` or `musl`,`dietlibc`
 * `--features` `is,a,comma,separated,list`
   * e.g. `busybox` or `toybox`,`net`,`dash`,`bash`,

@@ -87,8 +87,7 @@ case "$DSTARCH" in
 		# https://news.ycombinator.com/item?id=25027213
 		# http://users.telenet.be/geertu/Linux/68000/
 		export ARCH='ARCH=m68k' CROSSCOMPILE='CROSS_COMPILE=m68k-linux-gnu-'
-		export BOARD='q800' DEFCONFIG='virt_defconfig'
-		DEFCONFIG='mac_defconfig'
+		export BOARD='q800' DEFCONFIG='tinyconfig'
 		export QEMU='qemu-system-m68k'
 		install_dep 'gcc-m68k-linux-gnu'
 	;;
@@ -130,7 +129,7 @@ has_arg 'config'	&& DEFCONFIG='config'		# e.g. kernel 2.4.x
 case "$DSTARCH" in
 	uml)
 	;;
-	or1k)
+	or1k|m68k)
 		install_dep 'qemu-system'
 		install_dep 'qemu-system-misc'
 	;;
@@ -226,6 +225,8 @@ msg_and_die()
 {
 	local rc="$1"
 	local txt="$2"
+
+	emit_doc 'all'
 
 	echo >&2 "[ERROR] rc:$rc | pwd: $PWD | $txt"
 	exit "$rc"
@@ -485,8 +486,17 @@ EOF
 			echo 'CONFIG_STATIC_LINK=y'
 		;;
 		m68k)
-#			echo 'CONFIG_VIRT=y'
-#			echo 'CONFIG_MMU=y'
+			echo 'CONFIG_MAC=y'
+			echo 'CONFIG_MMU=y'
+			echo 'CONFIG_MMU_MOTOROLA=y'
+			echo 'CONFIG_M68KCLASSIC=y'
+			echo 'CONFIG_M68040=y'
+			echo 'CONFIG_FPU=y'
+			echo 'CONFIG_SERIAL_CORE=y'
+			echo 'CONFIG_SERIAL_CORE_CONSOLE=y'
+			echo 'CONFIG_SERIAL_PMACZILOG=y'
+			echo 'CONFIG_SERIAL_PMACZILOG_TTYS=y'
+			echo 'CONFIG_SERIAL_PMACZILOG_CONSOLE=y'
 		;;
 		arm64)
 			echo 'CONFIG_SERIAL_AMBA_PL011=y'
@@ -549,12 +559,21 @@ EOF
 
 emit_doc()
 {
-	local message="$1"
+	local message="$1"	# e.g. <any> or 'all'
 	local context file="$LINUX_BUILD/doc.txt"
 
-	context="$( basename "$( pwd )" )"	# e.g. busybox or linux
+	case "$message" in
+		all)
+			cat "$file"
+			echo "see: '$file'"
+			echo "     '$LINUX_BUILD/.config'"
+		;;
+		*)
+			context="$( basename "$( pwd )" )"	# e.g. busybox or linux
 
-	echo >>"$file" "# doc | $context | $message"
+			echo >>"$file" "# doc | $context | $message"
+		;;
+	esac
 }
 
 apply()
@@ -933,6 +952,11 @@ if [ -f "$OWN_KCONFIG" ]; then
 else
 	list_kernel_symbols | while read -r SYMBOL; do {
 		apply "$SYMBOL" || emit_doc "error: $?"
+	} done
+
+	# try again missing symbols, maybe it helps:
+	list_kernel_symbols | while read -r SYMBOL; do {
+		grep -q ^"$SYMBOL"$ .config || apply "$SYMBOL"
 	} done
 
 	emit_doc "not-in-config \\/ maybe only in newer kernels?"
