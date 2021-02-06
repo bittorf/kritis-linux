@@ -799,16 +799,16 @@ fi
 [ -f init ] || cat >'init' <<EOF
 #!/bin/sh
 command -v mount && {
-	mount -t proc  none /proc && {
+	$( has_args 'procfs' || echo 'false ' )mount -t proc  none /proc && {
 		read -r UP _ </proc/uptime || UP=\$( cut -d' ' -f1 /proc/uptime )
 		while read -r LINE; do case "\$LINE" in MemAvailable:*) set -- \$LINE; MEMAVAIL_KB=\$2; break ;; esac; done </proc/meminfo
 	}
 
-	mount -t sysfs none /sys
+	$( has_args 'sysfs' || echo 'false ' )mount -t sysfs none /sys
 
 	# https://github.com/bittorf/slirp-uml-and-compiler-friendly
 	# https://github.com/lubomyr/bochs/blob/master/misc/slirp.conf
-	command -v 'ip' >/dev/null && \\
+	$( has_args 'net' || echo 'false ' )command -v 'ip' >/dev/null && \\
 	  ip link show dev eth0 && \\
 	    printf '%s\\n' 'nameserver 8.8.4.4' >/etc/resolv.conf && \\
 	      ip address add 10.0.2.15/24 dev eth0 && \\
@@ -817,8 +817,8 @@ command -v mount && {
 }
 
 UNAME="\$( command -v uname || printf '%s' false )"
-printf '%s\n' "# BOOTTIME_SECONDS \${UP:--1}"
-printf '%s\n' "# MEMFREE_KILOBYTES \${MEMAVAIL_KB:--1}"
+printf '%s\n' "# BOOTTIME_SECONDS \${UP:--1 (missing procfs?)}"
+printf '%s\n' "# MEMFREE_KILOBYTES \${MEMAVAIL_KB:--1 (missing procfs?)}"
 printf '%s\n' "# UNAME \$( \$UNAME -a || printf uname_unavailable )"
 printf '%s\n' "# READY - to quit $( test "$DSTARCH" = uml && echo "type 'exit'" || echo "press once CTRL+A and then 'x' or kill qemu" )"
 
@@ -1323,7 +1323,7 @@ FILENAME_OFFER='log_${GIT_USERNAME}_${GIT_REPONAME}_${GIT_BRANCH}_${GIT_SHORTHAS
 		echo "# https://github.com/bittorf/kritis-linux"
 	} >>"\$LOG"
 
-	LOGURL="\$( command -v 'curl' >/dev/null && curl -F'file=@\$LOG' https://ttm.sh )"
+	LOG_URL="\$( command -v 'curl' >/dev/null && curl -F"file=@\$LOG" https://ttm.sh )"
 	LOGLINES="\$( wc -l <"\$LOG" )"
 	LOGSIZE="\$(  wc -c <"\$LOG" )"
 	LOGINFO="(\$LOGLINES lines, \$LOGSIZE bytes) "
@@ -1337,7 +1337,7 @@ echo "# \$LOG"
 echo "#"
 echo "# proposed name:"
 echo "# $( test "$GIT_SHORTHASH" && echo "\$FILENAME_OFFER" || echo '(none)' )"
-echo "# $( test "\$LOGURL" && echo "uploaded to: \$LOGURL" )"
+echo "# uploaded to: $( test "\$LOG_URL" && echo "\$LOG_URL" || echo '(none)')"
 echo "#"
 echo "# you can manually startup again:"
 echo "# \$0"
