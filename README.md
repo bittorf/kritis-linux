@@ -34,7 +34,7 @@ kritis-linux/ci_helper.sh \
 #### CI: example two
 
 ```
-git clone --depth 1 --branch v0.4 https://github.com/bittorf/kritis-linux.git
+git clone --depth 1 --branch v0.5 https://github.com/bittorf/kritis-linux.git
 
 kritis-linux/ci_helper.sh \
 	--arch x86_64 \
@@ -48,7 +48,7 @@ kritis-linux/ci_helper.sh \
 	--pattern "unittest_ready"
 ```
 
-* above command checks out stable tag `v0.4` and
+* above command checks out stable tag `v0.5` and
 * builds `latest` stable 64bit `Linux` and adds `Busybox`
 * removes all files/symlinks, except those in `--keep`
 * adds directory in `--diradd` to initial ramdisk
