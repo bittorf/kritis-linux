@@ -13,6 +13,8 @@ CPU="$( nproc || sysctl -n hw.ncpu || lsconf | grep -c 'proc[0-9]' )"
 URL_TOYBOX='http://landley.net/toybox/downloads/toybox-0.8.4.tar.gz'
 URL_BUSYBOX='https://busybox.net/downloads/busybox-1.33.0.tar.bz2'
 URL_DASH='https://git.kernel.org/pub/scm/utils/dash/dash.git/snapshot/dash-0.5.11.3.tar.gz'
+URL_WIREGUARD='https://git.zx2c4.com/wireguard-tools/snapshot/wireguard-tools-1.0.20200827.zip'
+URL_BASH='http://ftp.gnu.org/gnu/bash/bash-5.1.tar.gz'
 
 export STRIP=strip
 export LC_ALL=C
@@ -218,6 +220,7 @@ download()
 untar()
 {
 	case "$1" in
+		*.zip) unzip "$1" ;;
 		*.xz)  tar xJf "$1" ;;
 		*.bz2) tar xjf "$1" ;;
 		*.gz|*.tgz)  tar xzf "$1" ;;
@@ -332,11 +335,13 @@ mkdir -p "$OPT"
 export BUILDS="$PWD/builds"
 mkdir -p "$BUILDS"
 
+
 export LINUX="$OPT/linux"
 mkdir -p "$LINUX"
 
 export LINUX_BUILD="$BUILDS/linux"
 mkdir -p "$LINUX_BUILD"
+
 
 rm -f "$LINUX_BUILD/doc.txt" 2>/dev/null
 
@@ -419,14 +424,22 @@ list_kernel_symbols()
 		echo 'CONFIG_IP_PNP=y'
 		echo 'CONFIG_IP_PNP_DHCP=y'
 
-		if [ "$DSTARCH" = uml ]; then
-			echo 'CONFIG_UML_NET=y'
-			echo 'CONFIG_UML_NET_SLIRP=y'
-		else
-			echo 'CONFIG_PCI=y'
-			# echo 'CONFIG_E1000=y'		# lspci -nk will show attached driver
-			echo 'CONFIG_8139CP=y'		# needs: -net nic,model=rtl8139 (but kernel is ~32k smaller)
-		fi
+		case "$DSTARCH" in
+			uml)
+				echo 'CONFIG_UML_NET=y'
+				echo 'CONFIG_UML_NET_SLIRP=y'
+			;;
+			m68k)
+				echo 'CONFIG_ADB=y'
+				echo 'CONFIG_ADB_MACII=y'
+				echo 'CONFIG_MACSONIC=y'
+			;;
+			*)
+				echo 'CONFIG_PCI=y'
+				# echo 'CONFIG_E1000=y'		# lspci -nk will show attached driver
+				echo 'CONFIG_8139CP=y'		# needs: -net nic,model=rtl8139 (but kernel is ~32k smaller)
+			;;
+		esac
 	}
 
 	has_arg 'wireguard' && {
@@ -606,7 +619,7 @@ apply()
 
 				yes "" | make $SILENT_MAKE $ARCH oldconfig || emit_doc "failed: make $ARCH oldconfig"
 			elif grep -q ^"$symbol"$ .config; then
-				emit_doc "found, no need to apply: $symbol"
+				emit_doc "already set, no need to apply: $symbol"
 				return 0
 			else
 				emit_doc "write unfound symbol: $symbol"
@@ -623,6 +636,11 @@ apply()
 			return 0
 		;;
 	esac
+
+	grep -q ^"$symbol"$ .config && {
+		emit_doc "already set, no need to apply: $symbol"
+		return 0
+	}
 
 	# TODO: work without -i
 	sed -i "/^$word=.*/d" '.config'		# delete line e.g. 'CONFIG_PRINTK=y'
@@ -697,10 +715,52 @@ has_arg 'dash' && {
 	# https://github.com/amuramatsu/dash-static/blob/master/build.sh
 	./autogen.sh || exit			# -> ./configure
 	./configure $CONF_HOST $SILENT_CONF "CC=$CC -static" "CPP=$CXX -static -E" --enable-static || exit
-	make $SILENT_MAKE $ARCH $CROSSCOMPILE "-j$CPU" || exit
+	make "CC=$CC -static" "CPP=$CXX -static -E" $SILENT_MAKE $ARCH $CROSSCOMPILE "-j$CPU" || exit
 
-	DASH="$(pwd)/src/dash"
+	DASH="$PWD/src/dash"
 	$STRIP "$DASH" || exit
+}
+
+# TODO: unify dowload + compile (dash, busybox, wireguard...)
+has_arg 'wireguard' && {
+	export WIREGUARD="$OPT/wireguard"
+	mkdir -p "$WIREGUARD"
+
+	export WIREGUARD_BUILD="$BUILDS/wireguard"
+	mkdir -p "$WIREGUARD_BUILD"
+
+	download "$URL_WIREGUARD" || exit
+	mv ./*wireguard* "$WIREGUARD_BUILD/" || exit
+	cd "$WIREGUARD_BUILD" || exit
+	untar ./* || exit
+	cd ./* || exit		# there is only 1 dir
+
+	cd src || exit
+	make "CC=$CC -static" "CPP=$CXX -static -E" $SILENT_MAKE $ARCH $CROSSCOMPILE "-j$CPU" || exit
+
+	WIREGUARD="$PWD/wg"
+	WIREGUARD2="$PWD/wg-quick/linux.bash"
+	$STRIP "$WIREGUARD" || exit
+}
+
+has_arg 'bash' && {
+	export BASH="$OPT/bash"
+	mkdir -p "$BASH"
+
+	export BASH_BUILD="$BUILDS/bash"
+	mkdir -p "$BASH_BUILD"
+
+	download "$URL_BASH" || exit
+	mv ./*bash* "$BASH_BUILD/" || exit
+	cd "$BASH_BUILD" || exit
+	untar ./* || exit
+	cd ./* || exit		# there is only 1 dir
+
+	./configure $CONF_HOST $SILENT_CONF "CC=$CC -static" "CPP=$CXX -static -E" --without-bash-malloc
+	make "CC=$CC -static" "CPP=$CXX -static -E" $SILENT_MAKE $ARCH $CROSSCOMPILE "-j$CPU" || exit
+
+	BASH="$PWD/bash"
+	$STRIP "$BASH" || exit
 }
 
 export BUSYBOX="$OPT/busybox"
@@ -755,9 +815,6 @@ has_arg 'menuconfig' && {
 		echo "$PWD" && echo "press enter for menuconfig or type 'ok' (and press enter) to compile" && \
 			read -r GO && test "$GO" && break
 	} done
-
-#	comparing manually configured vs. apply()
-#	cmp .config /home/bastian/software/minilinux/.config_busybox || vimdiff .config /home/bastian/software/minilinux/.config_busybox
 }
 
 CONFIG2="$PWD/.config"
@@ -805,11 +862,23 @@ fi
 	} done
 }
 
-[ -s "$DASH" ] && {
-	cp -v "$DASH" bin/dash
-#	rm bin/sh
-#	ln -s bin/dash bin/sh
+[ -s "$WIREGUARD" ] && {
+	cp -v "$WIREGUARD" bin/wg
+	cp -v "$WIREGUARD2" bin/wg-quick
 }
+
+[ -s "$DASH" ] && {
+	rm -f bin/sh		# eventually from busybox
+	cp -v "$DASH" bin/dash
+	ln -s bin/sh bin/dash
+}
+
+if [ -s "$BASH" ]; then
+	cp -v "$BASH" bin/bash
+else
+	ln -s ash bin/bash
+fi
+
 
 [ -d "$INITRD_DIR_ADD" ] && {
 	# FIXME! we do not include a directory names 'x'
@@ -829,10 +898,8 @@ fi
 	}
 }
 
-INIT_SHELL="/bin/$( has_arg 'dash' && echo 'da')sh"
-
 [ -f init ] || cat >'init' <<EOF
-#!$INIT_SHELL
+#!/bin/sh
 command -v mount && {
 	$( has_arg 'procfs' || echo 'false ' )mount -t proc  none /proc && {
 		read -r UP _ </proc/uptime || UP=\$( cut -d' ' -f1 /proc/uptime )
