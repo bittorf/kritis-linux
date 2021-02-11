@@ -108,14 +108,13 @@ case "$DSTARCH" in
 	;;
 	i386|i486|i586|i686|x86|x86_32)
 		DSTARCH='i686'		# 32bit
+		OPTIONS="$OPTIONS 32bit"
 		export DEFCONFIG='tinyconfig'
 		export ARCH='ARCH=i386'
 		export QEMU='qemu-system-i386'
 
-		OPTIONS="$OPTIONS 32bit"
-		test "$(arch)" != i686 && \
-			export CROSSCOMPILE='CROSS_COMPILE=i686-linux-gnu-' && \
-			install_dep 'gcc-i686-linux-gnu'
+		CROSS_DL="https://musl.cc/i686-linux-musl-cross.tgz"
+		export CROSSCOMPILE='CROSS_COMPILE=i686-linux-musl-'
 	;;
 	*)
 		DSTARCH='x86_64'
@@ -721,7 +720,7 @@ has_arg 'dash' && {
 	$STRIP "$DASH" || exit
 }
 
-# TODO: unify dowload + compile (dash, busybox, wireguard...)
+# TODO: unify download + compile (dash, busybox, wireguard...)
 has_arg 'wireguard' && {
 	export WIREGUARD="$OPT/wireguard"
 	mkdir -p "$WIREGUARD"
@@ -876,7 +875,9 @@ fi
 if [ -s "$BASH" ]; then
 	cp -v "$BASH" bin/bash
 else
-	ln -s ash bin/bash
+	:
+	# TODO: add var REMOVE_LIST=...
+	# ln -s ash bin/bash
 fi
 
 
@@ -898,8 +899,11 @@ fi
 	}
 }
 
+export BOOTSHELL='/bin/ash'
+
 [ -f init ] || cat >'init' <<EOF
-#!/bin/sh
+#!$BOOTSHELL
+export SHELL=$( basename "$BOOTSHELL" )
 command -v mount && {
 	$( has_arg 'procfs' || echo 'false ' )mount -t proc  none /proc && {
 		read -r UP _ </proc/uptime || UP=\$( cut -d' ' -f1 /proc/uptime )
@@ -927,7 +931,7 @@ printf '%s\n' "# READY - to quit $( test "$DSTARCH" = uml && echo "type 'exit'" 
 # hack for MES:
 test -f init.user && busybox sleep 2 && AUTO=true ./init.user	# wait for dmesg-trash
 
-exec /bin/sh 2>/dev/null
+exec $BOOTSHELL 2>/dev/null
 EOF
 
 chmod +x 'init'
@@ -1423,7 +1427,7 @@ FILENAME_OFFER='log_${GIT_USERNAME}_${GIT_REPONAME}_${GIT_BRANCH}_${GIT_SHORTHAS
 		echo "# autotest-mode ready after \$(( MAX - I )) (out of max \$MAX) seconds"
 		echo "# see: $LINUX_BUILD/run.sh"
 		echo "#"
-		echo "# logile \${LOGINFO}written to:"
+		echo "# logfile \${LOGINFO}written to:"
 		echo "# \$LOG"
 		echo "#"
 		echo "# proposed name:"
@@ -1442,7 +1446,7 @@ FILENAME_OFFER='log_${GIT_USERNAME}_${GIT_REPONAME}_${GIT_BRANCH}_${GIT_SHORTHAS
 echo
 echo "# autotest-mode ready after \$(( MAX - I )) (out of max \$MAX) seconds"
 echo "# RC:\$RC | PATTERN:\$PATTERN"
-echo "# logile \${LOGINFO}written to:"
+echo "# logfile \${LOGINFO}written to:"
 echo "# \$LOG"
 echo "#"
 echo "# proposed name:"
