@@ -42,7 +42,7 @@ kritis-linux/ci_helper.sh \
 	--ramsize 384M \
 	--kernel latest \
 	--features busybox \
-	--keep "/bin/busybox /bin/sh /bin/cat" \
+	--keep "/bin/busybox /bin/sh /bin/cat /bin/setsid" \
 	--diradd /path/to/myfiles \
 	--myinit script.xy \
 	--maxwait 550 \

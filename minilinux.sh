@@ -100,11 +100,16 @@ case "$DSTARCH" in
 		export DEFCONFIG='tinyconfig'
 		export DSTARCH='uml'
 
-		has_arg '32bit' && {
+		if has_arg '32bit'; then
 			test "$(arch)" != i686 && \
-			export CROSSCOMPILE='CROSS_COMPILE=i686-linux-gnu-' && \
-			install_dep 'gcc-i686-linux-gnu'
-		}
+#			export CROSSCOMPILE='CROSS_COMPILE=i686-linux-gnu-' && \
+#			install_dep 'gcc-i686-linux-gnu'
+			CROSS_DL="https://musl.cc/i686-linux-musl-cross.tgz"
+			export CROSSCOMPILE='CROSS_COMPILE=i686-linux-musl-'
+		else
+			CROSS_DL="https://musl.cc/x86_64-linux-musl-cross.tgz"
+			export CROSSCOMPILE='CROSS_COMPILE=x86_64-linux-musl-'
+		fi
 	;;
 	i386|i486|i586|i686|x86|x86_32)
 		DSTARCH='i686'		# 32bit
@@ -672,6 +677,22 @@ apply()
 
 install_dep 'build-essential'		# prepare for 'make'
 
+case "$DSTARCH" in
+	uml)
+		has_arg 'net' && {
+			SLIRP_DIR="$( mktemp -d )" || exit
+			cd "$SLIRP_DIR" || exit
+			git clone --depth 1 https://github.com/bittorf/slirp-uml-and-compiler-friendly.git
+			cd ./* || exit
+
+			# does not like cross-compiling:
+			OK="$( ./run.sh | grep 'everything worked, see folder' )"
+			SLIRP_BIN="$( echo "$OK" | cut -d"'" -f2 )"
+			SLIRP_BIN="$( find "$SLIRP_BIN" -type f -name 'slirp' )"
+		}
+	;;
+esac
+
 [ -n "$CROSS_DL" ] && {
 	export CROSSC="$OPT/cross-${DSTARCH:-native}"
 	mkdir -p "$CROSSC"
@@ -904,23 +925,24 @@ export BOOTSHELL='/bin/ash'
 [ -f init ] || cat >'init' <<EOF
 #!$BOOTSHELL
 export SHELL=$( basename "$BOOTSHELL" )
-command -v mount && {
-	$( has_arg 'procfs' || echo 'false ' )mount -t proc  none /proc && {
-		read -r UP _ </proc/uptime || UP=\$( cut -d' ' -f1 /proc/uptime )
-		while read -r LINE; do case "\$LINE" in MemAvailable:*) set -- \$LINE; MEMAVAIL_KB=\$2; break ;; esac; done </proc/meminfo
-	}
-
-	$( has_arg 'sysfs' || echo 'false ' )mount -t sysfs none /sys
-
-	# https://github.com/bittorf/slirp-uml-and-compiler-friendly
-	# https://github.com/lubomyr/bochs/blob/master/misc/slirp.conf
-	$( has_arg 'net' || echo 'false ' )command -v 'ip' >/dev/null && \\
-	  ip link show dev eth0 && \\
-	    printf '%s\\n' 'nameserver 8.8.4.4' >/etc/resolv.conf && \\
-	      ip address add 10.0.2.15/24 dev eth0 && \\
-	        ip link set dev eth0 up && \\
-	          ip route add default via 10.0.2.2
+$( has_arg 'procfs' || echo 'false ' )mount -t proc  none /proc && {
+	read -r UP _ </proc/uptime || UP=\$( cut -d' ' -f1 /proc/uptime )
+	while read -r LINE; do
+		# shellcheck disable=SC2086
+		case "\$LINE" in MemAvailable:*) set -- \$LINE; MEMAVAIL_KB=\$2; break ;; esac
+	done </proc/meminfo
 }
+
+$( has_arg 'sysfs' || echo 'false ' )mount -t sysfs none /sys
+
+# https://github.com/bittorf/slirp-uml-and-compiler-friendly
+# https://github.com/lubomyr/bochs/blob/master/misc/slirp.conf
+$( has_arg 'net' || echo 'false ' )command -v 'ip' >/dev/null && \\
+  ip link show dev eth0 && \\
+    printf '%s\\n' 'nameserver 8.8.4.4' >/etc/resolv.conf && \\
+      ip address add 10.0.2.15/24 dev eth0 && \\
+	ip link set dev eth0 up && \\
+	  ip route add default via 10.0.2.2
 
 UNAME="\$( command -v uname || printf '%s' false )"
 printf '%s\n' "# BOOTTIME_SECONDS \${UP:--1 (missing procfs?)}"
@@ -931,10 +953,23 @@ printf '%s\n' "# READY - to quit $( test "$DSTARCH" = uml && echo "type 'exit'" 
 # hack for MES:
 test -f init.user && busybox sleep 2 && AUTO=true ./init.user	# wait for dmesg-trash
 
-exec $BOOTSHELL 2>/dev/null
+printf '%s\n' "mount -t devtmpfs none /dev"
+if mount -t devtmpfs none /dev; then
+	if command -v setsid; then
+		printf '%s\n' "job_control: exec setsid cttyhack $BOOTSHELL"
+		exec setsid cttyhack $BOOTSHELL
+	else
+		printf '%s\n' "exec $BOOTSHELL"
+		exec $BOOTSHELL 2>/dev/null
+	fi
+else
+	printf '%s\n' "exec $BOOTSHELL"
+	exec $BOOTSHELL 2>/dev/null
+fi
 EOF
 
 chmod +x 'init'
+sh -n 'init' || msg_and_die "$?" "check 'init'"
 
 case "$( file -b 'init' )" in
 	ELF*) ;;
@@ -1135,18 +1170,6 @@ case "$DSTARCH" in
 		else
 			DTB="$( find "$LINUX_BUILD/" -type f -name "$DTB" )"
 		fi
-	;;
-	uml)
-		has_arg 'net' && {
-			SLIRP_DIR="$( mktemp -d )"
-			cd "$SLIRP_DIR" || exit
-			git clone --depth 1 https://github.com/bittorf/slirp-uml-and-compiler-friendly.git
-
-			cd ./* || exit
-			OK="$( ./run.sh | grep 'everything worked, see folder' )"
-			SLIRP_BIN="$( echo "$OK" | cut -d"'" -f2 )"
-			SLIRP_BIN="$( find "$SLIRP_BIN" -type f -name 'slirp.stripped' )"
-		}
 	;;
 esac
 
