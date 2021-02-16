@@ -42,7 +42,7 @@ kritis-linux/ci_helper.sh \
 	--ramsize 384M \
 	--kernel latest \
 	--features busybox \
-	--keep "/bin/busybox /bin/sh /bin/cat /bin/setsid" \
+	--keep "/bin/busybox /bin/sh /bin/cat /usr/bin/setsid /bin/cttyhack" \
 	--diradd /path/to/myfiles \
 	--myinit script.xy \
 	--maxwait 550 \
@@ -158,4 +158,12 @@ CONFIG_SCSI_MOD=y
 CONFIG_XZ_DEC=y
 CONFIG_DEBUG_KERNEL=y
 # CONFIG_GPIOLIB is not set
+```
+
+### debug GNU-mes
+
+```
+KEEP_LIST='/bin/busybox /usr/bin/setsid /bin/cttyhack /bin/mount /bin/ash /bin/wget' \
+INITRD_DIR_ADD=/home/user/live-bootstrap/sysa/tmp \
+DSTARCH=i386 ./minilinux.sh latest busybox procfs sysfs printk net
 ```

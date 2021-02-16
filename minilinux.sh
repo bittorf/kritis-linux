@@ -94,6 +94,9 @@ case "$DSTARCH" in
 		install_dep 'gcc-m68k-linux-gnu'
 		CROSS_DL='https://musl.cc/m68k-linux-musl-cross.tgz'
 	;;
+	ppc64le)# IBM Power8/9 = "PowerISA 3.1" = powerpc64le
+		:
+	;;
 	um|uml)	# http://uml.devloop.org.uk/kernels.html
 		# https://unix.stackexchange.com/questions/90078/which-one-is-lighter-security-and-cpu-wise-lxc-versus-uml
 		export ARCH='ARCH=um'
@@ -236,10 +239,12 @@ msg_and_die()
 {
 	local rc="$1"
 	local txt="$2"
+	local message="[ERROR] rc:$rc | pwd: $PWD | $txt"
 
+	emit_doc "$message"
 	emit_doc 'all'
 
-	echo >&2 "[ERROR] rc:$rc | pwd: $PWD | $txt"
+	echo >&2 "$message"
 	exit "$rc"
 }
 
@@ -679,6 +684,10 @@ install_dep 'build-essential'		# prepare for 'make'
 
 case "$DSTARCH" in
 	uml)
+		# seems that musl-cc has issues:
+		# https://www.openwall.com/lists/musl/2020/03/31/7
+		unset CROSSCOMPILE CC CXX STRIP CONF_HOST
+
 		has_arg 'net' && {
 			SLIRP_DIR="$( mktemp -d )" || exit
 			cd "$SLIRP_DIR" || exit
@@ -777,7 +786,7 @@ has_arg 'bash' && {
 	cd ./* || exit		# there is only 1 dir
 
 	./configure $CONF_HOST $SILENT_CONF "CC=$CC -static" "CPP=$CXX -static -E" --without-bash-malloc
-	make "CC=$CC -static" "CPP=$CXX -static -E" $SILENT_MAKE $ARCH $CROSSCOMPILE "-j$CPU" || exit
+	make "CC=$CC -static" "CPP=$CXX -static -E" $SILENT_MAKE $ARCH $CROSSCOMPILE || exit	# -j$CPU
 
 	BASH="$PWD/bash"
 	$STRIP "$BASH" || exit
@@ -956,6 +965,7 @@ test -f init.user && busybox sleep 2 && AUTO=true ./init.user	# wait for dmesg-t
 printf '%s\n' "mount -t devtmpfs none /dev"
 if mount -t devtmpfs none /dev; then
 	if command -v setsid; then
+		# https://stackoverflow.com/a/35245823/5688306
 		printf '%s\n' "job_control: exec setsid cttyhack $BOOTSHELL"
 		exec setsid cttyhack $BOOTSHELL
 	else
