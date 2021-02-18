@@ -65,7 +65,7 @@ kritis-linux/ci_helper.sh \
 * `--clib glibc` or `musl`,`dietlibc`
 * `--features` `is,a,comma,separated,list`
   * e.g. `busybox` or `toybox`,`net`,`dash`,`bash`,
-  * e.g. `printk`,`sysfs`,`procfs`,`menuconfig`,
+  * e.g. `printk`,`sysfs`,`procfs`,`menuconfig`,`kmenuconfig`
   * e.g. `wireguard`,
   * e.g. `tinyconfig` or `allnoconfig` or `defconfig` or `config`
   * e.g. `CONFIG_SYMBOL_XY=y`

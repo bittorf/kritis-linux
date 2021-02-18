@@ -14,7 +14,7 @@ URL_TOYBOX='http://landley.net/toybox/downloads/toybox-0.8.4.tar.gz'
 URL_BUSYBOX='https://busybox.net/downloads/busybox-1.33.0.tar.bz2'
 URL_DASH='https://git.kernel.org/pub/scm/utils/dash/dash.git/snapshot/dash-0.5.11.3.tar.gz'
 URL_WIREGUARD='https://git.zx2c4.com/wireguard-tools/snapshot/wireguard-tools-1.0.20200827.zip'
-URL_BASH='http://ftp.gnu.org/gnu/bash/bash-5.1.tar.gz'
+URL_BASH='http://git.savannah.gnu.org/cgit/bash.git/snapshot/bash-5.1.tar.gz'
 
 export STRIP=strip
 export LC_ALL=C
@@ -123,8 +123,11 @@ case "$DSTARCH" in
 
 		CROSS_DL="https://musl.cc/i686-linux-musl-cross.tgz"
 		export CROSSCOMPILE='CROSS_COMPILE=i686-linux-musl-'
+
+#		export CROSSCOMPILE='CROSS_COMPILE=i686-linux-gnu-'
+#		install_dep 'gcc-i686-linux-gnu'
 	;;
-	*)
+	x86_64|*)
 		DSTARCH='x86_64'
 		export DEFCONFIG='tinyconfig'
 		export QEMU='qemu-system-x86_64'
@@ -509,7 +512,13 @@ EOF
 
 	case "$DSTARCH" in
 		uml)
+			# CONFIG_COMPAT_BRK=y	// disable head randomization ~500 bytes smaller
+			# CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y
+			# CONFIG_HOSTFS=y
+			# CONFIG_BUILD_SALT="FOOX12345"
 			echo 'CONFIG_STATIC_LINK=y'
+			# CONFIG_LD_SCRIPT_STATIC=y
+			echo 'CONFIG_CMDLINE_FORCE="mem=128M eth0=slirp,FE:FD:01:02:03:04,/tmp/slirp initrd=/tmp/initramfs.cpio.gz root=98:0 console=tty"'
 		;;
 		m68k)
 			echo 'CONFIG_MAC=y'
@@ -595,6 +604,7 @@ emit_doc()
 		apply_order)
 			# grep '| applied:' run.sh | grep '| linux' | cut -d: -f2 | grep -v '# CONFIG'
 			grep 'applied' "$file"
+			echo "# see: '$file'"
 		;;
 		*)
 			context="$( basename "$( pwd )" )"	# e.g. busybox or linux
@@ -618,11 +628,14 @@ apply()
 		'#'*)
 			# e.g. '# CONFIG_PRINTK is not set'
 			# e.g. '# CONFIG_64BIT is not set'
+			# e.g. '# CONFIG_INPUT_MOUSE is not set'
 			# shellcheck disable=SC2086
 			set -- $symbol
 
+			emit_doc "DISABLE: $2 => $symbol"
+
 			if   grep -q ^"$2=y"$ .config; then
-				sed -i "/^$2=y/d" '.config'
+				sed -i "/^$2=y/d" '.config' || msg_and_die "$?" "sed"
 				echo "$symbol" >>.config
 				emit_doc "delete symbol: $2=y | write symbol: $symbol"
 
@@ -652,9 +665,21 @@ apply()
 	}
 
 	# TODO: work without -i
-	sed -i "/^$word=.*/d" '.config'		# delete line e.g. 'CONFIG_PRINTK=y'
-	sed -i "/.*$word .*/d" '.config'	# delete line e.g. '# CONFIG_PRINTK is not active'
-	echo "$symbol" >>'.config'		# write line e.g.  'CONFIG_PRINTK=y'
+	if grep -q ^"$word=" .config; then
+		emit_doc "symbol_inA: $word="
+		sed -i "/^$word=.*/d" '.config'  || msg_and_die "$?" "sed"	# delete line e.g. 'CONFIG_PRINTK=y'
+	else
+		emit_doc "symbol_notinA: $word="
+	fi
+
+	if grep -q "$word " .config; then
+		emit_doc "symbol_inB: ... $word ..."
+		sed -i "/.*$word .*/d" '.config' || msg_and_die "$?" "sed"	# delete line e.g. '# CONFIG_PRINTK is not active'
+	else
+		emit_doc "symbol_notinB: ... $word ..."
+	fi
+
+	echo "$symbol" >>'.config'			# write line e.g.  'CONFIG_PRINTK=y'
 	emit_doc "write symbol: $symbol"
 
 	# see: https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/scripts/config
@@ -689,7 +714,7 @@ case "$DSTARCH" in
 		unset CROSSCOMPILE CC CXX STRIP CONF_HOST
 
 		has_arg 'net' && {
-			SLIRP_DIR="$( mktemp -d )" || exit
+			SLIRP_DIR="$( mktemp -d )" || msg_and_die "$?" "mktemp -d"
 			cd "$SLIRP_DIR" || exit
 			git clone --depth 1 https://github.com/bittorf/slirp-uml-and-compiler-friendly.git
 			cd ./* || exit
@@ -786,7 +811,8 @@ has_arg 'bash' && {
 	cd ./* || exit		# there is only 1 dir
 
 	./configure $CONF_HOST $SILENT_CONF "CC=$CC -static" "CPP=$CXX -static -E" --without-bash-malloc
-	make "CC=$CC -static" "CPP=$CXX -static -E" $SILENT_MAKE $ARCH $CROSSCOMPILE || exit	# -j$CPU
+	make "CC=$CC -static" "CPP=$CXX -static -E" $SILENT_MAKE $ARCH $CROSSCOMPILE || exit
+	# no parallel builds: https://lists.gnu.org/archive/html/bug-bash/2020-12/msg00001.html | "-j$CPU"
 
 	BASH="$PWD/bash"
 	$STRIP "$BASH" || exit
@@ -1103,7 +1129,7 @@ fi
 T1="$( date +%s )"
 KERNEL_TIME_CONFIG=$(( T1 - T0 ))
 
-has_arg 'menuconfig' && {
+has_arg 'kmenuconfig' && {
 	while :; do {
 		make $SILENT_MAKE $ARCH menuconfig || exit
 		vimdiff '.config' '.config.old'
