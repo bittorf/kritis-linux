@@ -383,7 +383,9 @@ initrd_format()
 file_iscompressed()
 {
 	local file="$1"
+	local option="$2"	# e.g. <empty> or 'info'
 	local line word parse=
+	local threshold=9
 
 	# of this 952040 byte file by 0 percent.
 	line="$( ent "$file" | grep "percent."$ )"
@@ -395,8 +397,18 @@ file_iscompressed()
 		esac
 	} done
 
+	[ "$option" = 'info' ] && {
+		if ! command -v 'ent' >/dev/null; then
+			echo '? '
+		elif test "${word:-99}" -lt $threshold; then
+			echo 'NOT '
+		else
+			echo 'really '
+		fi
+	}
+
 	# e.g. kernel 4.14.x bzImage: of this 724896 byte file by 8 percent.
-	test "${word:-99}" -lt 9
+	test "${word:-99}" -lt $threshold
 }
 
 list_kernel_symbols()
@@ -1264,7 +1276,7 @@ $( sed -n '1,5s/^/#                /p' "$CONFIG1" )
 # KERNEL_BUILD_TIME: $KERNEL_TIME sec
 # KERNEL: $KERNEL_FILE
 # KERNEL_ELF: $KERNEL_ELF
-# KERNEL_SIZE: $( wc -c <"$KERNEL_FILE" ) bytes [is $( file_iscompressed "$KERNEL_FILE" || echo 'NOT ' )compressed]
+# KERNEL_SIZE: $( wc -c <"$KERNEL_FILE" ) bytes [is $( file_iscompressed "$KERNEL_FILE" 'info' )compressed]
 # KERNEL_ELF: $(  wc -c <"$KERNEL_ELF" ) bytes
 #   show sections with: readelf -S $KERNEL_ELF
 #
