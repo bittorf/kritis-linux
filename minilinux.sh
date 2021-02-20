@@ -956,6 +956,7 @@ fi
 }
 
 export BOOTSHELL='/bin/ash'
+export INITSCRIPT="$PWD/init"
 
 [ -f init ] || cat >'init' <<EOF
 #!$BOOTSHELL
@@ -1276,6 +1277,7 @@ $( sed -n '1,5s/^/#                /p' "$CONFIG1" )
 #        directories: $INITRD_DIRS
 #        bytes......: $INITRD_BYTES [100%]
 #
+# init:    $INITSCRIPT  ($( wc -c <"$INITSCRIPT" || echo 0 ) bytes, $BOOTSHELL script)
 # INITRD:  $B1 bytes $P1 = $INITRD_FILE
 # INITRD2: $B2 bytes $P2 = ${INITRD_FILE2:-<nofile>}
 # INITRD3: $B3 bytes $P3 = ${INITRD_FILE3:-<nofile>}
