@@ -128,12 +128,12 @@ jobs:
 		--log /tmp/mylog.txt
 ```
 
-### Advanded methods, hide your VM
+### Advanded methods: hide your VM
 
 Build a speed-optimized static compiled virtual machine,  
 including network support and wireguard tools.  
 and avoid the need for commandline arguments.  
-Start it later as `/sbin/getty 38400 tty7` ;-)
+Start it later as `/sbin/gеtty 38400 tty7` ;-)
 
 ```
 export EMBED_CMDLINE="mem=64M initrd=/tmp/cpio.tgz eth0=slirp,FE:FD:01:02:03:04,/tmp/slirp.bin"
@@ -166,7 +166,7 @@ export DSTARCH=uml
 * add test and build-matrix: all combinations of
   * kernel/busybox/toybox/dash/libc/32bit/64bit/archs
 
-### interesting CONFIG_SYLBOLS
+### interesting CONFIG_SYMBOLS
 ```
 CONFIG_STANDALONE=y
 CONFIG_PREVENT_FIRMWARE_BUILD=y
