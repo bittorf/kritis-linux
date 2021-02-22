@@ -401,9 +401,9 @@ file_iscompressed()
 		if ! command -v 'ent' >/dev/null; then
 			echo '? '
 		elif test "${word:-99}" -lt $threshold; then
-			echo 'NOT '
-		else
 			echo 'really '
+		else
+			echo 'NOT '
 		fi
 	}
 
@@ -526,10 +526,12 @@ EOF
 		uml)
 			# CONFIG_COMPAT_BRK=y	// disable head randomization ~500 bytes smaller
 			# CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y
-			# CONFIG_HOSTFS=y
 			# CONFIG_BUILD_SALT="FOOX12345"
+
+			has_arg 'hostfs' && echo 'CONFIG_HOSTFS=y'
+
 			echo 'CONFIG_STATIC_LINK=y'
-			# CONFIG_LD_SCRIPT_STATIC=y
+			echo 'CONFIG_LD_SCRIPT_STATIC=y'	# ???
 			echo 'CONFIG_CMDLINE_FORCE="mem=128M eth0=slirp,FE:FD:01:02:03:04,/tmp/slirp initrd=/tmp/initramfs.cpio.gz root=98:0 console=tty"'
 		;;
 		m68k)
@@ -915,6 +917,7 @@ else
 	cd "$INITRAMFS_BUILD" || exit
 
 	mkdir -p bin sbin etc proc sys usr/bin usr/sbin dev tmp
+	has_arg 'hostfs' && mkdir -p mnt mnt/host
 	cp -a "$BUSYBOX_BUILD/_install/"* .
 fi
 
@@ -982,6 +985,7 @@ $( has_arg 'procfs' || echo 'false ' )mount -t proc  none /proc && {
 }
 
 $( has_arg 'sysfs' || echo 'false ' )mount -t sysfs none /sys
+$( has_arg 'hostfs' || echo 'false ')mount -t hostfs none /mnt/host
 
 # https://github.com/bittorf/slirp-uml-and-compiler-friendly
 # https://github.com/lubomyr/bochs/blob/master/misc/slirp.conf
@@ -1063,15 +1067,36 @@ cd ./* || exit		# there is only 1 dir
 #
 # GCC10 + kernel3.18 workaround:
 # https://github.com/Tomoms/android_kernel_oppo_msm8974/commit/11647f99b4de6bc460e106e876f72fc7af3e54a6
-F1="scripts/dtc/dtc-lexer.l"
-F2="scripts/dtc/dtc-lexer.lex.c_shipped"
+F1='scripts/dtc/dtc-lexer.l'
+F2='scripts/dtc/dtc-lexer.lex.c_shipped'
 [ -f "$F1" ] && sed -i 's/^YYLTYPE yylloc;/extern &/' "$F1"
 [ -f "$F2" ] && sed -i 's/^YYLTYPE yylloc;/extern &/' "$F2"
 #
 # or1k/openrisc/3.x workaround:
 # https://opencores.org/forum/OpenRISC/0/5435
 [ "$DSTARCH" = 'or1k' ] && F1='arch/openrisc/kernel/vmlinux.lds.S' && sed -i 's/elf32-or32/elf32-or1k/g' "$F1"
+#
+[ -n "$EMBED_CMDLINE" ] && [ "$DSTARCH" = 'uml' ] && {
+	# e.g. EMBED_CMDLINE="mem=72M initrd=/tmp/cpio.gz"
+	F1='arch/um/kernel/um_arch.c'
 
+	write_args()
+	{
+		local arg i=1
+		local tab='	'
+
+		printf '%s' "// this overrides the kernel commandline:\n"
+
+		for arg in $EMBED_CMDLINE; do {
+			printf '%s' "${tab}argv[$i] = \"$arg\";\n"
+			i=$(( i + 1 ))
+		} done
+
+		printf '%s' "${tab}argc = $i;\n\n${tab}"
+	}
+
+	sed -i "s|for (i = 1;|$( write_args )for (i = 1;|" "$F1" || exit
+}
 
 # kernel 2,3,4 but nut 5.x - FIXME!
 # sed -i 's|-Wall -Wundef|& -fno-pie|' Makefile
@@ -1123,6 +1148,11 @@ if [ -f "$OWN_KCONFIG" ]; then
 	yes "" | make $SILENT_MAKE $ARCH oldconfig || msg_and_die "$?" "oldconfig failed"
 	emit_doc "applied: cp '$OWN_KCONFIG' .config && make $SILENT_MAKE $ARCH oldconfig"
 else
+#	# all-at-once:
+#	list_kernel_symbols >>.config
+#	yes "" | make $SILENT_MAKE $ARCH oldconfig
+
+	# each symbol:
 	list_kernel_symbols | while read -r SYMBOL; do {
 		apply "$SYMBOL" || emit_doc "error: $?"
 	} done

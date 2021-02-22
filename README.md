@@ -64,14 +64,16 @@ kritis-linux/ci_helper.sh \
 * `--arch x86_64` or `i386`,`uml`,`armel`,`armhf`,`arm64`,`m68k`,`or1k` (more planned)
 * `--clib glibc` or `musl`,`dietlibc`
 * `--features` `is,a,comma,separated,list`
-  * e.g. `busybox` or `toybox`,`net`,`dash`,`bash`,
-  * e.g. `printk`,`sysfs`,`procfs`,`menuconfig`,`kmenuconfig`
-  * e.g. `wireguard`,
+  * e.g. `busybox`,`toybox`,`dash`,`bash`
+  * e.g. `printk`,`sysfs`,`procfs`,`hostfs`
+  * e.g. `menuconfig`,`kmenuconfig`
+  * e.g. `wireguard`,`net`
   * e.g. `tinyconfig` or `allnoconfig` or `defconfig` or `config`
   * e.g. `CONFIG_SYMBOL_XY=y`
 * `--log` /path/to/filename
 * `--logtime false` for disabling timestamps
 * `--onefile` for including `initrd` into kernel
+* `--cmdline` for enforcing arguments to an `uml` kernel
 * `--debug true`
 
 ### kernel configuration and features
@@ -137,8 +139,10 @@ jobs:
 * upload/api: good + bad things
 * upload bootable images
 * safe versions of all deps (cc, ld, libc)
+* maybe support https://github.com/jart/cosmopolitan
 * filesizes
 * needed space
+* https://github.com/torvalds/linux/blob/master/Documentation/admin-guide/bootconfig.rst
 * measure sizes: https://events.static.linuxfound.org/sites/events/files/slides/slaballocators.pdf
 * add option for size/performance:
   * `CONFIG_BASE_FULL=y`
