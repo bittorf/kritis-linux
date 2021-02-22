@@ -729,7 +729,7 @@ case "$DSTARCH" in
 	uml)
 		# seems that musl-cc has issues:
 		# https://www.openwall.com/lists/musl/2020/03/31/7
-		unset CROSSCOMPILE CC CXX STRIP CONF_HOST
+#		unset CROSSCOMPILE CC CXX STRIP CONF_HOST
 
 		has_arg 'net' && {
 			SLIRP_DIR="$( mktemp -d )" || msg_and_die "$?" "mktemp -d"
@@ -741,6 +741,7 @@ case "$DSTARCH" in
 			OK="$( ./run.sh | grep 'everything worked, see folder' )"
 			SLIRP_BIN="$( echo "$OK" | cut -d"'" -f2 )"
 			SLIRP_BIN="$( find "$SLIRP_BIN" -type f -name 'slirp' )"
+			$STRIP "$SLIRP_BIN" || exit
 		}
 	;;
 esac

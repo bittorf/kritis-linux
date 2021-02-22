@@ -128,6 +128,20 @@ jobs:
 		--log /tmp/mylog.txt
 ```
 
+### Advanded methods, hide your VM
+
+Build a speed-optimized static compiled virtual machine,  
+including network support and wireguard tools.  
+and avoid the need for commandline arguments.  
+Start it later as `/sbin/getty 38400 tty7` ;-)
+
+```
+export EMBED_CMDLINE="mem=64M initrd=/tmp/cpio.tgz eth0=slirp,FE:FD:01:02:03:04,/tmp/slirp.bin"
+export DSTARCH=uml
+./minilinux.sh latest printk sysfs procfs hostfs busybox bash net wireguard speedup
+
+```
+
 ### ToDo list
 * CI examples: TravisCI, CircleCI
 * debian-minimal testrun for deps
