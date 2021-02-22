@@ -15,6 +15,7 @@ URL_BUSYBOX='https://busybox.net/downloads/busybox-1.33.0.tar.bz2'
 URL_DASH='https://git.kernel.org/pub/scm/utils/dash/dash.git/snapshot/dash-0.5.11.3.tar.gz'
 URL_WIREGUARD='https://git.zx2c4.com/wireguard-tools/snapshot/wireguard-tools-1.0.20200827.zip'
 URL_BASH='http://git.savannah.gnu.org/cgit/bash.git/snapshot/bash-5.1.tar.gz'
+URL_DROPBEAR='https://github.com/mkj/dropbear/archive/DROPBEAR_2020.81.tar.gz'
 
 export STRIP=strip
 export LC_ALL=C
@@ -794,6 +795,72 @@ has_arg 'dash' && {
 	$STRIP "$DASH" || exit
 }
 
+compile()
+{
+	local package="$1"	# e.g. dropbear
+	local url="$2"		# e.g. https://github.com/mkj/dropbear/archive/DROPBEAR_2020.81.tar.gz
+	local file
+
+	local build="$BUILDS/$package"
+	local result="$OPT/$package"
+
+	mkdir -p "$build" "$result"
+
+	cd "$build" || exit
+	rm -fR ./*
+	download "$url"
+	for file in ./*; do break; done
+	untar "$file"
+	rm "$file"
+	cd ./* || exit
+
+	# generic prepare:
+	[ -f 'configure.ac' ] && {
+		autoconf
+		autoheader
+	}
+
+	prepare		|| exit
+	build		|| exit
+	copy_result	|| exit
+}
+
+has_arg 'dropbear' && {
+	prepare() {
+		./configure --enable-static --disable-zlib
+	}
+
+	build() {
+		local all='dropbear dbclient dropbearkey dropbearconvert scp'
+		local ld_flags='-Wl,--gc-sections'
+		local c_flags='-ffunction-sections -fdata-sections'
+
+		test "$DSTARCH" = 'i686' && c_flags="$c_flags CFLAGS=-DLTC_NO_BSWAP"
+
+		LDFLAGS="$ld_flags" CFLAGS="$c_flags" make PROGRAMS="$all" MULTI=1 STATIC=1
+	}
+
+	copy_result() {
+		ls -l dropbearmulti
+		$STRIP 'dropbearmulti'
+		ls -l dropbearmulti
+		cp -v 'dropbearmulti' "$OPT/dropbear/"
+		pwd
+	}
+
+	install_dropbear() {
+		cd bin && {
+			cp -v "$OPT/dropbear/dropbearmulti" dropbear
+			ln -s dropbear ssh
+			ln -s dropbear scp
+			ln -s dropbear dropbearkey
+			cd - || exit
+		}
+	}
+
+	compile 'dropbear' "$URL_DROPBEAR"
+}
+
 # TODO: unify download + compile (dash, busybox, wireguard...)
 has_arg 'wireguard' && {
 	export WIREGUARD="$OPT/wireguard"
@@ -947,6 +1014,8 @@ fi
 	cp -v "$DASH" bin/dash
 	ln -s bin/sh bin/dash
 }
+
+has_arg 'dropbear' && install_dropbear
 
 if [ -s "$BASH" ]; then
 	cp -v "$BASH" bin/bash

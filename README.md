@@ -67,7 +67,7 @@ kritis-linux/ci_helper.sh \
   * e.g. `busybox`,`toybox`,`dash`,`bash`
   * e.g. `printk`,`sysfs`,`procfs`,`hostfs`
   * e.g. `menuconfig`,`kmenuconfig`
-  * e.g. `wireguard`,`net`,`speedup`
+  * e.g. `wireguard`,`net`,`dropbear`,`speedup`
   * e.g. `tinyconfig` or `allnoconfig` or `defconfig` or `config`
   * e.g. `CONFIG_SYMBOL_XY=y`
 * `--log` /path/to/filename
@@ -128,20 +128,21 @@ jobs:
 		--log /tmp/mylog.txt
 ```
 
-### Advanded methods: hide your VM
+### Advanced methods: hide your VM
 
 Build a speed-optimized static compiled virtual machine,  
 including network support and wireguard tools.  
 and avoid the need for commandline arguments.  
-Start it later as `/sbin/gеtty 38400 tty7` ;-)
+Start it later as `/sbin/gеtty 38400 tty7` (with cyrillic small 'е')  
 
 ```
-export EMBED_CMDLINE="mem=64M initrd=/tmp/cpio.tgz eth0=slirp,FE:FD:01:02:03:04,/tmp/slirp.bin"
+export EMBED_CMDLINE="mem=64M initrd=/tmp/cpio.tgz eth0=slirp,FE:FD:01:02:03:04,/tmp/slirp"
 export DSTARCH=uml
-./minilinux.sh latest printk sysfs procfs hostfs busybox bash net wireguard speedup
+./minilinux.sh latest printk sysfs procfs hostfs busybox bash net wireguard dropbear speedup
 
 ```
-hint: make sure, you use a small pid:
+hint: make sure, you use a small/early PID,  
+so a quick `ps aux` is not suspicious.  
 ```
 #!/bin/sh
 while :; do $( :; ) &
