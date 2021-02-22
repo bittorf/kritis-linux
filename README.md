@@ -141,6 +141,13 @@ export DSTARCH=uml
 ./minilinux.sh latest printk sysfs procfs hostfs busybox bash net wireguard speedup
 
 ```
+hint: make sure, you use a small pid:
+```
+#!/bin/sh
+while :; do $( :; ) &
+test $! -gt ${LAST:-0} && LAST=$! || break
+done; vmlinux &
+```
 
 ### ToDo list
 * CI examples: TravisCI, CircleCI
