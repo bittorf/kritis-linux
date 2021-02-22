@@ -532,7 +532,6 @@ EOF
 
 			echo 'CONFIG_STATIC_LINK=y'
 			echo 'CONFIG_LD_SCRIPT_STATIC=y'	# ???
-			echo 'CONFIG_CMDLINE_FORCE="mem=128M eth0=slirp,FE:FD:01:02:03:04,/tmp/slirp initrd=/tmp/initramfs.cpio.gz root=98:0 console=tty"'
 		;;
 		m68k)
 			echo 'CONFIG_MAC=y'
@@ -591,6 +590,11 @@ EOF
 		echo '# CONFIG_INPUT_MOUSEDEV is not set'
 		echo '# CONFIG_INPUT_KEYBOARD is not set'
 		echo '# CONFIG_HID is not set'
+	}
+
+	has_arg 'speedup' && {
+		echo 'CONFIG_COMPAT_BRK=y'	# disable head randomization ~500 bytes smaller
+		echo 'CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y'
 	}
 
 	# FIXME! spaces are not working

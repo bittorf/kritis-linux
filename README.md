@@ -67,7 +67,7 @@ kritis-linux/ci_helper.sh \
   * e.g. `busybox`,`toybox`,`dash`,`bash`
   * e.g. `printk`,`sysfs`,`procfs`,`hostfs`
   * e.g. `menuconfig`,`kmenuconfig`
-  * e.g. `wireguard`,`net`
+  * e.g. `wireguard`,`net`,`speedup`
   * e.g. `tinyconfig` or `allnoconfig` or `defconfig` or `config`
   * e.g. `CONFIG_SYMBOL_XY=y`
 * `--log` /path/to/filename
