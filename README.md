@@ -137,7 +137,7 @@ Start it later as `/sbin/gеtty 38400 tty7` (with cyrillic small 'е')
 
 ```
 export EMBED_CMDLINE="mem=64M initrd=/tmp/cpio.gz eth0=slirp,FE:FD:01:02:03:04,/tmp/slirp"
-export DSTARCH=uml
+export DSTARCH=uml FAKEID='user@box.net'
 ./minilinux.sh latest printk sysfs procfs hostfs busybox bash net wireguard dropbear speedup
 
 ```
@@ -151,7 +151,6 @@ done; vmlinux &
 ```
 
 ### ToDo list
-* remove user@host from printk
 * CI examples: TravisCI, CircleCI
 * debian-minimal testrun for deps
 * builddir = mark_cache = no_backup

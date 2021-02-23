@@ -175,6 +175,7 @@ deps_check()
 		}
 	} done
 
+	install_dep 'coreutils'
 	install_dep 'build-essential'
 
 	true
@@ -357,6 +358,22 @@ mkdir -p "$LINUX"
 export LINUX_BUILD="$BUILDS/linux"
 mkdir -p "$LINUX_BUILD"
 
+# FAKEID: e.g. user@host.domain
+mkdir -p "$OPT/fakeid"
+printf  >"$OPT/fakeid/whoami"   '%s\n%s\n' '#!/bin/sh' "echo ${FAKEID%@*}"
+printf  >"$OPT/fakeid/hostname" '%s\n%s\n' '#!/bin/sh' "echo ${FAKEID#*@}"
+printf  >"$OPT/fakeid/uname"	'%s\n%s\n' '#!/bin/sh' "case \$1 in -n) echo \"${FAKEID#*@}\" ;; *) $( command -v uname ) \$1 ;; esac"
+chmod +x "$OPT/fakeid/"*
+[ -n "$FAKEID" ] && {
+	# https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/scripts/mkcompile_h
+	export HOSTNAME="${FAKEID#*@}" PATH="$OPT/fakeid:$PATH"
+	export KBUILD_BUILD_USER="${FAKEID%@*}"
+	export KBUILD_BUILD_HOST="${FAKEID#*@}"
+	SCRIPTDIR="$( dirname "$( realpath "$0" )" )"
+	KBUILD_BUILD_TIMESTAMP="$( cd "$SCRIPTDIR" && git rev-parse --short HEAD )"
+	KBUILD_BUILD_VERSION="$(   cd "$SCRIPTDIR" && git show -s --format=%ci )"
+	export SCRIPTDIR KBUILD_BUILD_TIMESTAMP KBUILD_BUILD_VERSION
+}
 
 rm -f "$LINUX_BUILD/doc.txt" 2>/dev/null
 
@@ -1174,6 +1191,13 @@ F2='scripts/dtc/dtc-lexer.lex.c_shipped'
 
 	sed -i "s|for (i = 1;|$( write_args )for (i = 1;|" "$F1" || exit
 }
+#
+[ -n "$FAKEID" ] && {
+	F="$( find . -type f -name mkcompile_h )"
+	REPLACE="sed -i 's;#define LINUX_COMPILER .*;#define LINUX_COMPILER \"compiler/linker unset\";' .tmpcompile"
+	sed -i "s|# Only replace the real|${REPLACE}\n\n# Only replace the real|" "$F" || exit
+}
+
 
 # kernel 2,3,4 but nut 5.x - FIXME!
 # sed -i 's|-Wall -Wundef|& -fno-pie|' Makefile
@@ -1355,6 +1379,18 @@ P1="[$( gain "$B1" "$INITRD_BYTES" )%]"
 P2="[$( gain "$B2" "$INITRD_BYTES" )%]"
 P3="[$( gain "$B3" "$INITRD_BYTES" )%]"
 P4="[$( gain "$B4" "$INITRD_BYTES" )%]"
+
+for WORD in $EMBED_CMDLINE; do {
+	case "$WORD" in
+		'initrd='*)
+			cp -v "$INITRD_FILE" "${WORD#*=}"
+		;;
+		'eth0='*)
+			# eth0=slirp,FE:FD:01:02:03:04,/tmp/slirp.bin
+			cp -v "$SLIRP_BIN" "${WORD##*,}"
+		;;
+	esac
+} done
 
 # TODO: include build-instructions
 cat >"$LINUX_BUILD/run.sh" <<!

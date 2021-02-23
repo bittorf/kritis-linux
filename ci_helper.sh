@@ -10,6 +10,7 @@ while [ -n "$1" ]; do {
 		--diradd) export INITRD_DIR_ADD="$2" ;;	# e.g. '/path/to/my/files' or e.g. simply "$(pwd)"
 		--initrd) export OWN_INITRD="$2" ;;	# e.g. '/path/to/myinit.tgz'
 		--kernel) LINUX_VERSION="$2" ;;		# e.g. 'latest' (=default) or '5.4.89' or an URL to .tgz/.xz
+		--fakeid) export FAKEID="$2" ;;		# e.g. 'foo@bar.baz'
 		--onefile) export ONEFILE='true' ;;
 		--cmdline) export EMBED_CMDLINE="$2" ;;	# e.g. 'mem=48M initrd=/path/to/file'
 		--kconfig) export OWN_KCONFIG="$2" ;;	# e.g. '/path/to/.config'
