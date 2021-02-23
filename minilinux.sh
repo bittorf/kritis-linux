@@ -7,8 +7,6 @@ KERNEL="$1"		# e.g. 'latest' or 'stable' or '5.4.89' or '4.19.x' or URL-to-tarba
 }
 
 BASEDIR='minilinux'
-CPU="$( nproc || sysctl -n hw.ncpu || lsconf | grep -c 'proc[0-9]' )"
-[ "${CPU:-0}" -lt 1 ] && CPU=1
 
 URL_TOYBOX='http://landley.net/toybox/downloads/toybox-0.8.4.tar.gz'
 URL_BUSYBOX='https://busybox.net/downloads/busybox-1.33.0.tar.bz2'
@@ -25,6 +23,10 @@ echo "[OK] cache/storage is here: '$STORAGE'"
 
 # change from comma to space delimited list
 OPTIONS="$OPTIONS $( echo "$FEATURES" | tr ',' ' ' )"
+
+# needed for parallel build:
+CPU="$( nproc || sysctl -n hw.ncpu || lsconf | grep -c 'proc[0-9]' )"
+[ "${CPU:-0}" -lt 1 ] && CPU=1
 
 has_arg()
 {
@@ -761,7 +763,7 @@ esac
 	STRIP="$PWD/$( find bin/ -name '*-linux-musl-strip' )"
 
 	CONF_HOST="${CROSSCOMPILE#*=}"		# e.g. 'CROSS_COMPILE=i686-linux-gnu-'
-	CONF_HOST="--host=${CONF_HOST%?}"	# -> i686-linux-gnu
+	CONF_HOST="--host=${CONF_HOST%?}"	#                  -> i686-linux-gnu
 
 	export CC CXX STRIP CONF_HOST PATH="$PWD/bin:$PATH"
 }
@@ -827,7 +829,7 @@ compile()
 
 has_arg 'dropbear' && {
 	prepare() {
-		./configure --enable-static --disable-zlib
+		./configure --enable-static --disable-zlib $CONF_HOST
 	}
 
 	build() {
@@ -835,9 +837,9 @@ has_arg 'dropbear' && {
 		local ld_flags='-Wl,--gc-sections'
 		local c_flags='-ffunction-sections -fdata-sections'
 
-		test "$DSTARCH" = 'i686' && c_flags="$c_flags CFLAGS=-DLTC_NO_BSWAP"
+		test "$DSTARCH" = 'i686' && c_flags="$c_flags -DLTC_NO_BSWAP"
 
-		LDFLAGS="$ld_flags" CFLAGS="$c_flags" make PROGRAMS="$all" MULTI=1 STATIC=1
+		LDFLAGS="$ld_flags" CFLAGS="$c_flags" make $SILENT_MAKE $ARCH $CROSSCOMPILE "-j$CPU" PROGRAMS="$all" MULTI=1 STATIC=1
 	}
 
 	copy_result() {
@@ -1050,7 +1052,7 @@ export INITSCRIPT="$PWD/init"
 [ -f init ] || cat >'init' <<EOF
 #!$BOOTSHELL
 export SHELL=$( basename "$BOOTSHELL" )
-$( has_arg 'procfs' || echo 'false ' )mount -t proc  none /proc && {
+$( has_arg 'procfs' || echo 'false ' )mount -t proc none /proc && {
 	read -r UP _ </proc/uptime || UP=\$( cut -d' ' -f1 /proc/uptime )
 	while read -r LINE; do
 		# shellcheck disable=SC2086
@@ -1153,6 +1155,7 @@ F2='scripts/dtc/dtc-lexer.lex.c_shipped'
 [ -n "$EMBED_CMDLINE" ] && [ "$DSTARCH" = 'uml' ] && {
 	# e.g. EMBED_CMDLINE="mem=72M initrd=/tmp/cpio.gz"
 	F1='arch/um/kernel/um_arch.c'
+	EMBED_CMDLINE_FILE="$PWD/$F1"
 
 	write_args()
 	{
@@ -1371,6 +1374,8 @@ MAX="\${3:-86400}"	# max running time [seconds] in autotest-mode
 # ARCHITECTURE: ${DSTARCH:-default} / ${ARCH:-default}
 # COMPILER: ${CROSSCOMPILE:-cc}
 # CMDLINE_OPTIONS: $OPTIONS
+# $( test -n "$EMBED_CMDLINE" && echo "ENFORCED_KERNEL_CMDLINE: $EMBED_CMDLINE" )
+# $( test -n "$EMBED_CMDLINE" && echo "FILE: $EMBED_CMDLINE_FILE" )
 #
 # KERNEL_VERSION: $KERNEL_VERSION
 # KERNEL_URL: $KERNEL_URL
