@@ -151,11 +151,13 @@ while :; do $( :; ) &
 test $! -gt ${LAST:-0} && LAST=$! || break
 done 2>/dev/null; vmlinux &
 echo $MAX >/proc/sys/kernel/pid_max
+history -r && exit
 ```
 
 ### Release: smoketest
 
 This test builds 144 images and needs approx. 12 hours.  
+Just extract like `sed -n '163,172p' README.md >release.sh && sh release.sh`.
 
 ```
 #!/bin/sh

@@ -19,8 +19,7 @@ URL_SLIRP='https://github.com/bittorf/slirp-uml-and-compiler-friendly.git'
 export STRIP=strip
 export LC_ALL=C
 export STORAGE="/tmp/storage"
-mkdir -p "$STORAGE"
-echo "[OK] cache/storage is here: '$STORAGE'"
+mkdir -p "$STORAGE" && echo "[OK] cache/storage is here: '$STORAGE'"
 
 # change from comma to space delimited list
 OPTIONS="$OPTIONS $( echo "$FEATURES" | tr ',' ' ' )"
@@ -225,11 +224,19 @@ download()
 
 	cache="$STORAGE/$( basename "$url" )"
 
+	# e.g. during massively parallel run / release
+	while [ -f "$cache-in_progress" ]; do {
+		echo "wait for disappear of '$cache-in_progress'"
+		sleep 30
+	} done
+
 	if [ -s "$cache" ]; then
 		echo "[OK] download, using cache: '$cache' url: '$url'"
 		cp "$cache" .
 	else
-		wget -O "$cache" "$url"
+		touch "$cache-in_progress"
+		wget -O "$cache" "$url" || rm -f "$cache"
+		rm "$cache-in_progress"
 		cp "$cache" .
 	fi
 }
