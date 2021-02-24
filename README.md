@@ -145,18 +145,27 @@ hint: make sure, you use a small/early PID,
 so a quick `ps aux` is not suspicious.  
 ```
 #!/bin/sh
+read -r MAX </proc/sys/kernel/pid_max
+echo 666 >/proc/sys/kernel/pid_max
 while :; do $( :; ) &
 test $! -gt ${LAST:-0} && LAST=$! || break
-done; vmlinux &
+done 2>/dev/null; vmlinux &
+echo $MAX >/proc/sys/kernel/pid_max
 ```
 
 ### Release: smoketest
+
+This test builds 144 images and needs approx. 12 hours.  
+
 ```
 #!/bin/sh
+FEATURES='printk procfs sysfs busybox bash dash net wireguard dropbear'
+
 for ARCH in armel armhf arm64 or1k m68k uml uml32 x86 x86_64; do
   for KERNEL in "3.18" "4.4.258" "4.9.258" "4.14.222" "4.19.177" "5.4.100" "5.10.18" "5.11.1"; do
-    DSTARCH="$ARCH" ./minilinux.sh "$KERNEL"
-    DSTARCH="$ARCH" ./minilinux.sh "$KERNEL" printk procfs sysfs busybox bash dash net wireguard dropbear
+    ID="${KERNEL}_${ARCH}"
+    BUILDID="$ID-tiny" DSTARCH="$ARCH" ./minilinux.sh "$KERNEL" autoclean &
+    BUILDID="$ID-full" DSTARCH="$ARCH" ./minilinux.sh "$KERNEL" "$FEATURES" autoclean &
   done
 done
 ```

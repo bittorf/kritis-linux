@@ -6,7 +6,7 @@ KERNEL="$1"		# e.g. 'latest' or 'stable' or '5.4.89' or '4.19.x' or URL-to-tarba
 	export OPTIONS="$*"	# see has_arg(), spaces are not working
 }
 
-BASEDIR='minilinux'
+BASEDIR="minilinux${BUILID:+_}${BUILDID}"	# autoclean removes it later
 
 URL_TOYBOX='http://landley.net/toybox/downloads/toybox-0.8.4.tar.gz'
 URL_BUSYBOX='https://busybox.net/downloads/busybox-1.33.0.tar.bz2'
@@ -1736,5 +1736,7 @@ echo "#"
 echo "# thanks for using:"
 echo "# https://github.com/bittorf/kritis-linux"
 echo
+
+has_arg 'autoclean' && rm -fR "$BASEDIR"
 
 test $RC -eq 0
