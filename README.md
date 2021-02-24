@@ -160,17 +160,13 @@ done; vmlinux &
 * which programs where called? hash?
 * upload/api: good + bad things
 * upload bootable images
+* support for USB-sticks + hybrid ISO
 * safe versions of all deps (cc, ld, libc)
 * maybe support https://github.com/jart/cosmopolitan
-* filesizes
-* needed space
+* show filesizes
+* needed disk space
 * https://github.com/torvalds/linux/blob/master/Documentation/admin-guide/bootconfig.rst
 * measure sizes: https://events.static.linuxfound.org/sites/events/files/slides/slaballocators.pdf
-* add option for size/performance:
-  * `CONFIG_BASE_FULL=y`
-  * `CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y`
-  * `# CONFIG_CC_OPTIMIZE_FOR_SIZE is not set`
-* tinyconfig only available for 3.17-rc1+
 * add test and build-matrix: all combinations of
   * kernel/busybox/toybox/dash/libc/32bit/64bit/archs
 

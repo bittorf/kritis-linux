@@ -140,7 +140,7 @@ case "$DSTARCH" in
 	;;
 esac
 
-has_arg 'tinyconfig'	&& DEFCONFIG='tinyconfig'
+has_arg 'tinyconfig'	&& DEFCONFIG='tinyconfig'	# supported since kernel 3.17-rc1
 has_arg 'allnoconfig'	&& DEFCONFIG='allnoconfig'
 has_arg 'defconfig'	&& DEFCONFIG='defconfig'
 has_arg 'config'	&& DEFCONFIG='config'		# e.g. kernel 2.4.x
@@ -613,6 +613,7 @@ EOF
 	}
 
 	has_arg 'speedup' && {
+		echo 'CONFIG_BASE_FULL=y'
 		echo 'CONFIG_COMPAT_BRK=y'	# disable head randomization ~500 bytes smaller
 		echo 'CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y'
 	}
