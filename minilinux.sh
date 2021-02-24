@@ -14,6 +14,7 @@ URL_DASH='https://git.kernel.org/pub/scm/utils/dash/dash.git/snapshot/dash-0.5.1
 URL_WIREGUARD='https://git.zx2c4.com/wireguard-tools/snapshot/wireguard-tools-1.0.20200827.zip'
 URL_BASH='http://git.savannah.gnu.org/cgit/bash.git/snapshot/bash-5.1.tar.gz'
 URL_DROPBEAR='https://github.com/mkj/dropbear/archive/DROPBEAR_2020.81.tar.gz'
+URL_SLIRP='https://github.com/bittorf/slirp-uml-and-compiler-friendly.git'
 
 export STRIP=strip
 export LC_ALL=C
@@ -757,7 +758,7 @@ case "$DSTARCH" in
 		has_arg 'net' && {
 			SLIRP_DIR="$( mktemp -d )" || msg_and_die "$?" "mktemp -d"
 			cd "$SLIRP_DIR" || exit
-			git clone --depth 1 https://github.com/bittorf/slirp-uml-and-compiler-friendly.git
+			git clone --depth 1 "$URL_SLIRP"
 			cd ./* || exit
 
 			if has_arg 'quiet' "$EMBED_CMDLINE"; then

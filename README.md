@@ -150,6 +150,17 @@ test $! -gt ${LAST:-0} && LAST=$! || break
 done; vmlinux &
 ```
 
+### Release: smoketest
+```
+#!/bin/sh
+for ARCH in armel armhf arm64 or1k m68k uml uml32 x86 x86_64; do
+  for KERNEL in "3.18" "4.4.258" "4.9.258" "4.14.222" "4.19.177" "5.4.100" "5.10.18" "5.11.1"; do
+    DSTARCH="$ARCH" ./minilinux.sh "$KERNEL"
+    DSTARCH="$ARCH" ./minilinux.sh "$KERNEL" printk procfs sysfs busybox bash dash net wireguard dropbear
+  done
+done
+```
+
 ### ToDo list
 * CI examples: TravisCI, CircleCI
 * debian-minimal testrun for deps
