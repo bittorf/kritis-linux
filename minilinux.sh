@@ -1069,6 +1069,7 @@ fi
 	}
 }
 
+export SALTFILE='bin/busybox'		# must be the path, here and in initrd
 export BOOTSHELL='/bin/ash'
 export INITSCRIPT="$PWD/init"
 
@@ -1096,7 +1097,17 @@ $( has_arg 'net' || echo 'false ' )command -v 'ip' >/dev/null && \\
 	  ip route add default via 10.0.2.2
 
 # wireguard and ssh startup
-$( test -n "$TTYPASS" && printf '%s\n%s\n' "printf 'id: ' && read -s PASS" "test \"\$PASS\" = '$TTYPASS' || exit" )
+$(
+	test -n "$TTYPASS" && {
+		SHA256="$( { printf '%s' "$TTYPASS"; cat "$SALTFILE"; } | sha256sum )"
+		printf '\n%s\n%s\n%s\n%s\n' \
+			"# tty pass:" \
+			"printf 'id: ' && read -s PASS" \
+			"HASH=\"\$( { printf '%s' \"\$PASS\"; cat \"$SALTFILE\"; } | sha256sum )\"" \
+			"test \"\${HASH%% *}\" = ${SHA256%% *} || exit"
+	}
+)
+
 UNAME="\$( command -v uname || printf '%s' false )"
 printf '%s\n' "# BOOTTIME_SECONDS \${UP:--1 (missing procfs?)}"
 printf '%s\n' "# MEMFREE_KILOBYTES \${MEMAVAIL_KB:--1 (missing procfs?)}"
