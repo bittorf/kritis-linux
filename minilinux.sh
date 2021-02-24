@@ -1052,7 +1052,7 @@ fi
 
 
 [ -d "$INITRD_DIR_ADD" ] && {
-	# FIXME! we do not include a directory names 'x'
+	# FIXME! we do not include a spedicla directory named 'x'
 	test -d "$INITRD_DIR_ADD/x" && mv -v "$INITRD_DIR_ADD/x" ~/tmp.cheat.$$
 	cp -R "$INITRD_DIR_ADD/"* .
 	test -d ~/tmp.cheat.$$ && mv -v ~/tmp.cheat.$$ "$INITRD_DIR_ADD/x"
@@ -1163,19 +1163,22 @@ untar ./* || exit
 cd ./* || exit		# there is only 1 dir
 
 
-# FIXME! autoadd to documentation
 # Kernel PATCHES:
 #
 # GCC10 + kernel3.18 workaround:
 # https://github.com/Tomoms/android_kernel_oppo_msm8974/commit/11647f99b4de6bc460e106e876f72fc7af3e54a6
 F1='scripts/dtc/dtc-lexer.l'
 F2='scripts/dtc/dtc-lexer.lex.c_shipped'
-[ -f "$F1" ] && sed -i 's/^YYLTYPE yylloc;/extern &/' "$F1"
-[ -f "$F2" ] && sed -i 's/^YYLTYPE yylloc;/extern &/' "$F2"
+[ -f "$F1" ] && sed -i 's/^YYLTYPE yylloc;/extern &/' "$F1" && emit_doc "applied: kernel-patch in '$F1'"
+[ -f "$F2" ] && sed -i 's/^YYLTYPE yylloc;/extern &/' "$F2" && emit_doc "applied: kernel-patch in '$F2'"
 #
 # or1k/openrisc/3.x workaround:
 # https://opencores.org/forum/OpenRISC/0/5435
-[ "$DSTARCH" = 'or1k' ] && F1='arch/openrisc/kernel/vmlinux.lds.S' && sed -i 's/elf32-or32/elf32-or1k/g' "$F1"
+[ "$DSTARCH" = 'or1k' ] && {
+	F1='arch/openrisc/kernel/vmlinux.lds.S'
+	sed -i 's/elf32-or32/elf32-or1k/g' "$F1" || exit
+	emit_doc "applied: kernel-patch in '$F1'"
+}
 #
 [ -n "$EMBED_CMDLINE" ] && [ "$DSTARCH" = 'uml' ] && {
 	# e.g. EMBED_CMDLINE="mem=72M initrd=/tmp/cpio.gz"
@@ -1200,15 +1203,18 @@ F2='scripts/dtc/dtc-lexer.lex.c_shipped'
 
 	has_arg 'quiet' "$EMBED_CMDLINE" && {
 		sed -i 's|^.*[^a-z]printf.*|//&|' "$F2" || exit
+		emit_doc "applied: kernel-patch in '$F2' | EMBED_CMDLINE: quiet"
 	}
 
 	sed -i "s|for (i = 1;|$( write_args )for (i = 1;|" "$F1" || exit
+	emit_doc "applied: kernel-patch in '$F1' | EMBED_CMDLINE: $EMBED_CMDLINE"
 }
 #
 [ -n "$FAKEID" ] && {
 	F="$( find . -type f -name mkcompile_h )"
 	REPLACE="sed -i 's;#define LINUX_COMPILER .*;#define LINUX_COMPILER \"compiler/linker unset\";' .tmpcompile"
 	sed -i "s|# Only replace the real|${REPLACE}\n\n# Only replace the real|" "$F" || exit
+	emit_doc "applied: kernel-patch in '$F' | FAKEID"
 }
 
 
@@ -1226,7 +1232,8 @@ for WORD in $( gcc --version ); do {
 	# fatal error: linux/compiler-gcc9.h: file or directory not found
 	[ -f "include/linux/compiler-gcc${VERSION}.h" ] || {
 		[ -f 'include/linux/compiler-gcc5.h' ] && \
-			cp -v include/linux/compiler-gcc5.h "include/linux/compiler-gcc${VERSION}.h"
+			cp -v include/linux/compiler-gcc5.h "include/linux/compiler-gcc${VERSION}.h" && \
+				emit_doc "applied: kernel-patch: include/linux/compiler-gcc5.h -> include/linux/compiler-gcc${VERSION}.h"
 	}
 
 	break
@@ -1296,9 +1303,6 @@ has_arg 'kmenuconfig' && {
 }
 
 CONFIG1="$PWD/.config"
-
-# logger -s "please make changes in '$( pwd )' now and press enter | FIXME!"
-# read NOP
 
 if has_arg 'no_pie'; then
 	T0="$( date +%s )"
