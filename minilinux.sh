@@ -1508,8 +1508,12 @@ case "\$ACTION" in
 				DIR="\$( mktemp -d )" || exit
 				export TMPDIR="\$DIR"
 
-				$KERNEL_FILE mem=\$MEM \$UMLNET \\
-					initrd=$INITRD_FILE
+				if [ -n "$EMBED_CMDLINE" ]; then
+					$KERNEL_FILE
+				else
+					$KERNEL_FILE mem=\$MEM \$UMLNET \\
+						initrd=$INITRD_FILE
+				fi
 
 				rm -fR "\$DIR"
 			;;
@@ -1548,8 +1552,12 @@ mkfifo "\$PIPE.out" || exit
 			DIR="\$( mktemp -d )" || exit
 			export TMPDIR="\$DIR"
 
-			$KERNEL_FILE mem=\$MEM \$UMLNET \\
-				initrd=$INITRD_FILE >"\$PIPE.out" 2>&1
+			if [ -n "$EMBED_CMDLINE" ]; then
+				$KERNEL_FILE
+			else
+				$KERNEL_FILE mem=\$MEM \$UMLNET \\
+					initrd=$INITRD_FILE >"\$PIPE.out" 2>&1
+			fi
 
 			rm -fR "\$DIR"
 		;;
