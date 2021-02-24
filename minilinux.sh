@@ -1089,6 +1089,8 @@ $( has_arg 'net' || echo 'false ' )command -v 'ip' >/dev/null && \\
 	ip link set dev eth0 up && \\
 	  ip route add default via 10.0.2.2
 
+# wireguard and ssh startup
+$( test -n "$TTYPASS" && printf '%s\n%s\n' "printf 'id: ' && read -s PASS" "test \$PASS = '$TTYPASS' || exit 1" )
 UNAME="\$( command -v uname || printf '%s' false )"
 printf '%s\n' "# BOOTTIME_SECONDS \${UP:--1 (missing procfs?)}"
 printf '%s\n' "# MEMFREE_KILOBYTES \${MEMAVAIL_KB:--1 (missing procfs?)}"

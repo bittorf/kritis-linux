@@ -136,8 +136,8 @@ and avoid the need for commandline arguments.
 Start it later as `/sbin/gеtty 38400 tty7` (with cyrillic small 'е')  
 
 ```
-export EMBED_CMDLINE="mem=64M initrd=/tmp/cpio.gz eth0=slirp,FE:FD:01:02:03:04,/tmp/slirp"
-export DSTARCH=uml FAKEID='user@box.net'
+export EMBED_CMDLINE="quiet mem=64M initrd=/tmp/cpio.gz eth0=slirp,FE:FD:01:02:03:04,/tmp/slirp"
+export DSTARCH=uml FAKEID='user@box.net' TTYPASS='peter80'
 ./minilinux.sh latest printk sysfs procfs hostfs busybox bash net wireguard dropbear speedup
 
 ```
