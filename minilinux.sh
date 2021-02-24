@@ -1174,7 +1174,8 @@ F2='scripts/dtc/dtc-lexer.lex.c_shipped'
 [ -n "$EMBED_CMDLINE" ] && [ "$DSTARCH" = 'uml' ] && {
 	# e.g. EMBED_CMDLINE="mem=72M initrd=/tmp/cpio.gz"
 	F1='arch/um/kernel/um_arch.c'
-	EMBED_CMDLINE_FILE="$PWD/$F1"
+	F2='arch/x86/um/os-Linux/task_size.c'
+	EMBED_CMDLINE_FILE="$PWD/$F1"		# for later doc
 
 	write_args()
 	{
@@ -1192,6 +1193,7 @@ F2='scripts/dtc/dtc-lexer.lex.c_shipped'
 	}
 
 	sed -i "s|for (i = 1;|$( write_args )for (i = 1;|" "$F1" || exit
+	case " $EMBED_CMDLINE " in *' quiet '*) sed -i 's|^.*[^a-z]printf.*|//&|' "$F2" || exit ;; esac
 }
 #
 [ -n "$FAKEID" ] && {
