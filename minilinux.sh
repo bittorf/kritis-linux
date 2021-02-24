@@ -759,13 +759,14 @@ case "$DSTARCH" in
 			cd ./* || exit
 
 			if has_arg 'quiet' "$EMBED_CMDLINE"; then
-				OK="$( ./run.sh 'quiet' | grep 'everything worked, see folder' )"
+				OK="$( ./run.sh 'quiet' | tail -n1 )"
 			else
-				OK="$( ./run.sh         | grep 'everything worked, see folder' )"
+				OK="$( ./run.sh         | tail -n1 )"
 			fi
 
-			SLIRP_DIR="$( echo "$OK" | cut -d"'" -f2 )"
-			SLIRP_BIN="$( find "$SLIRP_DIR" -type f -name 'slirp' )"
+			# e.g. SLIRP_BIN='/tmp/tmp.BGbKLy2cly/slirp-1.0.17/src/slirp'
+			echo "$OK" | grep -q ^'SLIRP_BIN=' || exit
+			SLIRP_BIN="$( echo "$OK" | cut -d"=" -f2 | cut -d"'" -f2 )"
 			$STRIP "$SLIRP_BIN" || exit
 		}
 	;;
