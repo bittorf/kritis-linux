@@ -100,8 +100,10 @@ case "$DSTARCH" in
 	ppc64le)# IBM Power8/9 = "PowerISA 3.1" = powerpc64le
 		:
 	;;
-	um|uml)	# http://uml.devloop.org.uk/kernels.html
+	um*)	# http://uml.devloop.org.uk/kernels.html
 		# https://unix.stackexchange.com/questions/90078/which-one-is-lighter-security-and-cpu-wise-lxc-versus-uml
+		[ "$DSTARCH" = 'uml32' ] && OPTIONS="$OPTIONS 32bit"
+
 		export ARCH='ARCH=um'
 		export DEFCONFIG='tinyconfig'
 		export DSTARCH='uml'
