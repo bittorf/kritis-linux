@@ -757,10 +757,9 @@ case "$DSTARCH" in
 			git clone --depth 1 https://github.com/bittorf/slirp-uml-and-compiler-friendly.git
 			cd ./* || exit
 
-			# does not like cross-compiling:
 			OK="$( ./run.sh | grep 'everything worked, see folder' )"
-			SLIRP_BIN="$( echo "$OK" | cut -d"'" -f2 )"
-			SLIRP_BIN="$( find "$SLIRP_BIN" -type f -name 'slirp' )"
+			SLIRP_DIR="$( echo "$OK" | cut -d"'" -f2 )"
+			SLIRP_BIN="$( find "$SLIRP_DIR" -type f -name 'slirp' )"
 			$STRIP "$SLIRP_BIN" || exit
 		}
 	;;
@@ -1083,14 +1082,14 @@ $( has_arg 'hostfs' || echo 'false ')mount -t hostfs none /mnt/host
 # https://github.com/bittorf/slirp-uml-and-compiler-friendly
 # https://github.com/lubomyr/bochs/blob/master/misc/slirp.conf
 $( has_arg 'net' || echo 'false ' )command -v 'ip' >/dev/null && \\
-  ip link show dev eth0 && \\
+  ip link show dev eth0 >/dev/null && \\
     printf '%s\\n' 'nameserver 8.8.4.4' >/etc/resolv.conf && \\
       ip address add 10.0.2.15/24 dev eth0 && \\
 	ip link set dev eth0 up && \\
 	  ip route add default via 10.0.2.2
 
 # wireguard and ssh startup
-$( test -n "$TTYPASS" && printf '%s\n%s\n' "printf 'id: ' && read -s PASS" "test \$PASS = '$TTYPASS' || exit 1" )
+$( test -n "$TTYPASS" && printf '%s\n%s\n' "printf 'id: ' && read -s PASS" "test \"\$PASS\" = '$TTYPASS' || exit" )
 UNAME="\$( command -v uname || printf '%s' false )"
 printf '%s\n' "# BOOTTIME_SECONDS \${UP:--1 (missing procfs?)}"
 printf '%s\n' "# MEMFREE_KILOBYTES \${MEMAVAIL_KB:--1 (missing procfs?)}"
@@ -1389,9 +1388,9 @@ for WORD in $EMBED_CMDLINE; do {
 		'initrd='*)
 			cp -v "$INITRD_FILE" "${WORD#*=}"
 		;;
-		'eth0='*)
+		*'=slirp,'*)
 			# eth0=slirp,FE:FD:01:02:03:04,/tmp/slirp.bin
-			cp -v "$SLIRP_BIN" "${WORD##*,}"
+			cp -v "$SLIRP_BIN" "${WORD##*,}" || exit
 		;;
 	esac
 } done
