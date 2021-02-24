@@ -30,7 +30,7 @@ CPU="$( nproc || sysctl -n hw.ncpu || lsconf | grep -c 'proc[0-9]' )"
 
 has_arg()
 {
-	case " $OPTIONS " in *" $1 "*) true ;; *) false ;; esac
+	case " ${2:-$OPTIONS} " in *" $1 "*) true ;; *) false ;; esac
 }
 
 install_dep()
@@ -757,7 +757,12 @@ case "$DSTARCH" in
 			git clone --depth 1 https://github.com/bittorf/slirp-uml-and-compiler-friendly.git
 			cd ./* || exit
 
-			OK="$( ./run.sh | grep 'everything worked, see folder' )"
+			if has_arg 'quiet' "$EMBED_CMDLINE"; then
+				OK="$( ./run.sh 'quiet' | grep 'everything worked, see folder' )"
+			else
+				OK="$( ./run.sh         | grep 'everything worked, see folder' )"
+			fi
+
 			SLIRP_DIR="$( echo "$OK" | cut -d"'" -f2 )"
 			SLIRP_BIN="$( find "$SLIRP_DIR" -type f -name 'slirp' )"
 			$STRIP "$SLIRP_BIN" || exit
@@ -1191,8 +1196,11 @@ F2='scripts/dtc/dtc-lexer.lex.c_shipped'
 		printf '%s' "${tab}argc = $i;\n\n${tab}"
 	}
 
+	has_arg 'quiet' "$EMBED_CMDLINE" && {
+		sed -i 's|^.*[^a-z]printf.*|//&|' "$F2" || exit
+	}
+
 	sed -i "s|for (i = 1;|$( write_args )for (i = 1;|" "$F1" || exit
-	case " $EMBED_CMDLINE " in *' quiet '*) sed -i 's|^.*[^a-z]printf.*|//&|' "$F2" || exit ;; esac
 }
 #
 [ -n "$FAKEID" ] && {
