@@ -267,6 +267,8 @@ msg_and_die()
 	emit_doc 'all'
 
 	echo >&2 "$message"
+
+	has_arg 'autoclean' && rm -fR "$BASEDIR"
 	exit "$rc"
 }
 

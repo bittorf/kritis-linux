@@ -175,10 +175,10 @@ for ARCH in armel armhf arm64 or1k m68k uml uml32 x86 x86_64; do
     ID="${KERNEL}_${ARCH}"
     LOG=A NOKVM=true BUILDID="$ID-tiny" DSTARCH="$ARCH" ./minilinux.sh "$KERNEL" autoclean &
     LOG=B NOKVM=true BUILDID="$ID-full" DSTARCH="$ARCH" ./minilinux.sh "$KERNEL" "$FEATURES" autoclean
-    grep -q BOOTTIME_SECONDS A && echo "$ID-tiny"
-    grep -q BOOTTIME_SECONDS B && echo "$ID-full"
+    grep -q BOOTTIME_SECONDS A && echo "$ID-tiny" >>log.txt
+    grep -q BOOTTIME_SECONDS B && echo "$ID-full" >>log.txt
   done
-done >log.txt
+done
 ```
 
 ### ToDo list
