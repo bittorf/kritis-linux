@@ -142,7 +142,7 @@ export DSTARCH=uml FAKEID='user@box.net' TTYPASS='peter80'
 
 ```
 hint: make sure, you use a small/early PID,  
-so a quick `ps aux` is not suspicious.  
+so a quick `ps aux` or `pstree` is not suspicious.  
 ```
 #!/bin/sh
 D=/usr/share/awk
@@ -163,7 +163,7 @@ history -r && exit
 
 ### Release: smoketest
 
-This test builds 144 images and needs approx. 12 hours.  
+This test builds and testboots 144 images and needs approx. 12 hours.  
 Just extract like `sed -n '/^FEATURES/,/^done/p' README.md >release.sh && sh release.sh`.
 
 ```
@@ -173,8 +173,8 @@ FEATURES='printk procfs sysfs busybox bash dash net wireguard dropbear'
 for ARCH in armel armhf arm64 or1k m68k uml uml32 x86 x86_64; do
   for KERNEL in "3.18" "4.4.258" "4.9.258" "4.14.222" "4.19.177" "5.4.100" "5.10.18" "5.11.1"; do
     ID="${KERNEL}_${ARCH}"
-    BUILDID="$ID-tiny" DSTARCH="$ARCH" ./minilinux.sh "$KERNEL" autoclean &
-    BUILDID="$ID-full" DSTARCH="$ARCH" ./minilinux.sh "$KERNEL" "$FEATURES" autoclean &
+    LOG="$ID-1.txt" NOKVM=true BUILDID="$ID-tiny" DSTARCH="$ARCH" ./minilinux.sh "$KERNEL" autoclean &
+    LOG="$ID-2.txt" NOKVM=true BUILDID="$ID-full" DSTARCH="$ARCH" ./minilinux.sh "$KERNEL" "$FEATURES" autoclean &
   done
 done
 ```

@@ -16,6 +16,7 @@ while [ -n "$1" ]; do {
 		--cmdline) export EMBED_CMDLINE="$2" ;;	# e.g. 'mem=48M initrd=/path/to/file'
 		--kconfig) export OWN_KCONFIG="$2" ;;	# e.g. '/path/to/.config'
 		--myinit) export MYINIT="$2" ;;		# e.g. 'my_file.sh' (relative to diradd-path)
+		--nokvm) export NOKVM='true' ;;
 		--debug) DEBUG="$2" ;;			# e.g. true
 		--keep) export KEEP_LIST="$2" ;;	# e.g. '/bin/busybox /bin/sh /bin/cat' 
 		--arch) export DSTARCH="$2" ;;		# e.g. one of i386,x86_64,armel,armhf,arm64,mips,m68k,or1k (default is x86_64)

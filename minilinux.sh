@@ -871,6 +871,8 @@ compile()
 
 has_arg 'dropbear' && {
 	prepare() {
+		install_dep 'libtommath-dev'
+		install_dep 'libtomcrypt-dev'
 		./configure --enable-static --disable-zlib $CONF_HOST
 	}
 
@@ -1504,6 +1506,7 @@ KERNEL_ARGS='console=ttyS0'
 
 grep -q svm /proc/cpuinfo && KVM_SUPPORT='-enable-kvm -cpu host'
 grep -q vmx /proc/cpuinfo && KVM_SUPPORT='-enable-kvm -cpu host'
+$( test -n "$NOKVM" && echo 'KVM_SUPPORT=' )
 [ -n "\$KVM_SUPPORT" ] && test "\$( id -u )" -gt 0 && KVM_PRE="\$( command -v sudo )"
 
 case "${DSTARCH:-\$( arch || echo native )}" in armel|armhf|arm|arm64)
