@@ -873,6 +873,7 @@ has_arg 'dropbear' && {
 	prepare() {
 		install_dep 'libtommath-dev'
 		install_dep 'libtomcrypt-dev'
+		install_dep 'dropbear-bin'	# only for key generation
 		./configure --enable-static --disable-zlib $CONF_HOST
 	}
 
@@ -901,15 +902,17 @@ has_arg 'dropbear' && {
 			ln -s dropbear scp
 			ln -s dropbear usr/bin/dbclient
 			ln -s dropbear dropbearkey
+
 			cd - || exit
+
+			mkdir -p .ssh
+			dropbearkey -t rsa -f .ssh/id_dropbear || exit
 		}
 	}
 
-	init_dropbear()		# FIXME! include in image, gen on host - has better entropy
+	init_dropbear()
 	{
-		echo 'test -f .ssh/id_dropbear || {'
-		echo '	mkdir -p .ssh && dropbearkey -t rsa -f .ssh/id_dropbear'
-		echo '}'
+		echo 'dropbear -B -R -p 22'
 	}
 
 	compile 'dropbear' "$URL_DROPBEAR"
