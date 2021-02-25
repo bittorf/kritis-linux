@@ -831,8 +831,8 @@ has_arg 'dash' && {
 	# TODO: --enable-glob --with-libedit --enable-fnmatch
 	# https://github.com/amuramatsu/dash-static/blob/master/build.sh
 	./autogen.sh || exit			# -> ./configure
-	./configure $CONF_HOST $SILENT_CONF "CC=$CC -static" "CPP=$CXX -static -E" --enable-static || exit
-	make "CC=$CC -static" "CPP=$CXX -static -E" $SILENT_MAKE $ARCH $CROSSCOMPILE "-j$CPU" || exit
+	./configure $CONF_HOST $SILENT_CONF --enable-static || exit
+	make $SILENT_MAKE $ARCH $CROSSCOMPILE "-j$CPU" || exit
 
 	DASH="$PWD/src/dash"
 	$STRIP "$DASH" || exit
