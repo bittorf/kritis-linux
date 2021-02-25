@@ -899,9 +899,17 @@ has_arg 'dropbear' && {
 			cp -v "$OPT/dropbear/dropbearmulti" dropbear
 			ln -s dropbear ssh
 			ln -s dropbear scp
+			ln -s dropbear usr/bin/dbclient
 			ln -s dropbear dropbearkey
 			cd - || exit
 		}
+	}
+
+	init_dropbear()		# FIXME! include in image, gen on host - has better entropy
+	{
+		echo 'test -f .ssh/id_dropbear || {'
+		echo '	mkdir -p .ssh && dropbearkey -t rsa -f .ssh/id_dropbear'
+		echo '}'
 	}
 
 	compile 'dropbear' "$URL_DROPBEAR"
@@ -1117,6 +1125,7 @@ $( has_arg 'net' || echo 'false ' )command -v 'ip' >/dev/null && \\
 	ip link set dev eth0 up && \\
 	  ip route add default via 10.0.2.2
 
+$( has_arg 'dropbear' && init_dropbear )
 # wireguard and ssh startup
 $(
 	test -n "$TTYPASS" && {
