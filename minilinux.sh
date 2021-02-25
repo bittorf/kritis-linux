@@ -179,6 +179,10 @@ deps_check()
 
 	install_dep 'coreutils'
 	install_dep 'build-essential'
+	install_dep 'flex'
+	install_dep 'bison'
+	install_dep 'automake'
+	install_dep 'ncurses-dev'	# for menuconfig
 
 	true
 }
