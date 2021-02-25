@@ -172,11 +172,9 @@ FEATURES='printk procfs sysfs busybox bash dash net wireguard dropbear'
 
 for ARCH in armel armhf arm64 or1k m68k uml uml32 x86 x86_64; do
   for KERNEL in "3.18" "4.4.258" "4.9.258" "4.14.222" "4.19.177" "5.4.100" "5.10.18" "5.11.1"; do
-    ID="${KERNEL}_${ARCH}" L1="$PWD/log-$ID-1" L2="$PWD/log-$ID-2"
-    LOG="$L1" NOKVM=true BUILDID="$ID-tiny" DSTARCH="$ARCH" ./minilinux.sh "$KERNEL" autoclean &
-    LOG="$L2" NOKVM=true BUILDID="$ID-full" DSTARCH="$ARCH" ./minilinux.sh "$KERNEL" "$FEATURES" autoclean
-    grep -q BOOTTIME_SECONDS "$L1"; echo "$ID-tiny=$?" >>log.txt
-    grep -q BOOTTIME_SECONDS "$L2"; echo "$ID-full=$?" >>log.txt
+    ID="${KERNEL}_${ARCH}" LOG="$PWD/log-$ID"
+    LOG="$LOG-tiny" NOKVM=true BUILDID="$ID-tiny" DSTARCH="$ARCH" ./minilinux.sh "$KERNEL" autoclean &
+    LOG="$LOG-full" NOKVM=true BUILDID="$ID-full" DSTARCH="$ARCH" ./minilinux.sh "$KERNEL" "$FEATURES" autoclean
   done
 done
 ```

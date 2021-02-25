@@ -268,7 +268,7 @@ msg_and_die()
 
 	echo >&2 "$message"
 
-	has_arg 'autoclean' && cd ../../ && rm -fR "$BASEDIR"
+	has_arg 'autoclean' && cd "$BASEDIR" && cd .. && rm -fR "$BASEDIR"
 	exit "$rc"
 }
 
@@ -1777,6 +1777,6 @@ echo "# thanks for using:"
 echo "# https://github.com/bittorf/kritis-linux"
 echo
 
-has_arg 'autoclean' && cd ../../ && rm -fR "$BASEDIR"
+has_arg 'autoclean' && cd "$BASEDIR" && cd .. && rm -fR "$BASEDIR"
 
 test $RC -eq 0
