@@ -795,14 +795,18 @@ esac
 	untar ./* || exit
 	cd ./* || exit
 
-	   CC="$PWD/$( find bin/ -name '*-linux-musl-gcc'   )"
-	  CXX="$PWD/$( find bin/ -name '*-linux-musl-g++'   )"
-	STRIP="$PWD/$( find bin/ -name '*-linux-musl-strip' )"
+	 CC="$PWD/$( find bin/ -name '*-linux-musl-gcc'   )"
+	CXX="$PWD/$( find bin/ -name '*-linux-musl-g++'   )"
 
+	export CC CXX PATH="$PWD/bin:$PATH"
+}
+
+[ -n "$CROSSCOMPILE" ] && {
 	CONF_HOST="${CROSSCOMPILE#*=}"		# e.g. 'CROSS_COMPILE=i686-linux-gnu-'
+	STRIP="${CONF_HOST%?}-strip"		#                  -> i686-linux-gnu-strip
 	CONF_HOST="--host=${CONF_HOST%?}"	#                  -> i686-linux-gnu
 
-	export CC CXX STRIP CONF_HOST PATH="$PWD/bin:$PATH"
+	export STRIP CONF_HOST
 }
 
 export MUSL="$OPT/musl"
