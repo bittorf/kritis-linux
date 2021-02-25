@@ -174,7 +174,7 @@ for ARCH in armel armhf arm64 or1k m68k uml uml32 x86 x86_64; do
   for KERNEL in "3.18" "4.4.258" "4.9.258" "4.14.222" "4.19.177" "5.4.100" "5.10.18" "5.11.1"; do
     ID="${KERNEL}_${ARCH}"
     LOG=A NOKVM=true BUILDID="$ID-tiny" DSTARCH="$ARCH" ./minilinux.sh "$KERNEL" autoclean &
-    LOG=B NOKVM=true BUILDID="$ID-full" DSTARCH="$ARCH" ./minilinux.sh "$KERNEL" "$FEATURES" autoclean &
+    LOG=B NOKVM=true BUILDID="$ID-full" DSTARCH="$ARCH" ./minilinux.sh "$KERNEL" "$FEATURES" autoclean
     grep -q BOOTTIME_SECONDS A && echo "$ID-tiny"
     grep -q BOOTTIME_SECONDS B && echo "$ID-full"
   done
