@@ -241,13 +241,13 @@ download()
 	fi
 }
 
-untar()
+untar()		# and delete
 {
 	case "$1" in
-		*.zip) unzip "$1" ;;
-		*.xz)  tar xJf "$1" ;;
-		*.bz2) tar xjf "$1" ;;
-		*.gz|*.tgz)  tar xzf "$1" ;;
+		*.zip) unzip "$1" && rm "$1" ;;
+		*.xz)  tar xJf "$1" && rm "$1" ;;
+		*.bz2) tar xjf "$1" && rm "$1" ;;
+		*.gz|*.tgz)  tar xzf "$1" && rm "$1" ;;
 		*) false ;;
 	esac
 }
