@@ -1139,7 +1139,7 @@ printf '%s\n' "# READY - to quit $( test "$DSTARCH" = uml && echo "type 'exit'" 
 test -f init.user && busybox sleep 2 && AUTO=true ./init.user	# wait for dmesg-trash
 
 LN="\$( command -v ln || echo 'false ' )"
-$( has_arg 'procfs' || echo 'LN=false' )"
+$( has_arg 'procfs' || echo 'LN=false' )
 \$LN -sf /proc/self/fd   /dev/fd
 \$LN -sf /proc/self/fd/0 /dev/stdin
 \$LN -sf /proc/self/fd/1 /dev/stdout
