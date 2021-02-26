@@ -168,13 +168,19 @@ Just extract like `sed -n '/^FEATURES/,/^done/p' README.md >release.sh && sh rel
 
 ```
 #!/bin/sh
-FEATURES='printk procfs sysfs busybox bash dash net wireguard dropbear'
+LIST_ARCH='armel armhf arm64 or1k m68k uml uml32 x86 x86_64'
+LIST_KERNEL='3.18 4.4.258 4.9.258 4.14.222 4.19.177 5.4.100 5.10.18 5.11.1'
+FULL='printk procfs sysfs busybox bash dash net wireguard dropbear'
+TINY=''
+no_overload() { sleep 30; while test "$(nproc)" -le "$(cut -d'.' -f1 /proc/loadavg)"; do sleep 30; done; }
 
-for ARCH in armel armhf arm64 or1k m68k uml uml32 x86 x86_64; do
-  for KERNEL in "3.18" "4.4.258" "4.9.258" "4.14.222" "4.19.177" "5.4.100" "5.10.18" "5.11.1"; do
+for ARCH in $LIST_ARCH; do
+  for KERNEL in $LIST_KERNEL; do
     ID="${KERNEL}_${ARCH}" LOG="$PWD/log-$ID"
-    LOG="$LOG-tiny" NOKVM=true BUILDID="$ID-tiny" DSTARCH="$ARCH" ./minilinux.sh "$KERNEL" autoclean &
-    LOG="$LOG-full" NOKVM=true BUILDID="$ID-full" DSTARCH="$ARCH" ./minilinux.sh "$KERNEL" "$FEATURES" autoclean
+    LOG=$LOG-tiny NOKVM=true BUILDID=$ID-tiny DSTARCH=$ARCH ./minilinux.sh $KERNEL "$TINY" autoclean &
+    no_overload
+    LOG=$LOG-full NOKVM=true BUILDID=$ID-full DSTARCH=$ARCH ./minilinux.sh $KERNEL "$FULL" autoclean &
+    no_overload
   done
 done
 ```

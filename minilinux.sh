@@ -7,7 +7,8 @@ KERNEL="$1"		# e.g. 'latest' or 'stable' or '5.4.89' or '4.19.x' or URL-to-tarba
 	export OPTIONS="$*"	# see has_arg(), spaces are not working
 }
 
-BASEDIR="minilinux${BUILID:+_}${BUILDID}"	# autoclean removes it later
+BASEDIR="$PWD/minilinux${BUILID:+_}${BUILDID}"		# autoclean removes it later
+UNIX0="$( date +%s )"
 
 URL_TOYBOX='http://landley.net/toybox/downloads/toybox-0.8.4.tar.gz'
 URL_BUSYBOX='https://busybox.net/downloads/busybox-1.33.0.tar.bz2'
@@ -1455,6 +1456,10 @@ for WORD in $EMBED_CMDLINE; do {
 	esac
 } done
 
+# shellcheck disable=SC2046
+set -- $(du -sh "$BASEDIR") && DISKSPACE="$1"
+
+
 # TODO: include build-instructions
 cat >"$LINUX_BUILD/run.sh" <<!
 #!/bin/sh
@@ -1470,6 +1475,8 @@ MAX="\${3:-86400}"	# max running time [seconds] in autotest-mode
 
 # generated: $( date )
 #
+# BUILDTIME: $(( $( date +%s ) - UNIX0 )) sec
+# DISKSPACE: $DISKSPACE
 # ARCHITECTURE: ${DSTARCH:-default} / ${ARCH:-default}
 # COMPILER: ${CROSSCOMPILE:-cc}
 # CMDLINE_OPTIONS: $OPTIONS
