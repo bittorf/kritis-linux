@@ -1263,6 +1263,17 @@ F2='scripts/dtc/dtc-lexer.lex.c_shipped'
 	sed -i "s|# Only replace the real|${REPLACE}\n\n# Only replace the real|" "$F" || exit
 	emit_doc "applied: kernel-patch in '$F' | FAKEID"
 }
+# http://lkml.iu.edu/hypermail/linux/kernel/1806.1/05149.html
+F='arch/x86/um/shared/sysdep/ptrace_32.h'
+[ -f "$F" ] && {
+	LINE="$( grep -n '#define PTRACE_SYSEMU 31' $F | cut -d':' -f1 )"
+	sed -i "$((LINE-1)),$((LINE+1))d" $F || exit
+	LINE="$( grep -n '#define PTRACE_SYSEMU_SINGLESTEP 32' $F | cut -d':' -f1 )"
+	sed -i "$((LINE-1)),$((LINE+1))d" $F || exit
+}
+# https://lore.kernel.org/patchwork/patch/630468/
+F='arch/x86/um/Makefile'
+sed -i "s|obj-\$(CONFIG_BINFMT_ELF) += elfcore.o|obj-\$(CONFIG_ELF_CORE) += elfcore.o|" $F
 
 
 # kernel 2,3,4 but nut 5.x - FIXME!
