@@ -1769,7 +1769,7 @@ ABORT_PATTERN='# READY'
 [ -f "$OWN_INITRD" ] && ABORT_PATTERN=
 
 chmod +x "$LINUX_BUILD/run.sh" && \
-	 "$LINUX_BUILD/run.sh" 'autotest' "$ABORT_PATTERN" 5
+	 "$LINUX_BUILD/run.sh" 'autotest' "$ABORT_PATTERN" 10
 RC=$?
 
 echo
