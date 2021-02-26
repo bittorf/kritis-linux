@@ -164,7 +164,7 @@ history -r && exit
 ### Release: smoketest
 
 This test builds and testboots 144 images and needs approx. 12 hours.  
-Just extract like `sed -n '/^^LIST/,/^done/p' README.md >release.sh && sh release.sh`.
+Just extract like `sed -n '/^LIST/,/^done/p' README.md >release.sh && sh release.sh`.
 
 ```
 #!/bin/sh
