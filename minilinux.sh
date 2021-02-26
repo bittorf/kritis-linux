@@ -890,11 +890,8 @@ has_arg 'dropbear' && {
 	}
 
 	copy_result() {
-		ls -l dropbearmulti
 		$STRIP 'dropbearmulti'
-		ls -l dropbearmulti
 		cp -v 'dropbearmulti' "$OPT/dropbear/"
-		pwd
 	}
 
 	install_dropbear() {
@@ -943,24 +940,26 @@ has_arg 'wireguard' && {
 }
 
 has_arg 'bash' && {
-	export BASH="$OPT/bash"
-	mkdir -p "$BASH"
+	prepare() {
+		./configure $CONF_HOST --without-bash-malloc
+	}
 
-	export BASH_BUILD="$BUILDS/bash"
-	mkdir -p "$BASH_BUILD"
+	build() {
+		# parallel builds unreliable:
+		# https://lists.gnu.org/archive/html/bug-bash/2020-12/msg00001.html
+		make $SILENT_MAKE $ARCH $CROSSCOMPILE || exit
+	}
 
-	download "$URL_BASH" || exit
-	mv ./*bash* "$BASH_BUILD/" || exit
-	cd "$BASH_BUILD" || exit
-	untar ./* || exit
-	cd ./* || exit		# there is only 1 dir
+	copy_result() {
+		$STRIP "$PWD/bash"
+		cp -v "$PWD/bash" "$OPT/bash/"
+	}
 
-	./configure $CONF_HOST $SILENT_CONF "CC=$CC -static" "CPP=$CXX -static -E" --without-bash-malloc
-	make "CC=$CC -static" "CPP=$CXX -static -E" $SILENT_MAKE $ARCH $CROSSCOMPILE || exit
-	# no parallel builds: https://lists.gnu.org/archive/html/bug-bash/2020-12/msg00001.html | "-j$CPU"
+	install_bash() {
+		cp -v "$OPT/bash/bash" bin/bash
+	}
 
-	BASH="$PWD/bash"
-	$STRIP "$BASH" || exit
+	compile 'bash' "$URL_BASH"
 }
 
 export BUSYBOX="$OPT/busybox"
@@ -1076,14 +1075,7 @@ fi
 
 has_arg 'dropbear' && install_dropbear
 
-if [ -s "$BASH" ]; then
-	cp -v "$BASH" bin/bash
-else
-	:
-	# TODO: add var REMOVE_LIST=...
-	# ln -s ash bin/bash
-fi
-
+has_arg 'bash' && install_bash
 
 [ -d "$INITRD_DIR_ADD" ] && {
 	# FIXME! we do not include a spedicla directory named 'x'
@@ -1156,6 +1148,7 @@ printf '%s\n' "mount -t devtmpfs none /dev"
 if mount -t devtmpfs none /dev; then
 	LN="\$( command -v ln || echo 'false ' )"
 	$( has_arg 'procfs' || echo '	LN=false' )
+	# http://www.linuxfromscratch.org/lfs/view/6.1/chapter06/devices.html
 	\$LN -sf /proc/self/fd   /dev/fd
 	\$LN -sf /proc/self/fd/0 /dev/stdin
 	\$LN -sf /proc/self/fd/1 /dev/stdout
@@ -1523,6 +1516,8 @@ grep -q vmx /proc/cpuinfo && KVM_SUPPORT='-enable-kvm -cpu host'
 $( test -n "$NOKVM" && echo 'KVM_SUPPORT=' )
 [ -n "\$KVM_SUPPORT" ] && test "\$( id -u )" -gt 0 && KVM_PRE="\$( command -v sudo )"
 
+$( has_arg 'net' && echo "QEMU_OPTIONS='-net nic,model=rtl8139 -net user'" )
+
 case "${DSTARCH:-\$( arch || echo native )}" in armel|armhf|arm|arm64)
 	DTB='$DTB'
 	KVM_SUPPORT="-M $BOARD \${DTB:+-dtb }\$DTB" ; KVM_PRE=; KERNEL_ARGS='console=ttyAMA0'
@@ -1531,6 +1526,8 @@ case "${DSTARCH:-\$( arch || echo native )}" in armel|armhf|arm|arm64)
 	m68k)
 		KVM_SUPPORT="-M $BOARD"
 		KVM_PRE=
+
+		$( has_arg 'net' && echo "QEMU_OPTIONS='-net nic,model=dp83932 -net user'" )
 	;;
 	or1k)
 		KVM_PRE=
@@ -1545,7 +1542,6 @@ esac
 $( test -f "$BIOS" && echo "BIOS='-bios \"$BIOS\"'" )
 $( has_arg 'net' && echo "KERNEL_ARGS='console=ttyS0 ip=dhcp nameserver=8.8.8.8'" )
 QEMU_OPTIONS=
-$( has_arg 'net' && echo "QEMU_OPTIONS='-net nic,model=rtl8139 -net user'" )
 $( test -x "$SLIRP_BIN" && echo "UMLNET='eth0=slirp,FE:FD:01:02:03:04,$SLIRP_BIN'" )
 
 case "\$ACTION" in

@@ -182,6 +182,8 @@ done
 ### ToDo list
 * CI examples: TravisCI, CircleCI
 * fix `or1k` https://lkml.org/lkml/2020/7/4/244
+* fix dev bringup: http://www.linuxfromscratch.org/lfs/view/6.1/chapter06/devices.html
+* fix `m68k' net/MACSONIC bringup
 * debian-minimal testrun for deps
 * builddir = mark_cache = no_backup
 * net: nameserver?
