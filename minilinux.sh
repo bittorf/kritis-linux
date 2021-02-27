@@ -1277,10 +1277,12 @@ F2='scripts/dtc/dtc-lexer.lex.c_shipped'
 }
 # http://lkml.iu.edu/hypermail/linux/kernel/1806.1/05149.html
 F='arch/x86/um/shared/sysdep/ptrace_32.h'
-[ -f "$F" ] && {
+[ -f "$F" ] && [ "$DSTARCH" = 'uml' ] && {
 	LINE="$( grep -n '#define PTRACE_SYSEMU 31' $F | cut -d':' -f1 )"
+	LINE=${LINE:-999999}	# does not harm
 	sed -i "$((LINE-1)),$((LINE+1))d" $F || exit
 	LINE="$( grep -n '#define PTRACE_SYSEMU_SINGLESTEP 32' $F | cut -d':' -f1 )"
+	LINE=${LINE:-999999}	# does not harm
 	sed -i "$((LINE-1)),$((LINE+1))d" $F || exit
 }
 # https://lore.kernel.org/patchwork/patch/630468/
