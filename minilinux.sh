@@ -1237,6 +1237,10 @@ F2='scripts/dtc/dtc-lexer.lex.c_shipped'
 	F1='arch/openrisc/kernel/vmlinux.lds.S'
 	sed -i 's/elf32-or32/elf32-or1k/g' "$F1" || exit
 	emit_doc "applied: kernel-patch in '$F1'"
+
+	F2='arch/openrisc/boot/dts/or1ksim.dts'
+	sed -i "s|\(^.*bootargs = .*\)|\1\n\t\tlinux,initrd-start = <0x82000000>;\n\t\tlinux,initrd-end = <0x82800000>;|" "$F2" || exit
+	emit_doc "applied: kernel-patch, builtin DTB: '$F2'"
 }
 #
 [ -n "$EMBED_CMDLINE" ] && is_uml && {
@@ -1572,7 +1576,7 @@ case "${DSTARCH:-\$( arch || echo native )}" in armel|armhf|arm|arm64)
 esac
 
 $( test -f "$BIOS" && echo "BIOS='-bios \"$BIOS\"'" )
-$( has_arg 'net' && echo "KERNEL_ARGS='console=ttyS0 ip=dhcp nameserver=8.8.8.8'" )
+$( has_arg 'net' && echo "KERNEL_ARGS=\"\$KERNEL_ARGS ip=dhcp nameserver=8.8.8.8\"" )
 QEMU_OPTIONS=
 $( test -x "$SLIRP_BIN" && echo "UMLNET='eth0=slirp,FE:FD:01:02:03:04,$SLIRP_BIN'" )
 
