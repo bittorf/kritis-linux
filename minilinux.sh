@@ -54,6 +54,7 @@ install_dep()
 	}
 }
 
+is_uml() { false; }
 has_arg 'UML' && DSTARCH='uml'
 #
 case "$DSTARCH" in
@@ -111,6 +112,7 @@ case "$DSTARCH" in
 	um*)	# http://uml.devloop.org.uk/kernels.html
 		# https://unix.stackexchange.com/questions/90078/which-one-is-lighter-security-and-cpu-wise-lxc-versus-uml
 		[ "$DSTARCH" = 'uml32' ] && OPTIONS="$OPTIONS 32bit"
+		is_uml() { true; }
 
 		export ARCH='ARCH=um'
 		export DEFCONFIG='tinyconfig'
@@ -156,7 +158,7 @@ has_arg 'defconfig'	&& DEFCONFIG='defconfig'
 has_arg 'config'	&& DEFCONFIG='config'		# e.g. kernel 2.4.x
 
 case "$DSTARCH" in
-	uml)
+	uml*)
 	;;
 	or1k|m68k)
 		install_dep 'qemu-system'
@@ -480,7 +482,7 @@ list_kernel_symbols()
 				# support for 32bit binaries
 				# note: does not work/exist in uml: https://uml.devloop.org.uk/faq.html
 				case "$DSTARCH" in
-					uml|arm64) ;;
+					uml*|arm64) ;;
 					*) echo 'CONFIG_IA32_EMULATION=y' ;;
 				esac
 			fi
@@ -499,7 +501,7 @@ list_kernel_symbols()
 		echo 'CONFIG_IP_PNP_DHCP=y'
 
 		case "$DSTARCH" in
-			uml)
+			uml*)
 				echo 'CONFIG_UML_NET=y'
 				echo 'CONFIG_UML_NET_SLIRP=y'
 			;;
@@ -573,7 +575,7 @@ EOF
 	esac
 
 	case "$DSTARCH" in
-		uml)
+		uml*)
 			# CONFIG_COMPAT_BRK=y	// disable head randomization ~500 bytes smaller
 			# CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y
 			# CONFIG_BUILD_SALT="FOOX12345"
@@ -777,7 +779,7 @@ apply()
 install_dep 'build-essential'		# prepare for 'make'
 
 case "$DSTARCH" in
-	uml)
+	uml*)
 		# seems that musl-cc has issues:
 		# https://www.openwall.com/lists/musl/2020/03/31/7
 #		unset CROSSCOMPILE CC CXX STRIP CONF_HOST
@@ -1152,7 +1154,7 @@ UNAME="\$( command -v uname || printf '%s' false )"
 printf '%s\n' "# BOOTTIME_SECONDS \${UP:--1 (missing procfs?)}"
 printf '%s\n' "# MEMFREE_KILOBYTES \${MEMAVAIL_KB:--1 (missing procfs?)}"
 printf '%s\n' "# UNAME \$( \$UNAME -a || printf uname_unavailable )"
-printf '%s\n' "# READY - to quit $( test "$DSTARCH" = uml && echo "type 'exit'" || echo "press once CTRL+A and then 'x' or kill qemu" )"
+printf '%s\n' "# READY - to quit $( is_uml && echo "type 'exit'" || echo "press once CTRL+A and then 'x' or kill qemu" )"
 
 # hack for MES:
 test -f init.user && busybox sleep 2 && AUTO=true ./init.user	# wait for dmesg-trash
@@ -1239,7 +1241,7 @@ F2='scripts/dtc/dtc-lexer.lex.c_shipped'
 	emit_doc "applied: kernel-patch in '$F1'"
 }
 #
-[ -n "$EMBED_CMDLINE" ] && [ "$DSTARCH" = 'uml' ] && {
+[ -n "$EMBED_CMDLINE" ] && is_uml && {
 	# e.g. EMBED_CMDLINE="mem=72M initrd=/tmp/cpio.gz"
 	F1='arch/um/kernel/um_arch.c'
 	F2='arch/x86/um/os-Linux/task_size.c'
@@ -1277,7 +1279,7 @@ F2='scripts/dtc/dtc-lexer.lex.c_shipped'
 }
 # http://lkml.iu.edu/hypermail/linux/kernel/1806.1/05149.html
 F='arch/x86/um/shared/sysdep/ptrace_32.h'
-[ -f "$F" ] && [ "$DSTARCH" = 'uml' ] && {
+[ -f "$F" ] && is_uml && {
 	LINE="$( grep -n '#define PTRACE_SYSEMU 31' $F | cut -d':' -f1 )"
 	LINE=${LINE:-999999}	# does not harm
 	sed -i "$((LINE-1)),$((LINE+1))d" $F || exit
@@ -1565,7 +1567,7 @@ case "${DSTARCH:-\$( arch || echo native )}" in armel|armhf|arm|arm64)
 		KVM_PRE=
 		KVM_SUPPORT="-M $BOARD \${DTB:+-dtb }\$DTB -cpu or1200"
 	;;
-	uml)
+	uml*)
 		QEMU="$( basename "$KERNEL_FILE" )"	# for later kill
 		KVM_PRE=				# sudo unneeded?
 	;;
@@ -1583,7 +1585,7 @@ case "\$ACTION" in
 		set -x
 
 		case "$DSTARCH" in
-			uml)
+			uml*)
 				echo "INTERACTIVE: will start now UML-linux:"
 				echo
 
@@ -1627,7 +1629,7 @@ mkfifo "\$PIPE.out" || exit
 
 (
 	case "$DSTARCH" in
-		uml)
+		uml*)
 			echo "AUTOTEST for \$MAX sec: will start now UML-linux"
 			echo
 
@@ -1669,7 +1671,7 @@ T0="\$( date +%s )"
 	echo "# startup:"
 
 	case "$DSTARCH" in
-		uml)
+		uml*)
 			echo "$KERNEL_FILE mem=\$MEM \$UMLNET \\\\"
 			echo "	initrd=$INITRD_FILE"
 		;;
