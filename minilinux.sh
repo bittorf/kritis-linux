@@ -2,10 +2,9 @@
 # script runs on any POSIX shell, but has issues with 'dash 0.5.10.2-7' on ubuntu during 'init' concatenation
 
 KERNEL="$1"		# e.g. 'latest' or 'stable' or '5.4.89' or '4.19.x' or URL-to-tarball
-[ -n "$2" ] && {
-	shift
-	export OPTIONS="$*"	# see has_arg(), spaces are not working
-}
+while shift; do
+	export OPTIONS="$OPTIONS $1"	# see has_arg(), spaces are not working
+done
 
 BASEDIR="$PWD/minilinux${BUILID:+_}${BUILDID}"		# autoclean removes it later
 UNIX0="$( date +%s )"
@@ -285,8 +284,6 @@ autoclean_do()
 	cd "$BASEDIR" && cd .. && rm -fR "$BASEDIR"
 }
 
-has_arg 'autoclean' && trap "autoclean_do" HUP INT QUIT TERM EXIT
-
 case "$KERNEL" in
 	'clean')
 		rm -fR "$BASEDIR"
@@ -375,6 +372,7 @@ esac
 rm -fR "$BASEDIR"
 mkdir -p "$BASEDIR" && {
 	cd "$BASEDIR" || exit
+	has_arg 'autoclean' && trap "autoclean_do" HUP INT QUIT TERM EXIT
 }
 
 export OPT="$PWD/opt"
@@ -1808,4 +1806,4 @@ echo "# thanks for using:"
 echo "# https://github.com/bittorf/kritis-linux"
 echo
 
-test $RC -eq 0
+exit $RC

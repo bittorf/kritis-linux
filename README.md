@@ -176,16 +176,17 @@ no_overload() { sleep 30; while test "$(nproc)" -le "$(cut -d'.' -f1 /proc/loada
 
 for ARCH in $LIST_ARCH; do
   for KERNEL in $LIST_KERNEL; do
-    export ID="${KERNEL}_${ARCH}" LOG="$PWD/log-$ID" FAKEID='kritis-release@github.com'
-    LOG=$LOG-tiny NOKVM=true BUILDID=$ID-tiny DSTARCH=$ARCH ./minilinux.sh $KERNEL "$TINY" autoclean &
+    export ID="${KERNEL}_${ARCH}" LOG="$PWD/log-$ID" FAKEID='kritis-release@github.com' NOKVM=true
+    LOG=$LOG-tiny BUILDID=$ID-tiny DSTARCH=$ARCH ./minilinux.sh $KERNEL "$TINY" autoclean &
     no_overload
-    LOG=$LOG-full NOKVM=true BUILDID=$ID-full DSTARCH=$ARCH ./minilinux.sh $KERNEL "$FULL" autoclean &
+    LOG=$LOG-full BUILDID=$ID-full DSTARCH=$ARCH ./minilinux.sh $KERNEL "$FULL" autoclean &
     no_overload
   done
 done
 ```
 
 ### ToDo list
+* build additive star matrix: tiny/full: compiles, kernel boots, initrd boots, network ok + glibc/musl/diet
 * CI examples: TravisCI, CircleCI
 * fix `or1k` https://lkml.org/lkml/2020/7/4/244
 * fix dev bringup: http://www.linuxfromscratch.org/lfs/view/6.1/chapter06/devices.html
