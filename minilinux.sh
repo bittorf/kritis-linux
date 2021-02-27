@@ -93,11 +93,17 @@ case "$DSTARCH" in
 		# https://www.reddit.com/r/archlinux/comments/ejkp1x/what_is_the_name_of_this_font/fczfy60/
 		# https://news.ycombinator.com/item?id=25027213
 		# http://users.telenet.be/geertu/Linux/68000/
+		# https://elinux.org/Flameman/mac68k
 		export ARCH='ARCH=m68k' CROSSCOMPILE='CROSS_COMPILE=m68k-linux-gnu-'
 		export BOARD='q800' DEFCONFIG='tinyconfig'
 		export QEMU='qemu-system-m68k'
 		install_dep 'gcc-m68k-linux-gnu'
 		CROSS_DL='https://musl.cc/m68k-linux-musl-cross.tgz'
+	;;
+	ppc)	# 32bit
+	;;
+	ppc64)	# big endian
+		# https://issues.guix.gnu.org/41669
 	;;
 	ppc64le)# IBM Power8/9 = "PowerISA 3.1" = powerpc64le
 		:
@@ -1781,7 +1787,7 @@ ABORT_PATTERN='# READY'
 [ -f "$OWN_INITRD" ] && ABORT_PATTERN=
 
 chmod +x "$LINUX_BUILD/run.sh" && \
-	 "$LINUX_BUILD/run.sh" 'autotest' "$ABORT_PATTERN" 10
+	 "$LINUX_BUILD/run.sh" 'autotest' "$ABORT_PATTERN" 20
 RC=$?
 
 echo
