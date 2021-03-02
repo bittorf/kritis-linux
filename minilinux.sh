@@ -294,9 +294,14 @@ autoclean_do()
 }
 
 case "$KERNEL" in
-	'smoketest_for_release')
+	'smoketest'*)
 		LIST_ARCH='armel  armhf  arm64  or1k  m68k  uml  uml32  x86  x86_64'
 		LIST_KERNEL='3.18  4.4.258  4.9.258  4.14.222  4.19.177  5.4.101  5.10.19  5.11.2'
+	;;
+esac
+
+case "$KERNEL" in
+	'smoketest_for_release')
 		FULL='printk procfs sysfs busybox bash dash net wireguard iodine icmptunnel dropbear speedup'
 		TINY='printk'
 
@@ -318,7 +323,9 @@ case "$KERNEL" in
 		done
 
 		echo "needed $(( $(date +%s) - UNIX )) sec"
-
+		exit
+	;;
+	'smoketest_report_html')
 		build_matrix_html() {
 			echo "<html><head><title>MATRIX</title></head><body>"
 			echo "<table cellspacing=1 cellpadding=1 border=1>"
@@ -348,6 +355,7 @@ case "$KERNEL" in
 		}
 
 		build_matrix_html >'matrix.html'
+		exit
 	;;
 	'clean')
 		rm -fR "$BASEDIR"
