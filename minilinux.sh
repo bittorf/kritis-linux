@@ -279,9 +279,12 @@ msg_and_die()
 	local rc="$1"
 	local txt="$2"
 	local message="[ERROR] rc:$rc | pwd: $PWD | $txt"
+	local log="${LOG:-/dev/null}"
 
-	emit_doc "$message"
-	emit_doc 'all'
+	{
+		emit_doc "$message"
+		emit_doc 'all'
+	} | tee "$log"
 
 	echo >&2 "$message"
 
@@ -310,6 +313,7 @@ case "$KERNEL" in
 
 		for ARCH in $LIST_ARCH; do
 		  for KERNEL in $LIST_KERNEL; do
+		    I="${I}#"
 		    ID="${KERNEL}_${ARCH}"
 		    LOG="$PWD/log-$ID"
                     export FAKEID='kritis-release@github.com'
@@ -321,6 +325,8 @@ case "$KERNEL" in
 		    avoid_overload
 		  done
 		done
+
+		while [ "$( find . -type f -name 'log-*' | wc -l )" -lt $I ]; do sleep 5; done
 
 		echo "needed $(( $(date +%s) - UNIX )) sec"
 		exit
