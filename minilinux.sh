@@ -296,7 +296,7 @@ case "$KERNEL" in
 	'smoketest_for_release')
 		LIST_ARCH='armel  armhf  arm64  or1k  m68k  uml  uml32  x86  x86_64'
 		LIST_KERNEL='3.18  4.4.258  4.9.258  4.14.222  4.19.177  5.4.101  5.10.19  5.11.2'
-		FULL='printk procfs sysfs busybox bash dash net wireguard dropbear speedup'
+		FULL='printk procfs sysfs busybox bash dash net wireguard iodine dropbear speedup'
 		TINY='printk'
 
 		avoid_overload() { sleep 30; while test "$(cut -d'.' -f1 /proc/loadavg)" -ge "$CPU"; do sleep 30; done; }
@@ -1807,6 +1807,7 @@ mkfifo "\$PIPE.out" || exit
 			echo "AUTOTEST for \$MAX sec: will start now QEMU: \$KVM_PRE \$QEMU -m \$MEM \$KVM_SUPPORT ..."
 			echo
 
+			# code must be duplicated, see below in LOG
 			\$KVM_PRE \$QEMU -m \$MEM \$KVM_SUPPORT \$BIOS \\
 				-kernel $KERNEL_FILE \\
 				-initrd $INITRD_FILE \\
@@ -1845,7 +1846,7 @@ fi
 			echo "	-kernel $KERNEL_FILE \\\\"
 			echo "	-initrd $INITRD_FILE \\\\"
 			echo "	-nographic \\\\"
-			echo "	-append "\$KERNEL_ARGS" \$QEMU_OPTIONS -pidfile \"\$PIDFILE\""
+			echo "	-append \"\$KERNEL_ARGS\" \$QEMU_OPTIONS -pidfile \"\$PIDFILE\""
 		;;
 	esac
 
@@ -1951,7 +1952,7 @@ echo "# in dir '\$(pwd)'"
 echo
 
 echo "will now stop '\$QEMU' with pid \$PID" && \$KVM_PRE echo
-while \$KVM_PRE kill -0 \$PID; do \$KVM_PRE kill \$PID; sleep 1; done
+while \$KVM_PRE kill -0 \$PID; do \$KVM_PRE kill \$PID; sleep 1; \$KVM_PRE kill -s KILL \$PID; done
 rm -f "\$PIPE" "\$PIPE.in" "\$PIPE.out" "\$PIDFILE"
 
 test \$RC -eq 0
