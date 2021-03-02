@@ -602,6 +602,10 @@ list_kernel_symbols()
 		esac
 	}
 
+	has_arg 'iodine' && {
+		echo 'CONFIG_TUN=y'
+	}
+
 	has_arg 'wireguard' && {
 		echo 'CONFIG_NET_FOU=y'
 		echo 'CONFIG_CRYPTO=y'
@@ -1799,6 +1803,7 @@ mkfifo "\$PIPE.out" || exit
 			rm -fR "\$DIR"
 		;;
 		*)
+			PIDFILE="\$( mktemp -u )"
 			echo "AUTOTEST for \$MAX sec: will start now QEMU: \$KVM_PRE \$QEMU -m \$MEM \$KVM_SUPPORT ..."
 			echo
 
@@ -1807,13 +1812,18 @@ mkfifo "\$PIPE.out" || exit
 				-initrd $INITRD_FILE \\
 				-nographic \\
 				-serial pipe:\$PIPE \\
-				-append "\$KERNEL_ARGS" \$QEMU_OPTIONS
+				-append "\$KERNEL_ARGS" \$QEMU_OPTIONS -pidfile "\$PIDFILE"
 		;;
 	esac
 ) &
 
-PID=\$!
 T0="\$( date +%s )"
+
+if [ -z "\$PIDFILE" ]; then
+	PID=\$!
+else
+	for _ in 1 2 3 4 5; do read -r PID <"\$PIDFILE" && break; sleep 1; done
+fi
 
 {
 	echo "# images generated using:"
@@ -1940,8 +1950,8 @@ echo
 
 # FIXME! we must make sure, that we only kill own qemu-instances
 echo "will now stop '\$QEMU' with pid \$PID" && \$KVM_PRE echo
-while \$KVM_PRE kill -0 \$PID; do \$KVM_PRE kill \$PID \$( pidof \$QEMU ); sleep 1; done
-rm -f "\$PIPE" "\$PIPE.in" "\$PIPE.out"
+while \$KVM_PRE kill -0 \$PID; do \$KVM_PRE kill \$PID; sleep 1; done
+rm -f "\$PIPE" "\$PIPE.in" "\$PIPE.out" "\$PIDFILE"
 
 test \$RC -eq 0
 !
