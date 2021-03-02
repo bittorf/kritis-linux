@@ -66,8 +66,8 @@ kritis-linux/ci_helper.sh \
 * `--features` `is,a,comma,separated,list`
   * e.g. `busybox`,`toybox`,`dash`,`bash`
   * e.g. `printk`,`sysfs`,`procfs`,`hostfs`
-  * e.g. `menuconfig`,`kmenuconfig`
-  * e.g. `wireguard`,`net`,`dropbear`,`speedup`
+  * e.g. `menuconfig`,`kmenuconfig`,`speedup`
+  * e.g. `net`,`wireguard`,`dropbear`,`iodine`,`icmptunnel`
   * e.g. `tinyconfig` or `allnoconfig` or `defconfig` or `config`
   * e.g. `CONFIG_SYMBOL_XY=y`
 * `--log` /path/to/filename

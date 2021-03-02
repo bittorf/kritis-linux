@@ -18,6 +18,7 @@ URL_DROPBEAR='https://github.com/mkj/dropbear/archive/DROPBEAR_2020.81.tar.gz'
 URL_SLIRP='https://github.com/bittorf/slirp-uml-and-compiler-friendly.git'
 URL_IODINE='https://github.com/frekky/iodine/archive/master.zip'	# fork has 'configure' + crosscompile support
 URL_ZLIB='https://github.com/madler/zlib/archive/v1.2.11.tar.gz'
+URL_ICMPTUNNEL='https://github.com/DhavalKapil/icmptunnel/archive/master.zip'
 
 export STRIP=strip
 export LC_ALL=C
@@ -296,7 +297,7 @@ case "$KERNEL" in
 	'smoketest_for_release')
 		LIST_ARCH='armel  armhf  arm64  or1k  m68k  uml  uml32  x86  x86_64'
 		LIST_KERNEL='3.18  4.4.258  4.9.258  4.14.222  4.19.177  5.4.101  5.10.19  5.11.2'
-		FULL='printk procfs sysfs busybox bash dash net wireguard iodine dropbear speedup'
+		FULL='printk procfs sysfs busybox bash dash net wireguard iodine icmptunnel dropbear speedup'
 		TINY='printk'
 
 		avoid_overload() { sleep 30; while test "$(cut -d'.' -f1 /proc/loadavg)" -ge "$CPU"; do sleep 30; done; }
@@ -603,6 +604,10 @@ list_kernel_symbols()
 	}
 
 	has_arg 'iodine' && {
+		echo 'CONFIG_TUN=y'
+	}
+
+	has_arg 'icmptunnel' && {
 		echo 'CONFIG_TUN=y'
 	}
 
@@ -964,7 +969,6 @@ compile()
 	download "$url"
 	for file in ./*; do break; done
 	untar "$file"
-	rm "$file"
 	cd ./* || exit
 
 	# generic prepare:
@@ -1070,6 +1074,51 @@ has_arg 'bash' && {
 	compile 'bash' "$URL_BASH"
 }
 
+has_arg 'dummy' && {
+	prepare() {
+		:
+	}
+
+	build() {
+		"CC=$CC -static" "CPP=$CXX -static -E" make $SILENT_MAKE $ARCH $CROSSCOMPILE "-j$CPU" || exit
+	}
+
+	copy_result() {
+		$STRIP "$PWD/dummy.bin" || exit
+		cp -v "$PWD/dummy.bin" "$OPT/dummy/dummy"
+	}
+
+	install_dummy() {
+		:
+	}
+
+	compile 'dummy' "URL_DUMMY"
+}
+
+has_arg 'icmptunnel' && {
+	prepare() {
+		sed -i '/^CC=/d' Makefile
+		sed -i '/^CFLAGS=/d' Makefile
+	}
+
+	build() {
+		local cflags='-I. -O3 -Wall -ffunction-sections -fdata-sections -static'
+		local ldflags='-Wl,--gc-sections'
+		CFLAGS="$cflags" LDFLAGS="$ldflags" make 'icmptunnel' $SILENT_MAKE $ARCH $CROSSCOMPILE "-j$CPU" || exit
+	}
+
+	copy_result() {
+		$STRIP icmptunnel || exit
+		cp -v "$PWD/icmptunnel" "$OPT/icmptunnel/"
+	}
+
+	install_icmptunnel() {
+		cp -v "$OPT/icmptunnel/icmptunnel" bin/icmptunnel
+	}
+
+	compile 'icmptunnel' "$URL_ICMPTUNNEL"
+}
+
 has_arg 'iodine' && {
 	prepare() {
 		local zlib_srcdir zlib_bindir file here="$PWD"
@@ -1087,7 +1136,7 @@ has_arg 'iodine' && {
 		#
 		# does not work with $CONF_HOST, but CHOST is set
 		./configure --prefix="$zlib_bindir" --static
-		CFLAGS="$CFLAGS -static" make $SILENT_MAKE $ARCH $CROSSCOMPILE || exit
+		CFLAGS="-static" make $SILENT_MAKE $ARCH $CROSSCOMPILE || exit
 		make install || exit
 
 		cd "$here" || exit
@@ -1096,7 +1145,8 @@ has_arg 'iodine' && {
 		autoreconf --install
 
 		# this defines __GLIBC__ -> true
-		CFLAGS="$CFLAGS -D__GLIBC__=1 -I$zlib_bindir/include -static -lz" LDFLAGS="$LDFLAGS -L$zlib_bindir/lib" ./configure $CONF_HOST || exit
+		CFLAGS="-D__GLIBC__=1 -I$zlib_bindir/include -static -lz" \
+		LDFLAGS="-L$zlib_bindir/lib" ./configure $CONF_HOST || exit
 	}
 
 	build() {
@@ -1232,6 +1282,8 @@ has_arg 'dropbear' && install_dropbear
 has_arg 'bash' && install_bash
 
 has_arg 'iodine' && install_iodine
+
+has_arg 'icmptunnel' && install_icmptunnel
 
 [ -d "$INITRD_DIR_ADD" ] && {
 	# FIXME! we do not include a spedicla directory named 'x'
