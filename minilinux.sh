@@ -16,6 +16,8 @@ URL_WIREGUARD='https://git.zx2c4.com/wireguard-tools/snapshot/wireguard-tools-1.
 URL_BASH='http://git.savannah.gnu.org/cgit/bash.git/snapshot/bash-5.1.tar.gz'
 URL_DROPBEAR='https://github.com/mkj/dropbear/archive/DROPBEAR_2020.81.tar.gz'
 URL_SLIRP='https://github.com/bittorf/slirp-uml-and-compiler-friendly.git'
+URL_IODINE='https://github.com/frekky/iodine/archive/master.zip'	# fork has 'configure' + crosscompile support
+URL_ZLIB='https://github.com/madler/zlib/archive/v1.2.11.tar.gz'
 
 export STRIP=strip
 export LC_ALL=C
@@ -237,6 +239,12 @@ download()
 
 	cache="$STORAGE/$( basename "$url" )"
 
+	case "$url" in
+		*master*)
+			cache="$STORAGE/$( echo "$url" | sha256sum | cut -d' ' -f1 )-$( basename "$url" )"
+		;;
+	esac
+
 	# e.g. during massively parallel run / release
 	while [ -f "$cache-in_progress" ]; do {
 		echo "wait for disappear of '$cache-in_progress'"
@@ -245,12 +253,12 @@ download()
 
 	if [ -s "$cache" ]; then
 		echo "[OK] download, using cache: '$cache' url: '$url'"
-		cp "$cache" .
+		cp -v "$cache" .
 	else
 		touch "$cache-in_progress"
 		wget -O "$cache" "$url" || rm -f "$cache"
 		rm "$cache-in_progress"
-		cp "$cache" .
+		cp -v "$cache" .
 	fi
 }
 
@@ -285,6 +293,61 @@ autoclean_do()
 }
 
 case "$KERNEL" in
+	'smoketest_for_release')
+		LIST_ARCH='armel  armhf  arm64  or1k  m68k  uml  uml32  x86  x86_64'
+		LIST_KERNEL='3.18  4.4.258  4.9.258  4.14.222  4.19.177  5.4.101  5.10.19  5.11.2'
+		FULL='printk procfs sysfs busybox bash dash net wireguard dropbear speedup'
+		TINY='printk'
+
+		avoid_overload() { sleep 30; while test "$(cut -d'.' -f1 /proc/loadavg)" -ge "$CPU"; do sleep 30; done; }
+		UNIX="$( date +%s )"
+
+		for ARCH in $LIST_ARCH; do
+		  for KERNEL in $LIST_KERNEL; do
+		    ID="${KERNEL}_${ARCH}"
+		    LOG="$PWD/log-$ID"
+                    export FAKEID='kritis-release@github.com'
+                    export NOKVM='true'
+
+		    LOG="$LOG-tiny" BUILDID="$ID-tiny" DSTARCH="$ARCH" "$0" "$KERNEL" "$TINY" autoclean &
+		    avoid_overload
+		    LOG="$LOG-full" BUILDID="$ID-full" DSTARCH="$ARCH" "$0" "$KERNEL" "$FULL" autoclean &
+		    avoid_overload
+		  done
+		done
+
+		echo "needed $(( $(date +%s) - UNIX )) sec"
+
+		build_matrix_html() {
+			echo "<html><head><title>MATRIX</title></head><body>"
+			echo "<table cellspacing=1 cellpadding=1 border=1>"
+
+			printf '%s' '<tr><td>&nbsp;</td>'
+			for ARCH in $LIST_ARCH; do printf '%s' "<th align='center'>$ARCH</th>"; done
+			printf '%s\n' "<tr> <!-- end headline arch -->"
+
+			for KERNEL in $LIST_KERNEL; do
+			  printf '%s' "<tr><td>$KERNEL</td>"
+			  for ARCH in $LIST_ARCH; do
+			    ID="${KERNEL}_${ARCH}"
+			    L1="$PWD/log-$ID-tiny"	# e.g. log-5.4.100_x86_64-tiny
+			    L2="$PWD/log-$ID-full"
+			    COLOR='white'
+			    SYMBOL='&mdash;'
+			    grep -qs BOOTTIME_SECONDS "$L1" && SYMBOL='ok' && COLOR='lightgreen'
+			    grep -qs BOOTTIME_SECONDS "$L2" && SYMBOL='OK' && COLOR='lime'
+			    [ ! -f "$L1" ] && [ ! -f "$L2" ] && COLOR='crimson'
+
+			    printf '%s' "<td align='center' bgcolor='$COLOR' title='$L1'>$SYMBOL</td>"
+			  done
+			  printf '%s\n' "<tr> <!-- end line kernel $KERNEL -->"
+			done
+
+			echo "</table></html>"
+		}
+
+		build_matrix_html >'matrix.html'
+	;;
 	'clean')
 		rm -fR "$BASEDIR"
 		exit
@@ -459,6 +522,29 @@ file_iscompressed()
 
 	# e.g. kernel 4.14.x bzImage: of this 724896 byte file by 8 percent.
 	test "${word:-99}" -lt $threshold
+}
+
+checksum()			# e.g. checksum 'file' plain
+{				#      checksum 'file' after plain || echo 'hash has changed'
+	local file="$1"
+	local name1="$2"	# e.g. 'plain' (aka 'untouched') OR 'after'
+	local name2="$3"	# e.g. 'plain'
+	local filehash
+
+	if [ -f "$file" ]; then
+		filehash="$( sha256sum "$file" | cut -d' ' -f1 )"
+	else
+		export STATE1=
+		return 1
+	fi
+
+	if   [ -n "$name2" ]; then
+		# compare two hashes
+		test "$filehash" = "$STATE1"
+	elif [ -n "$name1" ]; then
+		# store state1 for later usage
+		export STATE1="$filehash"
+	fi
 }
 
 list_kernel_symbols()
@@ -807,6 +893,7 @@ esac
 	mkdir -p "$CROSSC"
 
 	cd "$CROSSC" || exit
+	rm -fR ./*			# always cleanup
 	download "$CROSS_DL" || exit
 	untar ./* || exit
 	cd ./* || exit
@@ -819,10 +906,11 @@ esac
 
 [ -n "$CROSSCOMPILE" ] && {
 	CONF_HOST="${CROSSCOMPILE#*=}"		# e.g. 'CROSS_COMPILE=i686-linux-gnu-'
-	STRIP="${CONF_HOST%?}-strip"		#                  -> i686-linux-gnu-strip
-	CONF_HOST="--host=${CONF_HOST%?}"	#                  -> i686-linux-gnu
+	CHOST="${CONF_HOST%?}"			#                  -> i686-linux-gnu
+	STRIP="${CHOST}-strip"			#                  -> i686-linux-gnu-strip
+	CONF_HOST="--host=${CHOST}"
 
-	export STRIP CONF_HOST
+	export STRIP CONF_HOST CHOST
 }
 
 export MUSL="$OPT/musl"
@@ -866,7 +954,7 @@ compile()
 	mkdir -p "$build" "$result"
 
 	cd "$build" || exit
-	rm -fR ./*
+	rm -fR ./*		# always cleanup
 	download "$url"
 	for file in ./*; do break; done
 	untar "$file"
@@ -875,6 +963,7 @@ compile()
 
 	# generic prepare:
 	[ -f 'configure.ac' ] && {
+		# autoreconf --install ?
 		autoconf
 		autoheader
 	}
@@ -975,6 +1064,51 @@ has_arg 'bash' && {
 	compile 'bash' "$URL_BASH"
 }
 
+has_arg 'iodine' && {
+	prepare() {
+		local zlib_srcdir zlib_bindir file here="$PWD"
+
+		zlib_srcdir="$( mktemp -d )" || exit	# TODO: make own zlib-package
+		cd "$zlib_srcdir" || exit
+		rm -fR ./*
+		download "$URL_ZLIB"
+		for file in ./*; do break; done
+		untar "$file"
+		rm "$file"
+		cd ./* || exit
+		#
+		zlib_bindir="$( mktemp -d )" || exit
+		#
+		# does not work with $CONF_HOST, but CHOST is set
+		./configure --prefix="$zlib_bindir" --static
+		CFLAGS="$CFLAGS -static" make $SILENT_MAKE $ARCH $CROSSCOMPILE || exit
+		make install || exit
+
+		cd "$here" || exit
+		sed -i '/^AC_FUNC_MALLOC/d' configure.ac
+		sed -i 's|alarm dup2|malloc &|' configure.ac	# work around issue: undefined reference to "rpl_malloc"
+		autoreconf --install
+
+		# this defines __GLIBC__ -> true
+		CFLAGS="$CFLAGS -D__GLIBC__=1 -I$zlib_bindir/include -static -lz" LDFLAGS="$LDFLAGS -L$zlib_bindir/lib" ./configure $CONF_HOST || exit
+	}
+
+	build() {
+		make $SILENT_MAKE $ARCH $CROSSCOMPILE all || exit
+	}
+
+	copy_result() {
+		$STRIP "$PWD/iodine"			# also available: 'iodined'
+		cp -v "$PWD/iodine" "$OPT/iodine/"
+	}
+
+	install_iodine() {				# FIXME +cleanup?
+		cp -v "$OPT/iodine/iodine" bin/iodine
+	}
+
+	compile 'iodine' "$URL_IODINE"
+}
+
 export BUSYBOX="$OPT/busybox"
 mkdir -p "$BUSYBOX"
 
@@ -1007,6 +1141,7 @@ elif has_arg 'toybox'; then
 	BUSYBOX_BUILD="$PWD"
 	LDFLAGS="--static" make $SILENT_MAKE $ARCH $CROSSCOMPILE root || msg_and_die "$?" "LDFLAGS=--static make $ARCH $CROSSCOMPILE root"
 else
+	# busybox
 	make $SILENT_MAKE O="$BUSYBOX_BUILD" $ARCH $CROSSCOMPILE defconfig || msg_and_die "$?" "make O=$BUSYBOX_BUILD $ARCH $CROSSCOMPILE defconfig"
 fi
 
@@ -1046,7 +1181,7 @@ elif has_arg 'toybox'; then
 	PREFIX="$BUSYBOX_BUILD/_install" make $SILENT_MAKE $ARCH $CROSSCOMPILE install || msg_and_die "$?" "PREFIX='$BUSYBOX_BUILD/_install' make $ARCH $CROSSCOMPILE install"
 else
 	# busybox:
-	make $SILENT_MAKE "-j$CPU" $ARCH $CROSSCOMPILE || msg_and_die "$?" "make $ARCH $CROSSCOMPILE"
+	make $SILENT_MAKE $ARCH $CROSSCOMPILE "-j$CPU" || msg_and_die "$?" "make $ARCH $CROSSCOMPILE"
 	make $SILENT_MAKE $ARCH $CROSSCOMPILE install  || msg_and_die "$?" "make $ARCH $CROSSCOMPILE install"
 fi
 
@@ -1055,9 +1190,9 @@ cd ..
 if [ -f "$OWN_INITRD" ]; then
 	:
 else
-	export INITRAMFS_BUILD="$BUILDS/initramfs"
+	export     INITRAMFS_BUILD="$BUILDS/initramfs"
 	mkdir -p "$INITRAMFS_BUILD"
-	cd "$INITRAMFS_BUILD" || exit
+	cd       "$INITRAMFS_BUILD" || exit
 
 	mkdir -p bin sbin etc proc sys usr/bin usr/sbin dev tmp
 	has_arg 'hostfs' && mkdir -p mnt mnt/host
@@ -1090,6 +1225,8 @@ has_arg 'dropbear' && install_dropbear
 
 has_arg 'bash' && install_bash
 
+has_arg 'iodine' && install_iodine
+
 [ -d "$INITRD_DIR_ADD" ] && {
 	# FIXME! we do not include a spedicla directory named 'x'
 	test -d "$INITRD_DIR_ADD/x" && mv -v "$INITRD_DIR_ADD/x" ~/tmp.cheat.$$
@@ -1114,6 +1251,7 @@ export INITSCRIPT="$PWD/init"
 
 [ -f init ] || cat >'init' <<EOF
 #!$BOOTSHELL
+printf '%s\n' '#'	# init starts...
 export SHELL=$( basename "$BOOTSHELL" )
 $( has_arg 'procfs' || echo 'false ' )mount -t proc none /proc && {
 	read -r UP _ </proc/uptime || UP=\$( cut -d' ' -f1 /proc/uptime )
@@ -1217,30 +1355,31 @@ has_arg 'toybox' && BB_FILE="$BUSYBOX_BUILD/toybox"
 ###
 
 cd "$LINUX" || exit
+rm -fR ./*		# always cleanup
 download "$KERNEL_URL" || exit
 untar ./* || exit
 cd ./* || exit		# there is only 1 dir
 
-
 # Kernel PATCHES:
+emit_doc "applied: kernel-patch | BEGIN"
 #
 # GCC10 + kernel3.18 workaround:
 # https://github.com/Tomoms/android_kernel_oppo_msm8974/commit/11647f99b4de6bc460e106e876f72fc7af3e54a6
-F1='scripts/dtc/dtc-lexer.l'
-F2='scripts/dtc/dtc-lexer.lex.c_shipped'
-[ -f "$F1" ] && sed -i 's/^YYLTYPE yylloc;/extern &/' "$F1" && emit_doc "applied: kernel-patch in '$F1'"
-[ -f "$F2" ] && sed -i 's/^YYLTYPE yylloc;/extern &/' "$F2" && emit_doc "applied: kernel-patch in '$F2'"
+F1='scripts/dtc/dtc-lexer.l'		 && checksum "$F1" plain
+[ -f "$F1" ] && sed -i 's/^YYLTYPE yylloc;/extern &/' "$F1"; checksum "$F1" after plain || emit_doc "applied: kernel-patch in '$PWD/$F1'"
+F2='scripts/dtc/dtc-lexer.lex.c_shipped' && checksum "$F2" plain
+[ -f "$F2" ] && sed -i 's/^YYLTYPE yylloc;/extern &/' "$F2"; checksum "$F2" after plain || emit_doc "applied: kernel-patch in '$PWD/$F2'"
 #
 # or1k/openrisc/3.x workaround:
 # https://opencores.org/forum/OpenRISC/0/5435
 [ "$DSTARCH" = 'or1k' ] && {
-	F1='arch/openrisc/kernel/vmlinux.lds.S'
+	F1='arch/openrisc/kernel/vmlinux.lds.S'  && checksum "$F1" plain
 	sed -i 's/elf32-or32/elf32-or1k/g' "$F1" || exit
-	emit_doc "applied: kernel-patch in '$F1'"
+	checksum "$F1" after plain || emit_doc "applied: kernel-patch in '$F1'"
 
-	F2='arch/openrisc/boot/dts/or1ksim.dts'
+	F2='arch/openrisc/boot/dts/or1ksim.dts'  && checksum "$F2" plain
 	sed -i "s|\(^.*bootargs = .*\)|\1\n\t\tlinux,initrd-start = <0x82000000>;\n\t\tlinux,initrd-end = <0x82800000>;|" "$F2" || exit
-	emit_doc "applied: kernel-patch, builtin DTB: '$F2'"
+	checksum "$F2" after plain || emit_doc "applied: kernel-patch, builtin DTB: '$F2'"
 }
 #
 [ -n "$EMBED_CMDLINE" ] && is_uml && {
@@ -1265,34 +1404,43 @@ F2='scripts/dtc/dtc-lexer.lex.c_shipped'
 	}
 
 	has_arg 'quiet' "$EMBED_CMDLINE" && {
+		checksum "$F2" plain
 		sed -i 's|^.*[^a-z]printf.*|//&|' "$F2" || exit
-		emit_doc "applied: kernel-patch in '$F2' | EMBED_CMDLINE: quiet"
+		checksum "$F2" after plain || emit_doc "applied: kernel-patch in '$PWD/$F2' | EMBED_CMDLINE: quiet"
 	}
 
+	checksum "$F1" plain
 	sed -i "s|for (i = 1;|$( write_args )for (i = 1;|" "$F1" || exit
-	emit_doc "applied: kernel-patch in '$F1' | EMBED_CMDLINE: $EMBED_CMDLINE"
+	checksum "$F1" after plain || emit_doc "applied: kernel-patch in '$PWD/$F1' | EMBED_CMDLINE: $EMBED_CMDLINE"
 }
 #
 [ -n "$FAKEID" ] && {
-	F="$( find . -type f -name mkcompile_h )"
+	F="$( find . -type f -name 'mkcompile_h' )" && [ -f "$F" ] && checksum "$F" plain
 	REPLACE="sed -i 's;#define LINUX_COMPILER .*;#define LINUX_COMPILER \"compiler/linker unset\";' .tmpcompile"
 	sed -i "s|# Only replace the real|${REPLACE}\n\n# Only replace the real|" "$F" || exit
-	emit_doc "applied: kernel-patch in '$F' | FAKEID"
+	checksum "$F" after plain || emit_doc "applied: kernel-patch in '$PWD/$F' | FAKEID"
 }
 # http://lkml.iu.edu/hypermail/linux/kernel/1806.1/05149.html
 F='arch/x86/um/shared/sysdep/ptrace_32.h'
 [ -f "$F" ] && is_uml && {
+	checksum "$F" plain
 	LINE="$( grep -n '#define PTRACE_SYSEMU 31' $F | cut -d':' -f1 )"
 	LINE=${LINE:-999999}	# does not harm
 	sed -i "$((LINE-1)),$((LINE+1))d" $F || exit
+	checksum "$F" after plain || emit_doc "applied: kernel-patch in '$PWD/$F' | delete PTRACE_SYSEMU"
+
+	checksum "$F" plain
 	LINE="$( grep -n '#define PTRACE_SYSEMU_SINGLESTEP 32' $F | cut -d':' -f1 )"
 	LINE=${LINE:-999999}	# does not harm
 	sed -i "$((LINE-1)),$((LINE+1))d" $F || exit
+	checksum "$F" after plain || emit_doc "applied: kernel-patch in '$PWD/$F' | delete PTRACE_SYSEMU_SINGLESTEP"
 }
 # https://lore.kernel.org/patchwork/patch/630468/
-F='arch/x86/um/Makefile'
-sed -i "s|obj-\$(CONFIG_BINFMT_ELF) += elfcore.o|obj-\$(CONFIG_ELF_CORE) += elfcore.o|" $F
-
+F='arch/x86/um/Makefile' && checksum "$F" plain
+sed -i "s|obj-\$(CONFIG_BINFMT_ELF) += elfcore.o|obj-\$(CONFIG_ELF_CORE) += elfcore.o|" "$F" || exit
+checksum "$F" after plain || emit_doc "applied: kernel-patch in '$PWD/$F' | uml32? undefined reference to 'dump_emit'"
+#
+emit_doc "applied: kernel-patch | READY"
 
 # kernel 2,3,4 but nut 5.x - FIXME!
 # sed -i 's|-Wall -Wundef|& -fno-pie|' Makefile
@@ -1303,13 +1451,14 @@ T0="$( date +%s )"
 for WORD in $( gcc --version ); do {
 	test 2>/dev/null "${WORD%%.*}" -gt 1 || continue
 	VERSION="${WORD%%.*}"	# e.g. 10.2.1-6 -> 10
+	DEST="include/linux/compiler-gcc${VERSION}.h"
 
 	# /home/bastian/software/minilinux/minilinux/opt/linux/linux-3.19.8/include/linux/compiler-gcc.h:106:1:
 	# fatal error: linux/compiler-gcc9.h: file or directory not found
-	[ -f "include/linux/compiler-gcc${VERSION}.h" ] || {
+	[ -f "$DEST" ] || {
 		[ -f 'include/linux/compiler-gcc5.h' ] && \
-			cp -v include/linux/compiler-gcc5.h "include/linux/compiler-gcc${VERSION}.h" && \
-				emit_doc "applied: kernel-patch: include/linux/compiler-gcc5.h -> include/linux/compiler-gcc${VERSION}.h"
+			cp -v include/linux/compiler-gcc5.h "$DEST" && \
+				emit_doc "applied: kernel-patch: include/linux/compiler-gcc5.h -> $DEST"
 	}
 
 	break
@@ -1533,7 +1682,7 @@ $( sed -n '1,5s/^/#                /p' "$CONFIG1" )
 #        directories: $INITRD_DIRS
 #        bytes......: $INITRD_BYTES [100%]
 #
-# init:    $INITSCRIPT  ($( wc -c <"$INITSCRIPT" || echo 0 ) bytes, $BOOTSHELL script)
+# init:    $INITSCRIPT  ($( wc -c <"$INITSCRIPT" || echo 0 ) bytes = '$BOOTSHELL' script)
 # INITRD:  $B1 bytes $P1 = $INITRD_FILE
 # INITRD2: $B2 bytes $P2 = ${INITRD_FILE2:-<nofile>}
 # INITRD3: $B3 bytes $P3 = ${INITRD_FILE3:-<nofile>}

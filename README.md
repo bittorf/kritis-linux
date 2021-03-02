@@ -163,24 +163,20 @@ history -r && exit
 
 ### Release: smoketest
 
-This test builds and testboots 144 images and needs approximately 12 hours.  
-Just extract like `sed -n '/^LIST/,/^done/p' README.md >release.sh && sh release.sh`.
+This test builds and testboots 144 images, which takes approximately 12 hours.  
+Just extract like `sed -n '/^LIST/,/^done/p' README.md >release.sh && sh release.sh`,  
+or use the call `./minilinux smoketest_for_release`. 
 
 ```
 #!/bin/sh
-LIST_ARCH='armel armhf arm64 or1k m68k uml uml32 x86 x86_64'
-LIST_KERNEL='3.18 4.4.258 4.9.258 4.14.222 4.19.177 5.4.100 5.10.18 5.11.1'
 FULL='printk procfs sysfs busybox bash dash net wireguard dropbear speedup'
-TINY=
-no_overload() { sleep 30; while test "$(nproc)" -le "$(cut -d'.' -f1 /proc/loadavg)"; do sleep 30; done; }
+TINY='printk'
 
-for ARCH in $LIST_ARCH; do
-  for KERNEL in $LIST_KERNEL; do
-    export ID="${KERNEL}_${ARCH}" LOG="$PWD/log-$ID" FAKEID='kritis-release@github.com' NOKVM=true
-    LOG=$LOG-tiny BUILDID=$ID-tiny DSTARCH=$ARCH ./minilinux.sh $KERNEL "$TINY" autoclean &
-    no_overload
-    LOG=$LOG-full BUILDID=$ID-full DSTARCH=$ARCH ./minilinux.sh $KERNEL "$FULL" autoclean &
-    no_overload
+for ARCH in armel armhf arm64 or1k m68k uml uml32 x86 x86_64; do
+  for KERNEL in 3.18 4.4.258 4.9.258 4.14.222 4.19.177 5.4.101 5.10.19 5.11.2; do
+    ID="${KERNEL}_${ARCH}" LOG="$PWD/log-$ID"
+    LOG=$LOG-tiny BUILDID=$ID-tiny DSTARCH=$ARCH ./minilinux.sh $KERNEL "$TINY" autoclean
+    LOG=$LOG-full BUILDID=$ID-full DSTARCH=$ARCH ./minilinux.sh $KERNEL "$FULL" autoclean
   done
 done
 ```
@@ -189,6 +185,7 @@ done
 * build additive star matrix: tiny/full: compiles, kernel boots, initrd boots, network ok + glibc/musl/diet
 * CI examples: TravisCI, CircleCI
 * fix `or1k` https://lkml.org/lkml/2020/7/4/244
+  * wrong `Kernel command line: console=uart,mmio,0x90000000,115200`
 * fix dev bringup: http://www.linuxfromscratch.org/lfs/view/6.1/chapter06/devices.html
 * fix `m68k' net/MACSONIC bringup
 * debian-minimal testrun for deps
