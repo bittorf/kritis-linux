@@ -164,8 +164,8 @@ history -r && exit
 ### Release: smoketest
 
 This test builds and testboots 144 images, which takes approximately 12 hours.  
-Just extract like `sed -n '/^LIST/,/^done/p' README.md >release.sh && sh release.sh`,  
-or use the call `./minilinux smoketest_for_release`. 
+Just extract like `sed -n '/^FULL/,/^done/p' README.md >release.sh && sh release.sh`,  
+or use the call `./minilinux.sh smoketest_for_release`. 
 
 ```
 #!/bin/sh

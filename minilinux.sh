@@ -1823,6 +1823,7 @@ if [ -z "\$PIDFILE" ]; then
 	PID=\$!
 else
 	for _ in 1 2 3 4 5; do read -r PID <"\$PIDFILE" && break; sleep 1; done
+	test -n "\$PID" || PID="\$( pidof \$QEMU | head -n1 )"		# bad fallback
 fi
 
 {
@@ -1839,11 +1840,12 @@ fi
 			echo "	initrd=$INITRD_FILE"
 		;;
 		*)
+			# code duplication from above real startup:
 			echo "\$KVM_PRE \$QEMU -m \$MEM \$KVM_SUPPORT \$BIOS \\\\"
 			echo "	-kernel $KERNEL_FILE \\\\"
 			echo "	-initrd $INITRD_FILE \\\\"
 			echo "	-nographic \\\\"
-			echo "	-append "\$KERNEL_ARGS" \$QEMU_OPTIONS"
+			echo "	-append "\$KERNEL_ARGS" \$QEMU_OPTIONS -pidfile \"\$PIDFILE\""
 		;;
 	esac
 
@@ -1948,7 +1950,6 @@ echo "# \$0"
 echo "# in dir '\$(pwd)'"
 echo
 
-# FIXME! we must make sure, that we only kill own qemu-instances
 echo "will now stop '\$QEMU' with pid \$PID" && \$KVM_PRE echo
 while \$KVM_PRE kill -0 \$PID; do \$KVM_PRE kill \$PID; sleep 1; done
 rm -f "\$PIPE" "\$PIPE.in" "\$PIPE.out" "\$PIDFILE"
