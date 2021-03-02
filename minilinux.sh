@@ -861,6 +861,7 @@ apply()
 ###
 
 install_dep 'build-essential'		# prepare for 'make'
+DNS='8.8.4.4'
 
 case "$DSTARCH" in
 	uml*)
@@ -884,6 +885,7 @@ case "$DSTARCH" in
 			echo "$OK" | grep -q ^'SLIRP_BIN=' || exit
 			SLIRP_BIN="$( echo "$OK" | cut -d"=" -f2 | cut -d"'" -f2 )"
 			$STRIP "$SLIRP_BIN" || exit
+			DNS='10.0.2.3'
 		}
 	;;
 esac
@@ -1268,7 +1270,7 @@ $( has_arg 'hostfs' || echo 'false ')mount -t hostfs none /mnt/host
 # https://github.com/lubomyr/bochs/blob/master/misc/slirp.conf
 $( has_arg 'net' || echo 'false ' )command -v 'ip' >/dev/null && \\
   ip link show dev eth0 >/dev/null && \\
-    printf '%s\\n' 'nameserver 8.8.4.4' >/etc/resolv.conf && \\
+    printf '%s\\n' "nameserver $DNS" >/etc/resolv.conf && \\
       ip address add 10.0.2.15/24 dev eth0 && \\
 	ip link set dev eth0 up && \\
 	  ip route add default via 10.0.2.2
