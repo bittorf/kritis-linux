@@ -2,6 +2,8 @@
 # script runs on any POSIX shell, but has issues with 'dash 0.5.10.2-7' on ubuntu during 'init' concatenation
 
 KERNEL="$1"		# e.g. 'latest' or 'stable' or '5.4.89' or '4.19.x' or URL-to-tarball
+ARG2="$2"		# only used...
+ARG3="$3"		# ...for smoketest
 while shift; do
 	export OPTIONS="$OPTIONS $1"	# see has_arg(), spaces are not working
 done
@@ -300,6 +302,9 @@ case "$KERNEL" in
 	'smoketest'*)
 		LIST_ARCH='armel  armhf  arm64  or1k  m68k  uml  uml32  x86  x86_64'
 		LIST_KERNEL='3.18  4.4.258  4.9.258  4.14.222  4.19.177  5.4.101  5.10.19  5.11.2'
+
+		[ -n "$ARG2" ] && LIST_ARCH="$ARG2"
+		[ -n "$ARG3" ] && LIST_KERNEL="$ARG3"
 	;;
 esac
 
