@@ -306,9 +306,9 @@ case "$KERNEL" in
 		LIST_KERNEL='3.18  3.18.140  3.19.8  4.0.9  4.1.52  4.2.8  4.3.6  4.4.258  4.9.258  4.14.222  4.19.177  5.4.101  5.10.19  5.11.2'
 
 		FULL='printk procfs sysfs busybox bash dash net wireguard iodine icmptunnel dropbear speedup'
-		TINY='printk'
+		TINY='printk busybox'
 
-		[ -n "$ARG2" ] && LIST_ARCH="$ARG2"
+		[ -n "$ARG2" ] && LIST_ARCH="$ARG2"		# enforce building a subset
 		[ -n "$ARG3" ] && LIST_KERNEL="$ARG3"
 	;;
 esac
@@ -948,7 +948,9 @@ case "$DSTARCH" in
 	uml*)
 		# seems that musl-cc has issues:
 		# https://www.openwall.com/lists/musl/2020/03/31/7
-#		unset CROSSCOMPILE CC CXX STRIP CONF_HOST
+		#
+		# slirp is special, because it runs on the host, so we
+		# must in theory compile it for the host-arch, not for the image-arch
 
 		has_arg 'net' && {
 			SLIRP_DIR="$( mktemp -d )" || msg_and_die "$?" "mktemp -d"
@@ -2079,7 +2081,7 @@ echo "# in dir '\$(pwd)'"
 echo
 
 echo "will now stop '\$QEMU' with pid \$PID" && \$KVM_PRE echo
-while \$KVM_PRE kill -0 \$PID; do \$KVM_PRE kill \$PID; sleep 1; \$KVM_PRE kill -s KILL \$PID; done
+while \$KVM_PRE kill -0 \$PID; do \$KVM_PRE kill \$PID; sleep 1; \$KVM_PRE kill -0 \$PID && \$KVM_PRE kill -s KILL \$PID; done
 rm -f "\$PIPE" "\$PIPE.in" "\$PIPE.out" "\$PIDFILE"
 
 test \$RC -eq 0
