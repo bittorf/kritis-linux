@@ -1950,10 +1950,10 @@ mkfifo "\$PIPE.out" || exit
 T0="\$( date +%s )"
 
 if [ -z "\$PIDFILE" ]; then
-	PID=\$!
+	PID=\$!		# only uml
 else
 	for _ in 1 2 3 4 5; do read -r PID <"\$PIDFILE" && break; sleep 1; done
-	test -n "\$PID" || PID="\$( pidof \$QEMU | head -n1 )"		# bad fallback
+	test -n "\$PID" || echo "# ERROR: no PIDFILE or QEMU already stopped"
 fi
 
 {
@@ -2031,7 +2031,7 @@ RC=1
 
 I=\$MAX
 while [ \$I -gt 0 ]; do {
-	kill -0 \$PID || break
+	\$KVM_PRE kill -0 \$PID || break
 	LINE="\$( tail -n1 "\$PIPE" )"
 
 	case "\$LINE" in
