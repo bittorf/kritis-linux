@@ -977,14 +977,17 @@ esac
 	export CC CXX PATH="$PWD/bin:$PATH"
 }
 
-[ -n "$CROSSCOMPILE" ] && {
+if [ -n "$CROSSCOMPILE" ]; then
 	CONF_HOST="${CROSSCOMPILE#*=}"		# e.g. 'CROSS_COMPILE=i686-linux-gnu-'
 	CHOST="${CONF_HOST%?}"			#                  -> i686-linux-gnu
 	STRIP="${CHOST}-strip"			#                  -> i686-linux-gnu-strip
 	CONF_HOST="--host=${CHOST}"
 
+	CC_VERSION="$( $CHOST-gcc --version | head -n1 )"
 	export STRIP CONF_HOST CHOST
-}
+else
+	CC_VERSION="$( ${CC:-cc} --version | head -n1 )"
+fi
 
 export MUSL="$OPT/musl"
 mkdir -p "$MUSL"
@@ -1568,7 +1571,7 @@ emit_doc "applied: kernel-patch | READY"
 T0="$( date +%s )"
 
 # e.g.: gcc (Debian 10.2.1-6) 10.2.1 20210110
-for WORD in $( gcc --version ); do {
+for WORD in $CC_VERSION; do {
 	test 2>/dev/null "${WORD%%.*}" -gt 1 || continue
 	VERSION="${WORD%%.*}"	# e.g. 10.2.1-6 -> 10
 	DEST="include/linux/compiler-gcc${VERSION}.h"
@@ -1776,7 +1779,7 @@ MAX="\${3:-86400}"	# max running time [seconds] in autotest-mode
 # BUILDTIME: $(( $( date +%s ) - UNIX0 )) sec
 # DISKSPACE: $DISKSPACE
 # ARCHITECTURE: ${DSTARCH:-default} / ${ARCH:-default}
-# COMPILER: ${CROSSCOMPILE:-cc}
+# COMPILER: ${CROSSCOMPILE:-cc} | $CC_VERSION
 # CMDLINE_OPTIONS: $OPTIONS
 # $( test -n "$EMBED_CMDLINE" && echo "ENFORCED_KERNEL_CMDLINE: $EMBED_CMDLINE" )
 # $( test -n "$EMBED_CMDLINE" && echo "FILE: $EMBED_CMDLINE_FILE" )
