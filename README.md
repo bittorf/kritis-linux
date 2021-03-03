@@ -163,7 +163,7 @@ history -r && exit
 
 ### Release: smoketest
 
-This test builds and testboots 144 images, which takes approximately 12 hours.  
+This test builds and testboots 252 images, which takes approximately 4 hours.  
 Just extract like `sed -n '/^FULL/,/^done/p' README.md >release.sh && sh release.sh`,  
 or use the call `./minilinux.sh smoketest_for_release`. 
 
@@ -173,7 +173,7 @@ FULL='printk procfs sysfs busybox bash dash net wireguard dropbear speedup'
 TINY='printk'
 
 for ARCH in armel armhf arm64 or1k m68k uml uml32 x86 x86_64; do
-  for KERNEL in 3.18 4.4.258 4.9.258 4.14.222 4.19.177 5.4.101 5.10.19 5.11.2; do
+  for KERNEL in 3.18 3.18.140 3.19.8 4.0.9 4.1.52 4.2.8 4.3.6 4.4.258 4.9.258 4.14.222 4.19.177 5.4.101 5.10.19 5.11.2
     ID="${KERNEL}_${ARCH}" LOG="$PWD/log-$ID"
     LOG=$LOG-tiny BUILDID=$ID-tiny DSTARCH=$ARCH ./minilinux.sh $KERNEL "$TINY" autoclean
     LOG=$LOG-full BUILDID=$ID-full DSTARCH=$ARCH ./minilinux.sh $KERNEL "$FULL" autoclean

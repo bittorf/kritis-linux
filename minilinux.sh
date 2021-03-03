@@ -320,16 +320,21 @@ case "$KERNEL" in
 
 		for ARCH in $LIST_ARCH; do
 		  for KERNEL in $LIST_KERNEL; do
-		    I="${I}#"
+		    I=$(( I + 2 ))
 		    ID="${KERNEL}_${ARCH}"
 		    LOG="$PWD/log-$ID"
                     export FAKEID='kritis-release@github.com'
                     export NOKVM='true'
 
-		    LOG="$LOG-tiny" BUILDID="$ID-tiny" DSTARCH="$ARCH" "$0" "$KERNEL" "$TINY" autoclean &
-		    avoid_overload
-		    LOG="$LOG-full" BUILDID="$ID-full" DSTARCH="$ARCH" "$0" "$KERNEL" "$FULL" autoclean &
-		    avoid_overload
+		    if [ "$PARALLEL" = 'false' ]; then
+		      LOG="$LOG-tiny" BUILDID="$ID-tiny" DSTARCH="$ARCH" "$0" "$KERNEL" "$TINY" autoclean
+		      LOG="$LOG-full" BUILDID="$ID-full" DSTARCH="$ARCH" "$0" "$KERNEL" "$FULL" autoclean
+		    else
+		      LOG="$LOG-tiny" BUILDID="$ID-tiny" DSTARCH="$ARCH" "$0" "$KERNEL" "$TINY" autoclean &
+		      avoid_overload
+		      LOG="$LOG-full" BUILDID="$ID-full" DSTARCH="$ARCH" "$0" "$KERNEL" "$FULL" autoclean &
+		      avoid_overload
+		    fi
 		  done
 		done
 
