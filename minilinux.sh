@@ -410,6 +410,10 @@ case "$KERNEL" in
 			echo '# step6: initrd runs  (full)'
 			echo
 			echo "debug: build $(( I * 2 )) images in $(( T1 - T0 )) seconds = $(( (T1-T0) / (I*2) )) sec/image @ $( LC_ALL=C date )"
+			echo "uname: $( uname -a )"
+
+			# shellcheck disable=SC2046,SC2048
+			echo "nproc/cpu: $( nproc ) @ $( set -- $( grep ^"model name" /proc/cpuinfo | head -n1 ); shift 3; echo $* )"
 			echo "</pre></html>"
 		}
 
