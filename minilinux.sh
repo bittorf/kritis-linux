@@ -338,7 +338,8 @@ case "$KERNEL" in
 		  done
 		done
 
-		while [ "$( find . -type f -name 'log-*' | wc -l )" -lt $I ]; do sleep 5; done
+		count_logfiles() { find . -maxdepth 1 -type f -name 'log-[0-9]\.*' -printf '.' | wc -c; }
+		while [ "$( count_logfiles )" -lt $I ]; do sleep 5; done
 
 		UNIX1="$( date +%s )"
 		echo "needed $(( UNIX1 - UNIX0 )) sec"
