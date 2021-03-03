@@ -22,10 +22,12 @@ URL_IODINE='https://github.com/frekky/iodine/archive/master.zip'	# fork has 'con
 URL_ZLIB='https://github.com/madler/zlib/archive/v1.2.11.tar.gz'
 URL_ICMPTUNNEL='https://github.com/DhavalKapil/icmptunnel/archive/master.zip'
 
+log() { >&2 printf '%s\n' "$1"; }
+
 export STRIP=strip
 export LC_ALL=C
 export STORAGE="/tmp/storage"
-mkdir -p "$STORAGE" && echo "[OK] cache/storage is here: '$STORAGE'"
+mkdir -p "$STORAGE" && log "[OK] cache/storage is here: '$STORAGE'"
 
 # change from comma to space delimited list
 OPTIONS="$OPTIONS $( echo "$FEATURES" | tr ',' ' ' )"
@@ -250,18 +252,18 @@ download()
 
 	# e.g. during massively parallel run / release
 	while [ -f "$cache-in_progress" ]; do {
-		echo "wait for disappear of '$cache-in_progress'"
+		log "wait for disappear of '$cache-in_progress'"
 		sleep 30
 	} done
 
 	if [ -s "$cache" ]; then
-		echo "[OK] download, using cache: '$cache' url: '$url'"
-		cp -v "$cache" .
+		log "[OK] download, using cache: '$cache' url: '$url'"
+		cp "$cache" .
 	else
 		touch "$cache-in_progress"
 		wget -O "$cache" "$url" || rm -f "$cache"
 		rm "$cache-in_progress"
-		cp -v "$cache" .
+		cp "$cache" .
 	fi
 }
 
@@ -301,7 +303,7 @@ autoclean_do()
 case "$KERNEL" in
 	'smoketest'*)
 		LIST_ARCH='armel  armhf  arm64  or1k  m68k  uml  uml32  x86  x86_64'
-		LIST_KERNEL='3.18  4.4.258  4.9.258  4.14.222  4.19.177  5.4.101  5.10.19  5.11.2'
+		LIST_KERNEL='3.18  3.18.140  3.19.8  4.0.9  4.1.52  4.2.8  4.3.6  4.4.258  4.9.258  4.14.222  4.19.177  5.4.101  5.10.19  5.11.2'
 
 		FULL='printk procfs sysfs busybox bash dash net wireguard iodine icmptunnel dropbear speedup'
 		TINY='printk'
@@ -366,7 +368,9 @@ case "$KERNEL" in
 			printf '%s\n' "</tr><!-- end headline arch -->"
 
 			for KERNEL in $LIST_KERNEL; do
-			  printf '%s' "<tr><td>$KERNEL</td>"
+			  RELEASE_DATE="$( download "http://intercity-vpn.de/kernel_history/$KERNEL" && read -r UNIX <"$KERNEL" && rm "$KERNEL" && LC_ALL=C date -d @$UNIX )"
+			  printf '%s' "<tr><td title='release_date: ${RELEASE_DATE:-???}'>$KERNEL</td>"
+
 			  for ARCH in $LIST_ARCH; do
 			    ID="${KERNEL}_${ARCH}"
 			    L1="$PWD/log-$ID-tiny"	# e.g. log-5.4.100_x86_64-tiny
