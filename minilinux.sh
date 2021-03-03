@@ -316,7 +316,7 @@ esac
 case "$KERNEL" in
 	'smoketest_for_release')
 		avoid_overload() { sleep 30; while test "$(cut -d'.' -f1 /proc/loadavg)" -ge "$CPU"; do sleep 30; done; }
-		UNIX="$( date +%s )"
+		UNIX0="$( date +%s )"
 
 		for ARCH in $LIST_ARCH; do
 		  for KERNEL in $LIST_KERNEL; do
@@ -335,8 +335,9 @@ case "$KERNEL" in
 
 		while [ "$( find . -type f -name 'log-*' | wc -l )" -lt $I ]; do sleep 5; done
 
-		echo "needed $(( $(date +%s) - UNIX )) sec"
-		$0 'smoketest_report_html'
+		UNIX1="$( date +%s )"
+		echo "needed $(( UNIX1 - UNIX0 )) sec"
+		T0=$UNIX0 T1=$UNIX1 $0 'smoketest_report_html'
 		exit
 	;;
 	'smoketest_report_html')
@@ -363,7 +364,7 @@ case "$KERNEL" in
 			echo "<title>MATRIX</title></head><body>"
 			echo "<table cellspacing=1 cellpadding=1 border=1>"
 
-			printf '%s' '<tr><td>&nbsp;</td>'
+			printf '%s' '<tr><th>&nbsp;</th>'
 			for ARCH in $LIST_ARCH; do printf '%s' "<th>$ARCH</th>"; done
 			printf '%s\n' "</tr><!-- end headline arch -->"
 
@@ -372,6 +373,7 @@ case "$KERNEL" in
 			  printf '%s' "<tr><td title='release_date: ${RELEASE_DATE:-???}'>$KERNEL</td>"
 
 			  for ARCH in $LIST_ARCH; do
+			    I=$(( I + 1 ))
 			    ID="${KERNEL}_${ARCH}"
 			    L1="$PWD/log-$ID-tiny"	# e.g. log-5.4.100_x86_64-tiny
 			    L2="$PWD/log-$ID-full"
@@ -401,6 +403,8 @@ case "$KERNEL" in
 			echo '# step4: it compiles  (full featureset)'
 			echo '# step5: kernel boots (full)'
 			echo '# step6: initrd runs  (full)'
+			echo
+			echo "debug: build $(( I * 2 )) images in $(( T1 - T0 )) seconds = $(( (T1-T0) / (I*2) )) sec/image @ $( LC_ALL=C date )"
 			echo "</pre></html>"
 		}
 
