@@ -303,6 +303,9 @@ case "$KERNEL" in
 		LIST_ARCH='armel  armhf  arm64  or1k  m68k  uml  uml32  x86  x86_64'
 		LIST_KERNEL='3.18  4.4.258  4.9.258  4.14.222  4.19.177  5.4.101  5.10.19  5.11.2'
 
+		FULL='printk procfs sysfs busybox bash dash net wireguard iodine icmptunnel dropbear speedup'
+		TINY='printk'
+
 		[ -n "$ARG2" ] && LIST_ARCH="$ARG2"
 		[ -n "$ARG3" ] && LIST_KERNEL="$ARG3"
 	;;
@@ -310,9 +313,6 @@ esac
 
 case "$KERNEL" in
 	'smoketest_for_release')
-		FULL='printk procfs sysfs busybox bash dash net wireguard iodine icmptunnel dropbear speedup'
-		TINY='printk'
-
 		avoid_overload() { sleep 30; while test "$(cut -d'.' -f1 /proc/loadavg)" -ge "$CPU"; do sleep 30; done; }
 		UNIX="$( date +%s )"
 
@@ -334,16 +334,36 @@ case "$KERNEL" in
 		while [ "$( find . -type f -name 'log-*' | wc -l )" -lt $I ]; do sleep 5; done
 
 		echo "needed $(( $(date +%s) - UNIX )) sec"
+		$0 'smoketest_report_html'
 		exit
 	;;
 	'smoketest_report_html')
 		build_matrix_html() {
-			echo "<html><head><title>MATRIX</title></head><body>"
+			add_star() { STAR="${STAR}&lowast;"; }	# 8 chars long
+			add_hint() { HINT="${HINT}$1
+";}
+
+			stars2color() {				# https://werner-zenk.de/tools/farbverlauf.php
+				case "$(( ${#STAR} / 8 ))" in
+					1) echo '#FFFFFF' ;;	# white
+					2) echo '#D9FFD9' ;;
+					3) echo '#AEFFAE' ;;
+					4) echo '#84FF84' ;;
+					5) echo '#59FF59' ;;
+					6) echo '#00FF00' ;;	# lime = green
+					*) echo 'crimson' ;;	# red
+				esac
+			}
+
+			echo "<!DOCTYPE html>"
+			echo "<html lang='en' dir='ltr'><head>"
+			echo "<meta http-equiv='content-type' content='text/html; charset=UTF-8'>"
+			echo "<title>MATRIX</title></head><body>"
 			echo "<table cellspacing=1 cellpadding=1 border=1>"
 
 			printf '%s' '<tr><td>&nbsp;</td>'
-			for ARCH in $LIST_ARCH; do printf '%s' "<th align='center'>$ARCH</th>"; done
-			printf '%s\n' "<tr> <!-- end headline arch -->"
+			for ARCH in $LIST_ARCH; do printf '%s' "<th>$ARCH</th>"; done
+			printf '%s\n' "</tr><!-- end headline arch -->"
 
 			for KERNEL in $LIST_KERNEL; do
 			  printf '%s' "<tr><td>$KERNEL</td>"
@@ -351,21 +371,36 @@ case "$KERNEL" in
 			    ID="${KERNEL}_${ARCH}"
 			    L1="$PWD/log-$ID-tiny"	# e.g. log-5.4.100_x86_64-tiny
 			    L2="$PWD/log-$ID-full"
-			    COLOR='white'
-			    SYMBOL='&mdash;'
-			    grep -qs BOOTTIME_SECONDS "$L1" && SYMBOL='ok' && COLOR='lightgreen'
-			    grep -qs BOOTTIME_SECONDS "$L2" && SYMBOL='OK' && COLOR='lime'
-			    [ ! -f "$L1" ] && [ ! -f "$L2" ] && COLOR='crimson'
 
-			    printf '%s' "<td align='center' bgcolor='$COLOR' title='$L1'>$SYMBOL</td>"
+			    HINT=
+			    STAR=
+			    grep -qs "BUILDTIME:" "$L1"			&& add_star && add_hint "tiny compiles: $L1"
+			    grep -qs "Linux version $KERNEL" "$L1"	&& add_star && add_hint "tiny kernel boots"
+			    grep -qs "BOOTTIME_SECONDS" "$L1"		&& add_star && add_hint "tiny initrd starts"
+			    grep -qs "BUILDTIME:" "$L2"			&& add_star && add_hint "full compiles: $L2"
+			    grep -qs "Linux version $KERNEL" "$L2"	&& add_star && add_hint "full kernel boots"
+			    grep -qs "BOOTTIME_SECONDS" "$L2"		&& add_star && add_hint "full initrd starts"
+
+			    printf '%s' "<td bgcolor='$( stars2color )' title='${HINT:-does_not_compile}'>${STAR:-&mdash;}</td>"
 			  done
-			  printf '%s\n' "<tr> <!-- end line kernel $KERNEL -->"
+			  printf '%s\n' "</tr><!-- end line kernel $KERNEL -->"
 			done
 
-			echo "</table></html>"
+			echo "</table><pre>"
+			echo "feature-set 'tiny' => $TINY"
+			echo "feature-set 'full' => $FULL"
+			echo
+			echo '# we mark each progress step reached with an "asterisk"'
+			echo '# step1: it compiles  (tiny featureset)'
+			echo '# step2: kernel boots (tiny)'
+			echo '# step3: initrd runs  (tiny)'
+			echo '# step4: it compiles  (full featureset)'
+			echo '# step5: kernel boots (full)'
+			echo '# step6: initrd runs  (full)'
+			echo "</pre></html>"
 		}
 
-		build_matrix_html >'matrix.html'
+		build_matrix_html >'matrix.html' && echo "see: '$PWD/matrix.html'"
 		exit
 	;;
 	'clean')
