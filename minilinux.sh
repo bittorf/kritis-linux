@@ -1013,29 +1013,6 @@ mkdir -p "$MUSL"
 export MUSL_BUILD="$BUILDS/musl"
 mkdir -p "$MUSL_BUILD"
 
-has_arg 'dash' && {
-	export DASH="$OPT/dash"
-	mkdir -p "$DASH"
-
-	export DASH_BUILD="$BUILDS/dash"
-	mkdir -p "$DASH_BUILD"
-
-	download "$URL_DASH" || exit
-	mv ./*dash* "$DASH_BUILD/" || exit
-	cd "$DASH_BUILD" || exit
-	untar ./* || exit
-	cd ./* || exit		# there is only 1 dir
-
-	# TODO: --enable-glob --with-libedit --enable-fnmatch
-	# https://github.com/amuramatsu/dash-static/blob/master/build.sh
-	./autogen.sh || exit			# -> ./configure
-	./configure $CONF_HOST $SILENT_CONF --enable-static || exit
-	make $SILENT_MAKE $ARCH $CROSSCOMPILE "-j$CPU" || exit
-
-	DASH="$PWD/src/dash"
-	$STRIP "$DASH" || exit
-}
-
 compile()
 {
 	local package="$1"	# e.g. mytool_xy
@@ -1065,6 +1042,30 @@ compile()
 	build		|| exit
 	copy_result	|| exit
 }
+
+has_arg 'dash' && {
+	export DASH="$OPT/dash"
+	mkdir -p "$DASH"
+
+	export DASH_BUILD="$BUILDS/dash"
+	mkdir -p "$DASH_BUILD"
+
+	download "$URL_DASH" || exit
+	mv ./*dash* "$DASH_BUILD/" || exit
+	cd "$DASH_BUILD" || exit
+	untar ./* || exit
+	cd ./* || exit		# there is only 1 dir
+
+	# TODO: --enable-glob --with-libedit --enable-fnmatch
+	# https://github.com/amuramatsu/dash-static/blob/master/build.sh
+	./autogen.sh || exit			# -> ./configure
+	./configure $CONF_HOST $SILENT_CONF --enable-static || exit
+	make $SILENT_MAKE $ARCH $CROSSCOMPILE "-j$CPU" || exit
+
+	DASH="$PWD/src/dash"
+	$STRIP "$DASH" || exit
+}
+
 
 has_arg 'dropbear' && {
 	prepare() {
