@@ -304,7 +304,7 @@ esac
 
 case "$KERNEL" in
 	'smoketest_for_release')
-		load_integer() { local up rest; read -r up rest </proc/uptime; echo ${up%.*}; }
+		load_integer() { local load rest; read -r load rest </proc/loadavg; printf '%s\n' "${load%.*}"; }
 		avoid_overload() { sleep 30; while test "$(load_integer)" -ge "$CPU"; do sleep 30; done; }
 
 		UNIX0="$( date +%s )" && touch 'SMOKE'
@@ -331,7 +331,11 @@ case "$KERNEL" in
 		done
 
 		count_logfiles() { find . -maxdepth 1 -type f -name 'log-[0-9]\.*' -printf '.' | wc -c; }
-		while [ "$( count_logfiles )" -lt $I ]; do sleep 5; done
+		while [ "$( count_logfiles )" -lt $I ]; do {
+			test -f 'SMOKE' || break
+			printf '%s\n' "waiting for $I logfiles or '$PWD/SMOKE' disappear"
+			sleep 10
+		} done
 
 		UNIX1="$( date +%s )" && rm 'SMOKE'
 		echo "needed $(( UNIX1 - UNIX0 )) sec"
