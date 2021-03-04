@@ -1035,13 +1035,13 @@ compile()
 	# generic prepare:
 	[ -f 'configure.ac' ] && {
 		# autoreconf --install ?
-		autoconf
-		autoheader
+		autoconf   || msg_and_die "$?" "compile() error during 'autoconf'"
+		autoheader || msg_and_die "$?" "compile() error during 'autoheader'"
 	}
 
-	prepare		|| exit
-	build		|| exit
-	copy_result	|| exit
+	prepare		|| msg_and_die "$?" "compile() error during prepare()"
+	build		|| msg_and_die "$?" "compile() error during build()"
+	copy_result	|| msg_and_die "$?" "compile() error during copy_result()"
 }
 
 has_arg 'dash' && {
