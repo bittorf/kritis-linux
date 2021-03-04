@@ -70,13 +70,15 @@ case "$DSTARCH" in
 		export BOARD='versatilepb' DTB='versatile-pb.dtb' DEFCONFIG='versatile_defconfig'
 		export QEMU='qemu-system-arm'
 		install_dep 'gcc-arm-linux-gnueabi'
+		CROSS_DL='http://musl.cc/arm-linux-musleabi-cross.tgz'
 	;;
 	armhf)	# https://superuser.com/questions/1009540/difference-between-arm64-armel-and-armhf
-		# arm7 / 32bit with power / hard float
+		# arm7 / 32bit with power / EABI hard float
 		export ARCH='ARCH=arm' CROSSCOMPILE='CROSS_COMPILE=arm-linux-gnueabihf-'
 		export BOARD='vexpress-a9' DTB='vexpress-v2p-ca9.dtb' DEFCONFIG='vexpress_defconfig'
 		export QEMU='qemu-system-arm'
 		install_dep 'gcc-arm-linux-gnueabihf'
+		CROSS_DL='http://musl.cc/arm-linux-musleabihf-cross.tgz'
 	;;
 	arm64)	# new ARM, 64bit
 		# https://github.com/ssrg-vt/hermitux/wiki/Aarch64-support
@@ -84,6 +86,7 @@ case "$DSTARCH" in
 		export BOARD='virt' DEFCONFIG='tinyconfig'
 		export QEMU='qemu-system-aarch64'
 		install_dep 'gcc-aarch64-linux-gnu'
+		CROSS_DL='http://musl.cc/aarch64-linux-musl-cross.tgz'
 	;;
 	or1k)	# OpenRISC, 32bit
 		# https://wiki.qemu.org/Documentation/Platforms/OpenRISC
@@ -990,6 +993,7 @@ esac
 }
 
 if [ -n "$CROSSCOMPILE" ]; then
+	# https://www.gnu.org/software/autoconf/manual/autoconf-2.65/html_node/Specifying-Target-Triplets.html
 	CONF_HOST="${CROSSCOMPILE#*=}"		# e.g. 'CROSS_COMPILE=i686-linux-gnu-'
 	CHOST="${CONF_HOST%?}"			#                  -> i686-linux-gnu
 	STRIP="${CHOST}-strip"			#                  -> i686-linux-gnu-strip
@@ -1032,8 +1036,8 @@ has_arg 'dash' && {
 
 compile()
 {
-	local package="$1"	# e.g. dropbear
-	local url="$2"		# e.g. https://github.com/mkj/dropbear/archive/DROPBEAR_2020.81.tar.gz
+	local package="$1"	# e.g. mytool_xy
+	local url="$2"		# e.g. https://domain.tld/path/to/tool.tgz
 	local file
 
 	local build="$BUILDS/$package"
@@ -1062,20 +1066,20 @@ compile()
 
 has_arg 'dropbear' && {
 	prepare() {
+		install_dep 'libcrypt-dev'	# for crypt.h
 		install_dep 'libtommath-dev'
 		install_dep 'libtomcrypt-dev'
-		install_dep 'dropbear-bin'	# only for key generation
-		./configure --enable-static --disable-zlib $CONF_HOST
+		install_dep 'dropbear-bin'	# only for key generation during build
+
+		CFLAGS="-ffunction-sections -fdata-sections $( test "$DSTARCH" = 'i686' && echo "-DLTC_NO_BSWAP" )" \
+		LDFLAGS='-Wl,--gc-sections' ./configure \
+			--disable-zlib --enable-bundled-libtom --enable-static $CONF_HOST
 	}
 
 	build() {
-		local all='dropbear dbclient dropbearkey dropbearconvert scp'
-		local ld_flags='-Wl,--gc-sections'
-		local c_flags='-ffunction-sections -fdata-sections'
+		local all='dropbear dbclient dropbearkey scp dropbearconvert'
 
-		test "$DSTARCH" = 'i686' && c_flags="$c_flags -DLTC_NO_BSWAP"
-
-		LDFLAGS="$ld_flags" CFLAGS="$c_flags" make $SILENT_MAKE $ARCH $CROSSCOMPILE "-j$CPU" PROGRAMS="$all" MULTI=1 STATIC=1
+		make $SILENT_MAKE $ARCH $CROSSCOMPILE PROGRAMS="$all" MULTI=1 SCPPROGRESS=1
 	}
 
 	copy_result() {
