@@ -34,6 +34,7 @@ OPTIONS="$OPTIONS $( echo "$FEATURES" | tr ',' ' ' )"
 # needed for parallel build:
 CPU="$( nproc || sysctl -n hw.ncpu || lsconf | grep -c 'proc[0-9]' )"
 [ "${CPU:-0}" -lt 1 ] && CPU=1
+[ "$PARALLEL" = 'false' ] && CPU=1
 
 has_arg()
 {
@@ -71,6 +72,8 @@ case "$DSTARCH" in
 		CROSS_DL='http://musl.cc/arm-linux-musleabi-cross.tgz'
 	;;
 	armhf)	# https://superuser.com/questions/1009540/difference-between-arm64-armel-and-armhf
+		# https://wiki.musl-libc.org/getting-started.html#Notes-on-ARM-Float-Mode
+		# https://landley.net/notes-2017.html#04-05-2017
 		# arm7 / 32bit with power / EABI hard float
 		export ARCH='ARCH=arm' QEMU='qemu-system-arm'
 		export BOARD='vexpress-a9' DTB='vexpress-v2p-ca9.dtb' DEFCONFIG='vexpress_defconfig'
@@ -353,6 +356,8 @@ case "$KERNEL" in
 ";}
 
 			stars2color() {				# https://werner-zenk.de/tools/farbverlauf.php
+				test -n "$1" && echo 'lightblue' && return	# panic
+
 				case "$(( ${#STAR} / 8 ))" in
 					1) echo '#FFFFFF' ;;	# white
 					2) echo '#D9FFD9' ;;
@@ -386,14 +391,19 @@ case "$KERNEL" in
 
 			    HINT=
 			    STAR=
+			    PANIC=
+
 			    grep -qs "BUILDTIME:" "$L1"			&& add_star && add_hint "tiny compiles: $L1"
 			    grep -qs "Linux version $KERNEL" "$L1"	&& add_star && add_hint "tiny kernel boots"
 			    grep -qs "BOOTTIME_SECONDS" "$L1"		&& add_star && add_hint "tiny initrd starts"
+			    grep -qs "Attempted to kill init" "$L1"	&& PANIC=1  && add_hint "tiny kernel panics"
+
 			    grep -qs "BUILDTIME:" "$L2"			&& add_star && add_hint "full compiles: $L2"
 			    grep -qs "Linux version $KERNEL" "$L2"	&& add_star && add_hint "full kernel boots"
 			    grep -qs "BOOTTIME_SECONDS" "$L2"		&& add_star && add_hint "full initrd starts"
+			    grep -qs "Attempted to kill init" "$L2"	&& PANIC=2  && add_hint "full kernel panics"
 
-			    printf '%s' "<td bgcolor='$( stars2color )' title='${HINT:-does_not_compile}'>${STAR:-&mdash;}</td>"
+			    printf '%s' "<td bgcolor='$( stars2color "$PANIC" )' title='${HINT:-does_not_compile}'>${STAR:-&mdash;}</td>"
 			  done
 			  printf '%s\n' "</tr><!-- end line kernel $KERNEL -->"
 			done
@@ -983,12 +993,17 @@ esac
 	untar ./* || exit
 	cd ./* || exit
 
-	# e.g. cross-or1k/or1k-linux-musl-cross/bin/or1k-linux-musl-gcc
-	 CC="$PWD/$( find bin/ -name '*-linux-musl-gcc'   )"
-	CXX="$PWD/$( find bin/ -name '*-linux-musl-g++'   )"
+	# e.g. cross-armhf/arm-linux-musleabihf-cross/bin/arm-linux-musleabihf-gcc
+	# e.g.       cross-or1k/or1k-linux-musl-cross/bin/or1k-linux-musl-gcc
+	 CC="$PWD/$( find bin/ -type f -name '*-linux-musl*-gcc'   )"
+	CXX="$PWD/$( find bin/ -type f -name '*-linux-musl*-g++'   )"
 
-	# e.g. export CROSSCOMPILE='CROSS_COMPILE=or1k-linux-musl-'
-	#                                         ^^^^^^^^^^^^^^^^
+	test -f  "$CC" || msg_and_die "$?" "CC  not a file: '$CC'  dir: '$PWD/bin'"
+	test -f "$CXX" || msg_and_die "$?" "CXX not a file: '$CXX' dir: '$PWD/bin'"
+
+	# e.g.                      CC=or1k-linux-musl-gcc
+	# we need later: CROSS_COMPILE=or1k-linux-musl-'
+	#                              ^^^^^^^^^^^^^^^^
 	PRE="$( basename "${CC%-*}" )"		# remove trailing 'gcc'
 	export CROSSCOMPILE="CROSS_COMPILE=$PRE-"
 	export CC CXX PATH="$PWD/bin:$PATH"
@@ -1007,6 +1022,8 @@ else
 	export STRIP='strip'
 	CC_VERSION="$( ${CC:-cc} --version | head -n1 )"
 fi
+
+log "CROSSCOMPILE: $CROSSCOMPILE | vCC: $CC_VERSION | CC: $CC | CXX: $CXX"
 
 export MUSL="$OPT/musl"
 mkdir -p "$MUSL"
@@ -1034,6 +1051,12 @@ compile()
 
 	# generic prepare:
 	[ -f 'configure.ac' ] && {
+#aclocal \
+#&& autoheader \
+#&& automake --add-missing \
+#&& autoconf
+
+
 		# autoreconf --install ?
 		autoconf   || msg_and_die "$?" "compile() error during 'autoconf'"
 		autoheader || msg_and_die "$?" "compile() error during 'autoheader'"
@@ -1059,6 +1082,7 @@ has_arg 'dash' && {
 
 	# TODO: --enable-glob --with-libedit --enable-fnmatch
 	# https://github.com/amuramatsu/dash-static/blob/master/build.sh
+
 	./autogen.sh || exit			# -> ./configure
 	./configure $CONF_HOST $SILENT_CONF --enable-static || exit
 	make $SILENT_MAKE $ARCH $CROSSCOMPILE "-j$CPU" || exit
