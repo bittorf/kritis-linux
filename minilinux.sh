@@ -304,8 +304,11 @@ esac
 
 case "$KERNEL" in
 	'smoketest_for_release')
-		avoid_overload() { sleep 30; while test "$(cut -d'.' -f1 /proc/loadavg)" -ge "$CPU"; do sleep 30; done; }
-		UNIX0="$( date +%s )"
+		load_integer() { local up rest; read -r up rest </proc/uptime; echo ${up%.*}; }
+		avoid_overload() { sleep 30; while test "$(load_integer)" -ge "$CPU"; do sleep 30; done; }
+
+		UNIX0="$( date +%s )" && touch 'SMOKE'
+		( while test -f 'SMOKE'; do load_integer; sleep 10; done >'load.txt'; ) &
 
 		for ARCH in $LIST_ARCH; do
 		  for KERNEL in $LIST_KERNEL; do
@@ -330,9 +333,11 @@ case "$KERNEL" in
 		count_logfiles() { find . -maxdepth 1 -type f -name 'log-[0-9]\.*' -printf '.' | wc -c; }
 		while [ "$( count_logfiles )" -lt $I ]; do sleep 5; done
 
-		UNIX1="$( date +%s )"
+		UNIX1="$( date +%s )" && rm 'SMOKE'
 		echo "needed $(( UNIX1 - UNIX0 )) sec"
+
 		T0=$UNIX0 T1=$UNIX1 $0 'smoketest_report_html'
+		log "see '$PWD/load.txt"
 		exit
 	;;
 	'smoketest_report_html')
@@ -407,7 +412,7 @@ case "$KERNEL" in
 			echo "</pre></html>"
 		}
 
-		build_matrix_html >'matrix.html' && echo "see: '$PWD/matrix.html'"
+		build_matrix_html >'matrix.html' && log "see: '$PWD/matrix.html'"
 		exit
 	;;
 	'clean')
