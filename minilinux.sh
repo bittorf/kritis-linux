@@ -24,7 +24,6 @@ URL_ICMPTUNNEL='https://github.com/DhavalKapil/icmptunnel/archive/master.zip'
 
 log() { >&2 printf '%s\n' "$1"; }
 
-export STRIP=strip
 export LC_ALL=C
 export STORAGE="/tmp/storage"
 mkdir -p "$STORAGE" && log "[OK] cache/storage is here: '$STORAGE'"
@@ -168,6 +167,8 @@ has_arg 'debug' || {
 	SILENT_MAKE='-s'
 	SILENT_CONF='--enable-silent-rules'
 }
+
+log "[OK] building kernel '$KERNEL' on arch '$DSTARCH' and options '$OPTIONS'"
 
 deps_check()
 {
@@ -1002,6 +1003,7 @@ if [ -n "$CROSSCOMPILE" ]; then
 	CC_VERSION="$( $CHOST-gcc --version | head -n1 )"
 	export STRIP CONF_HOST CHOST
 else
+	export STRIP='strip'
 	CC_VERSION="$( ${CC:-cc} --version | head -n1 )"
 fi
 
