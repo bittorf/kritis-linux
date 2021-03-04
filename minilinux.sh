@@ -288,6 +288,7 @@ msg_and_die()
 autoclean_do()
 {
 	cd "$BASEDIR" && cd .. && rm -fR "$BASEDIR"
+	printf '%s\n' "[OK] autoclean done" >>"${LOG:-/dev/null}"
 }
 
 case "$KERNEL" in
