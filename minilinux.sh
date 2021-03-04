@@ -66,34 +66,29 @@ has_arg 'UML' && DSTARCH='uml'
 case "$DSTARCH" in
 	armel)	# FIXME! on arm / qemu-system-arm / we should switch to qemu -M virt without DTB and smaller config
 		# old ARM, 32bit
-		export ARCH='ARCH=arm' CROSSCOMPILE='CROSS_COMPILE=arm-linux-gnueabi-'
+		export ARCH='ARCH=arm' QEMU='qemu-system-arm'
 		export BOARD='versatilepb' DTB='versatile-pb.dtb' DEFCONFIG='versatile_defconfig'
-		export QEMU='qemu-system-arm'
-		install_dep 'gcc-arm-linux-gnueabi'
+		# install_dep 'gcc-arm-linux-gnueabi' && export CROSSCOMPILE='CROSS_COMPILE=arm-linux-gnueabi-'
 		CROSS_DL='http://musl.cc/arm-linux-musleabi-cross.tgz'
 	;;
 	armhf)	# https://superuser.com/questions/1009540/difference-between-arm64-armel-and-armhf
 		# arm7 / 32bit with power / EABI hard float
-		export ARCH='ARCH=arm' CROSSCOMPILE='CROSS_COMPILE=arm-linux-gnueabihf-'
+		export ARCH='ARCH=arm' QEMU='qemu-system-arm'
 		export BOARD='vexpress-a9' DTB='vexpress-v2p-ca9.dtb' DEFCONFIG='vexpress_defconfig'
-		export QEMU='qemu-system-arm'
-		install_dep 'gcc-arm-linux-gnueabihf'
+		# install_dep 'gcc-arm-linux-gnueabihf' && export CROSSCOMPILE='CROSS_COMPILE=arm-linux-gnueabihf-'
 		CROSS_DL='http://musl.cc/arm-linux-musleabihf-cross.tgz'
 	;;
 	arm64)	# new ARM, 64bit
 		# https://github.com/ssrg-vt/hermitux/wiki/Aarch64-support
-		export ARCH='ARCH=arm64' CROSSCOMPILE='CROSS_COMPILE=aarch64-linux-gnu-'
+		export ARCH='ARCH=arm64' QEMU='qemu-system-aarch64'
 		export BOARD='virt' DEFCONFIG='tinyconfig'
-		export QEMU='qemu-system-aarch64'
-		install_dep 'gcc-aarch64-linux-gnu'
+		# install_dep 'gcc-aarch64-linux-gnu' && export CROSSCOMPILE='CROSS_COMPILE=aarch64-linux-gnu-'
 		CROSS_DL='http://musl.cc/aarch64-linux-musl-cross.tgz'
 	;;
 	or1k)	# OpenRISC, 32bit
 		# https://wiki.qemu.org/Documentation/Platforms/OpenRISC
-		export ARCH='ARCH=openrisc' CROSSCOMPILE='CROSS_COMPILE=or1k-linux-musl-'
+		export ARCH='ARCH=openrisc' QEMU='qemu-system-or1k'
 		export BOARD='or1k-sim' DEFCONFIG='tinyconfig'
-		export QEMU='qemu-system-or1k'
-
 		CROSS_DL="https://musl.cc/or1k-linux-musl-cross.tgz"
 		OPTIONS="$OPTIONS 32bit"
 	;;
@@ -104,10 +99,9 @@ case "$DSTARCH" in
 		# https://news.ycombinator.com/item?id=25027213
 		# http://users.telenet.be/geertu/Linux/68000/
 		# https://elinux.org/Flameman/mac68k
-		export ARCH='ARCH=m68k' CROSSCOMPILE='CROSS_COMPILE=m68k-linux-gnu-'
+		export ARCH='ARCH=m68k' QEMU='qemu-system-m68k'
 		export BOARD='q800' DEFCONFIG='tinyconfig'
-		export QEMU='qemu-system-m68k'
-		install_dep 'gcc-m68k-linux-gnu'
+		# install_dep 'gcc-m68k-linux-gnu' && export CROSSCOMPILE='CROSS_COMPILE=m68k-linux-gnu-'
 		CROSS_DL='https://musl.cc/m68k-linux-musl-cross.tgz'
 	;;
 	ppc)	# 32bit
@@ -132,24 +126,17 @@ case "$DSTARCH" in
 #			export CROSSCOMPILE='CROSS_COMPILE=i686-linux-gnu-' && \
 #			install_dep 'gcc-i686-linux-gnu'
 			CROSS_DL="https://musl.cc/i686-linux-musl-cross.tgz"
-			export CROSSCOMPILE='CROSS_COMPILE=i686-linux-musl-'
 		else
 			CROSS_DL="https://musl.cc/x86_64-linux-musl-cross.tgz"
-			export CROSSCOMPILE='CROSS_COMPILE=x86_64-linux-musl-'
 		fi
 	;;
 	i386|i486|i586|i686|x86|x86_32)
 		DSTARCH='i686'		# 32bit
 		OPTIONS="$OPTIONS 32bit"
-		export DEFCONFIG='tinyconfig'
+		export DEFCONFIG='tinyconfig' QEMU='qemu-system-i386'
 		export ARCH='ARCH=i386'
-		export QEMU='qemu-system-i386'
-
+		# install_dep 'gcc-i686-linux-gnu' && export CROSSCOMPILE='CROSS_COMPILE=i686-linux-gnu-'
 		CROSS_DL="https://musl.cc/i686-linux-musl-cross.tgz"
-		export CROSSCOMPILE='CROSS_COMPILE=i686-linux-musl-'
-
-#		export CROSSCOMPILE='CROSS_COMPILE=i686-linux-gnu-'
-#		install_dep 'gcc-i686-linux-gnu'
 	;;
 	x86_64|*)
 		DSTARCH='x86_64'
@@ -157,7 +144,6 @@ case "$DSTARCH" in
 		export QEMU='qemu-system-x86_64'
 
 		CROSS_DL="https://musl.cc/x86_64-linux-musl-cross.tgz"
-		export CROSSCOMPILE='CROSS_COMPILE=x86_64-linux-musl-'
 	;;
 esac
 
@@ -986,9 +972,14 @@ esac
 	untar ./* || exit
 	cd ./* || exit
 
+	# e.g. cross-or1k/or1k-linux-musl-cross/bin/or1k-linux-musl-gcc
 	 CC="$PWD/$( find bin/ -name '*-linux-musl-gcc'   )"
 	CXX="$PWD/$( find bin/ -name '*-linux-musl-g++'   )"
 
+	# e.g. export CROSSCOMPILE='CROSS_COMPILE=or1k-linux-musl-'
+	#                                         ^^^^^^^^^^^^^^^^
+	PRE="$( basename "${CC%-*}" )"		# remove trailing 'gcc'
+	export CROSSCOMPILE="CROSS_COMPILE=$PRE-"
 	export CC CXX PATH="$PWD/bin:$PATH"
 }
 
