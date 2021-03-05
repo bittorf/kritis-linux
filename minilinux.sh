@@ -657,6 +657,8 @@ list_kernel_symbols()
 	esac
 
 	has_arg 'net' && {
+		# https://unix.stackexchange.com/questions/171874/no-network-interface-in-qemu
+		# cat /proc/ioports
 		echo 'CONFIG_NET=y'
 		echo 'CONFIG_NETDEVICES=y'
 
@@ -1049,17 +1051,12 @@ compile()
 	untar "$file"
 	cd ./* || exit
 
-	# generic prepare:
+	# generic prepare, used by: dropbear, bash(broken)
 	[ -f 'configure.ac' ] && {
-#aclocal \
-#&& autoheader \
-#&& automake --add-missing \
-#&& autoconf
-
-
-		# autoreconf --install ?
-		autoconf   || msg_and_die "$?" "compile() error during 'autoconf'"
-		autoheader || msg_and_die "$?" "compile() error during 'autoheader'"
+		[ -f 'configure' ] || {
+			# https://www.gnu.org/software/autoconf/manual/autoconf-2.68/html_node/autoreconf-Invocation.html
+			autoreconf --force --install || msg_and_die "$?" "compile() error during 'autoreconf -f -i' for '$package'"
+		}
 	}
 
 	prepare		|| msg_and_die "$?" "compile() error during prepare()"
@@ -1860,6 +1857,7 @@ $( sed -n '1,5s/^/#                /p' "$CONFIG1" )
 $( emit_doc 'apply_order' )
 # ---
 
+QEMU_OPTIONS=
 KERNEL_ARGS='console=ttyS0'
 [ -z "\$PATTERN" ] && PATTERN="<hopefully_this_pattern_will_never_match>"
 
@@ -1888,13 +1886,12 @@ case "${DSTARCH:-\$( arch || echo native )}" in armel|armhf|arm|arm64)
 	uml*)
 		QEMU="$( basename "$KERNEL_FILE" )"	# for later kill
 		KVM_PRE=				# sudo unneeded?
+		$( test -x "$SLIRP_BIN" && echo "		UMLNET='eth0=slirp,FE:FD:01:02:03:04,$SLIRP_BIN'" )
 	;;
 esac
 
 $( test -f "$BIOS" && echo "BIOS='-bios \"$BIOS\"'" )
 $( has_arg 'net' && echo "KERNEL_ARGS=\"\$KERNEL_ARGS ip=dhcp nameserver=8.8.8.8\"" )
-QEMU_OPTIONS=
-$( test -x "$SLIRP_BIN" && echo "UMLNET='eth0=slirp,FE:FD:01:02:03:04,$SLIRP_BIN'" )
 
 case "\$ACTION" in
 	autotest)
