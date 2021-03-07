@@ -298,7 +298,11 @@ msg_and_die()
 autoclean_do()
 {
 	cd "$BASEDIR" && cd .. && rm -fR "$BASEDIR"
-	printf '%s\n' "[OK] autoclean done" >>"${LOG:-/dev/null}"
+
+	{
+		printf '%s\n' "[OK] autoclean done, build ready after $(( $(date +%s) - UNIX0 )) sec"
+		printf '%s\n' "repeat with: LOG=$LOG $0 smoketest_for_release $DSTARCH $KERNEL"
+	} >>"${LOG:-/dev/null}"
 }
 
 case "$KERNEL" in
