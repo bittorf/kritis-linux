@@ -28,13 +28,14 @@ export LC_ALL=C
 export STORAGE="/tmp/storage"
 mkdir -p "$STORAGE" && log "[OK] cache/storage is here: '$STORAGE'"
 
-# change from comma to space delimited list
-OPTIONS="$OPTIONS $( echo "$FEATURES" | tr ',' ' ' ) $( test -n "$DEBUG" && echo 'debug' )"
-
 # needed for parallel build:
 [ -z "$CPU" ] && CPU="$( nproc || sysctl -n hw.ncpu || lsconf | grep -c 'proc[0-9]' )"
 [ "${CPU:-0}" -lt 1 ] && CPU=1
+[ "$CPU" = 1 ] && DEBUG=true
 log "[OK] parallel build with -j$CPU"
+
+# change from comma to space delimited list
+OPTIONS="$OPTIONS $( echo "$FEATURES" | tr ',' ' ' ) $( test -n "$DEBUG" && echo 'debug' )"
 
 has_arg()
 {
@@ -173,10 +174,12 @@ case "$DSTARCH" in
 	;;
 esac
 
-has_arg 'debug' || {
+if has_arg 'debug'; then
+	SILENT_MAKE='V=s'
+else
 	SILENT_MAKE='-s'
 	SILENT_CONF='--enable-silent-rules'
-}
+fi
 
 log "[OK] building kernel '$KERNEL' on arch '$DSTARCH' and options '$OPTIONS'"
 
@@ -339,12 +342,12 @@ case "$KERNEL" in
 		    export CPU
 
 		    if [ -n "$ARG2" ]; then
-		      LOG="$L1" BUILDID="$ID-tiny" DSTARCH="$ARCH" "$0" "$KERNEL" "$TINY" autoclean
-		      LOG="$L2" BUILDID="$ID-full" DSTARCH="$ARCH" "$0" "$KERNEL" "$FULL" autoclean
+		      LOG="$L1" BUILDID="$ID-tiny" DSTARCH="$ARCH" "$0" "$KERNEL" "$TINY" autoclean >"$L1.build" 2>&1
+		      LOG="$L2" BUILDID="$ID-full" DSTARCH="$ARCH" "$0" "$KERNEL" "$FULL" autoclean >"$L2.build" 2>&1
 		    else
-		      LOG="$L1" BUILDID="$ID-tiny" DSTARCH="$ARCH" "$0" "$KERNEL" "$TINY" autoclean &
+		      LOG="$L1" BUILDID="$ID-tiny" DSTARCH="$ARCH" "$0" "$KERNEL" "$TINY" autoclean >"$L1.build" 2>&1 &
 		      avoid_overload
-		      LOG="$L2" BUILDID="$ID-full" DSTARCH="$ARCH" "$0" "$KERNEL" "$FULL" autoclean &
+		      LOG="$L2" BUILDID="$ID-full" DSTARCH="$ARCH" "$0" "$KERNEL" "$FULL" autoclean >"$L2.build" 2>&1 &
 		      avoid_overload
 		    fi
 		  done
