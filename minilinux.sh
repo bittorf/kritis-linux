@@ -324,6 +324,7 @@ case "$KERNEL" in
 		avoid_overload() { sleep 30; while test "$(load_integer)" -ge "$CPU"; do sleep 30; done; }
 
 		UNIX0="$( date +%s )" && touch 'SMOKE'
+		test -z "$ARG2" && \
 		(while [ -f SMOKE ];do J=;L=$(load_integer);for _ in $(seq $L);do J="#$J";done;echo $J ${#J};sleep 10;done >load.txt;) &
 
 		for ARCH in $LIST_ARCH; do
@@ -446,7 +447,7 @@ case "$KERNEL" in
 		}
 
 		DEST="user@server.de:/var/www/kritis-linux/"
-		build_matrix_html >'matrix.html' && log "see: '$PWD/matrix.html', scp matrix.html log-* $DEST"
+		build_matrix_html >'matrix.html' && log "see: '$PWD/matrix.html', cp matrix.html index.html && scp matrix.html log-* $DEST"
 		exit
 	;;
 	'clean')
