@@ -35,6 +35,7 @@ OPTIONS="$OPTIONS $( echo "$FEATURES" | tr ',' ' ' )"
 CPU="$( nproc || sysctl -n hw.ncpu || lsconf | grep -c 'proc[0-9]' )"
 [ "${CPU:-0}" -lt 1 ] && CPU=1
 [ "$PARALLEL" = 'false' ] && CPU=1
+log "[OK] parallel build with -j$CPU"
 
 has_arg()
 {
@@ -62,14 +63,21 @@ install_dep()
 
 is_uml() { false; }
 has_arg 'UML' && DSTARCH='uml'
-#
+
 case "$DSTARCH" in
 	armel)	# FIXME! on arm / qemu-system-arm / we should switch to qemu -M virt without DTB and smaller config
-		# old ARM, 32bit
+		# old ARM, 32bit - from aboriginal linux target armv5l:
+		#
+		# "ARM v5, little endian, EABI with vector floating point (vfp).
+		#  ARMv5 is the Pentium of the ARM world.  Most modern arm hardware should be
+		#  able to run this, and hardware that supports the v5 instruction set should run
+		#  this about 25% faster than code compiled for v4."
+		#
 		export ARCH='ARCH=arm' QEMU='qemu-system-arm'
 		export BOARD='versatilepb' DTB='versatile-pb.dtb' DEFCONFIG='versatile_defconfig'
 		# install_dep 'gcc-arm-linux-gnueabi' && export CROSSCOMPILE='CROSS_COMPILE=arm-linux-gnueabi-'
-		CROSS_DL='http://musl.cc/arm-linux-musleabi-cross.tgz'
+		CROSS_DL='https://musl.cc/armel-linux-musleabi-cross.tgz'
+		export CF_ADD='-marm -march=armv5te -mfloat-abi=soft -msoft-float -mno-unaligned-access'
 	;;
 	armhf)	# https://superuser.com/questions/1009540/difference-between-arm64-armel-and-armhf
 		# https://wiki.musl-libc.org/getting-started.html#Notes-on-ARM-Float-Mode
@@ -78,14 +86,15 @@ case "$DSTARCH" in
 		export ARCH='ARCH=arm' QEMU='qemu-system-arm'
 		export BOARD='vexpress-a9' DTB='vexpress-v2p-ca9.dtb' DEFCONFIG='vexpress_defconfig'
 		# install_dep 'gcc-arm-linux-gnueabihf' && export CROSSCOMPILE='CROSS_COMPILE=arm-linux-gnueabihf-'
-		CROSS_DL='http://musl.cc/arm-linux-musleabihf-cross.tgz'
+		CROSS_DL='https://musl.cc/armv7l-linux-musleabihf-cross.tgz'
+		export CF_ADD="-marm -march=armv7-a -mfpu=vfp"
 	;;
 	arm64)	# new ARM, 64bit
 		# https://github.com/ssrg-vt/hermitux/wiki/Aarch64-support
 		export ARCH='ARCH=arm64' QEMU='qemu-system-aarch64'
 		export BOARD='virt' DEFCONFIG='tinyconfig'
 		# install_dep 'gcc-aarch64-linux-gnu' && export CROSSCOMPILE='CROSS_COMPILE=aarch64-linux-gnu-'
-		CROSS_DL='http://musl.cc/aarch64-linux-musl-cross.tgz'
+		CROSS_DL='https://musl.cc/aarch64-linux-musl-cross.tgz'
 	;;
 	or1k)	# OpenRISC, 32bit
 		# https://wiki.qemu.org/Documentation/Platforms/OpenRISC
@@ -124,10 +133,8 @@ case "$DSTARCH" in
 		export DSTARCH='uml'
 
 		if has_arg '32bit'; then
-			test "$(arch)" != i686 && \
-#			export CROSSCOMPILE='CROSS_COMPILE=i686-linux-gnu-' && \
-#			install_dep 'gcc-i686-linux-gnu'
-			CROSS_DL="https://musl.cc/i686-linux-musl-cross.tgz"
+			# install_dep 'gcc-i686-linux-gnu' && export CROSSCOMPILE='CROSS_COMPILE=i686-linux-gnu-'
+			CROSS_DL="https://musl.cc/i686-linux-musl-cross.tgz"	# test "$(arch)" != i686 ???
 		else
 			CROSS_DL="https://musl.cc/x86_64-linux-musl-cross.tgz"
 		fi
@@ -144,7 +151,6 @@ case "$DSTARCH" in
 		DSTARCH='x86_64'
 		export DEFCONFIG='tinyconfig'
 		export QEMU='qemu-system-x86_64'
-
 		CROSS_DL="https://musl.cc/x86_64-linux-musl-cross.tgz"
 	;;
 esac
@@ -658,7 +664,7 @@ list_kernel_symbols()
 
 	has_arg 'net' && {
 		# https://unix.stackexchange.com/questions/171874/no-network-interface-in-qemu
-		# cat /proc/ioports
+		# grep 8139cp /proc/ioports
 		echo 'CONFIG_NET=y'
 		echo 'CONFIG_NETDEVICES=y'
 
@@ -1701,8 +1707,8 @@ if has_arg 'no_pie'; then
 	T1="$( date +%s )"
 else
 	T0="$( date +%s )"
-	echo "make        $ARCH $CROSSCOMPILE -j$CPU"
-	yes "" | make $SILENT_MAKE $ARCH $CROSSCOMPILE -j"$CPU" || msg_and_die "$?" "make $ARCH $CROSSCOMPILE"
+	echo "make        $ARCH $CROSSCOMPILE -j$CPU 'CFLAGS_KERNEL=$CF_ADD'"
+	yes "" | make $SILENT_MAKE $ARCH $CROSSCOMPILE -j"$CPU" "CFLAGS_KERNEL=$CF_ADD" || msg_and_die "$?" "make $ARCH $CROSSCOMPILE"
 	T1="$( date +%s )"
 fi
 KERNEL_TIME=$(( T1 - T0 ))
