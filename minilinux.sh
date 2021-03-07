@@ -77,6 +77,7 @@ case "$DSTARCH" in
 		export BOARD='versatilepb' DTB='versatile-pb.dtb' DEFCONFIG='versatile_defconfig'
 		# install_dep 'gcc-arm-linux-gnueabi' && export CROSSCOMPILE='CROSS_COMPILE=arm-linux-gnueabi-'
 		CROSS_DL='https://musl.cc/armel-linux-musleabi-cross.tgz'
+		# https://github.com/zerotier/ZeroTierOne/blob/master/make-linux.mk#L278
 		export CF_ADD='-marm -march=armv5te -mfloat-abi=soft -msoft-float -mno-unaligned-access'
 	;;
 	armhf)	# https://superuser.com/questions/1009540/difference-between-arm64-armel-and-armhf
@@ -319,7 +320,7 @@ case "$KERNEL" in
 		avoid_overload() { sleep 30; while test "$(load_integer)" -ge "$CPU"; do sleep 30; done; }
 
 		UNIX0="$( date +%s )" && touch 'SMOKE'
-		( while test -f 'SMOKE';do J=;L=$(load_integer);for _ in $(seq $L);do J="${J}#";done;echo $J;sleep 10;done >load.txt; ) &
+		(while [ -f SMOKE ];do J=;L=$(load_integer);for _ in $(seq $L);do J="#$J";done;echo $J ${#J};sleep 10;done >load.txt;) &
 
 		for ARCH in $LIST_ARCH; do
 		  for KERNEL in $LIST_KERNEL; do
@@ -431,7 +432,7 @@ case "$KERNEL" in
 
 			# shellcheck disable=SC2046,SC2048
 			echo "nproc/cpu: $( nproc ) @ $( set -- $( grep ^"model name" /proc/cpuinfo | head -n1 ); shift 3; echo $* )"
-			echo "</pre></html>"
+			echo "$( test -f load.txt && printf '\n%s' 'load-1min during build each 10 sec:' && cat load.txt )</pre></html>"
 		}
 
 		build_matrix_html >'matrix.html' && log "see: '$PWD/matrix.html'"
