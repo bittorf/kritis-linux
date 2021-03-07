@@ -32,9 +32,8 @@ mkdir -p "$STORAGE" && log "[OK] cache/storage is here: '$STORAGE'"
 OPTIONS="$OPTIONS $( echo "$FEATURES" | tr ',' ' ' ) $( test -n "$DEBUG" && echo 'debug' )"
 
 # needed for parallel build:
-CPU="$( nproc || sysctl -n hw.ncpu || lsconf | grep -c 'proc[0-9]' )"
+[ -z "$CPU" ] && CPU="$( nproc || sysctl -n hw.ncpu || lsconf | grep -c 'proc[0-9]' )"
 [ "${CPU:-0}" -lt 1 ] && CPU=1
-[ "$PARALLEL" = 'false' ] && CPU=1
 log "[OK] parallel build with -j$CPU"
 
 has_arg()
@@ -322,7 +321,7 @@ esac
 case "$KERNEL" in
 	'smoketest_for_release')
 		load_integer() { local load rest; read -r load rest </proc/loadavg; printf '%s\n' "${load%.*}"; }
-		avoid_overload() { sleep 30; while test "$(load_integer)" -ge "$CPU"; do sleep 30; done; }
+		avoid_overload() { sleep 10; while test "$(load_integer)" -ge "$CPU"; do sleep 10; done; }
 
 		UNIX0="$( date +%s )" && touch 'SMOKE'
 		test -z "$ARG2" && \
@@ -337,8 +336,9 @@ case "$KERNEL" in
 		    L2="$LOG-full.txt" && : >"$L2"
                     export FAKEID='kritis-release@github.com'
                     export NOKVM='true'
+		    export CPU
 
-		    if [ "$PARALLEL" = 'false' ] || [ -n "$ARG2" ]; then
+		    if [ -n "$ARG2" ]; then
 		      LOG="$L1" BUILDID="$ID-tiny" DSTARCH="$ARCH" "$0" "$KERNEL" "$TINY" autoclean
 		      LOG="$L2" BUILDID="$ID-full" DSTARCH="$ARCH" "$0" "$KERNEL" "$FULL" autoclean
 		    else
