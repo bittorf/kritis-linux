@@ -319,7 +319,7 @@ case "$KERNEL" in
 		avoid_overload() { sleep 30; while test "$(load_integer)" -ge "$CPU"; do sleep 30; done; }
 
 		UNIX0="$( date +%s )" && touch 'SMOKE'
-		( while test -f 'SMOKE'; do load_integer; sleep 10; done >'load.txt'; ) &
+		( while test -f 'SMOKE';do J=;L=$(load_integer);for _ in $(seq $L);do J="${J}#";done;echo $J;sleep 10;done >load.txt; ) &
 
 		for ARCH in $LIST_ARCH; do
 		  for KERNEL in $LIST_KERNEL; do
