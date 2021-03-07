@@ -330,17 +330,17 @@ case "$KERNEL" in
 		  for KERNEL in $LIST_KERNEL; do
 		    I=$(( I + 2 ))
 		    ID="${KERNEL}_${ARCH}"
-		    LOG="$PWD/log-$ID.txt"
+		    LOG="$PWD/log-$ID"
                     export FAKEID='kritis-release@github.com'
                     export NOKVM='true'
 
 		    if [ "$PARALLEL" = 'false' ]; then
-		      LOG="$LOG-tiny" BUILDID="$ID-tiny" DSTARCH="$ARCH" "$0" "$KERNEL" "$TINY" autoclean
-		      LOG="$LOG-full" BUILDID="$ID-full" DSTARCH="$ARCH" "$0" "$KERNEL" "$FULL" autoclean
+		      LOG="$LOG-tiny.txt" BUILDID="$ID-tiny" DSTARCH="$ARCH" "$0" "$KERNEL" "$TINY" autoclean
+		      LOG="$LOG-full.txt" BUILDID="$ID-full" DSTARCH="$ARCH" "$0" "$KERNEL" "$FULL" autoclean
 		    else
-		      LOG="$LOG-tiny" BUILDID="$ID-tiny" DSTARCH="$ARCH" "$0" "$KERNEL" "$TINY" autoclean &
+		      LOG="$LOG-tiny.txt" BUILDID="$ID-tiny" DSTARCH="$ARCH" "$0" "$KERNEL" "$TINY" autoclean &
 		      avoid_overload
-		      LOG="$LOG-full" BUILDID="$ID-full" DSTARCH="$ARCH" "$0" "$KERNEL" "$FULL" autoclean &
+		      LOG="$LOG-full.txt" BUILDID="$ID-full" DSTARCH="$ARCH" "$0" "$KERNEL" "$FULL" autoclean &
 		      avoid_overload
 		    fi
 		  done
