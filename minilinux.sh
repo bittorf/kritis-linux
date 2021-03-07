@@ -29,7 +29,7 @@ export STORAGE="/tmp/storage"
 mkdir -p "$STORAGE" && log "[OK] cache/storage is here: '$STORAGE'"
 
 # change from comma to space delimited list
-OPTIONS="$OPTIONS $( echo "$FEATURES" | tr ',' ' ' )"
+OPTIONS="$OPTIONS $( echo "$FEATURES" | tr ',' ' ' ) $( test -n "$DEBUG" && echo 'debug' )"
 
 # needed for parallel build:
 CPU="$( nproc || sysctl -n hw.ncpu || lsconf | grep -c 'proc[0-9]' )"
@@ -301,7 +301,7 @@ autoclean_do()
 
 	{
 		printf '%s\n' "[OK] autoclean done, build ready after $(( $(date +%s) - UNIX0 )) sec"
-		printf '%s\n%s\n' "repeat with:" "LOG=$( basename "$LOG" ) $0 smoketest_for_release $DSTARCH $KERNEL"
+		printf '%s\n%s\n' "repeat with:" "DEBUG=true LOG=$( basename "$LOG" ) $0 smoketest_for_release $DSTARCH $KERNEL"
 	} >>"${LOG:-/dev/null}"
 }
 
@@ -331,22 +331,24 @@ case "$KERNEL" in
 		    I=$(( I + 2 ))
 		    ID="${KERNEL}_${ARCH}"
 		    LOG="$PWD/log-$ID"
+		    L1="$LOG-tiny.txt" && : >"$L1"
+		    L2="$LOG-full.txt" && : >"$L2"
                     export FAKEID='kritis-release@github.com'
                     export NOKVM='true'
 
-		    if [ "$PARALLEL" = 'false' ]; then
-		      LOG="$LOG-tiny.txt" BUILDID="$ID-tiny" DSTARCH="$ARCH" "$0" "$KERNEL" "$TINY" autoclean
-		      LOG="$LOG-full.txt" BUILDID="$ID-full" DSTARCH="$ARCH" "$0" "$KERNEL" "$FULL" autoclean
+		    if [ "$PARALLEL" = 'false' ] || [ -n "$ARG2" ]; then
+		      LOG="$L1" BUILDID="$ID-tiny" DSTARCH="$ARCH" "$0" "$KERNEL" "$TINY" autoclean
+		      LOG="$L2" BUILDID="$ID-full" DSTARCH="$ARCH" "$0" "$KERNEL" "$FULL" autoclean
 		    else
-		      LOG="$LOG-tiny.txt" BUILDID="$ID-tiny" DSTARCH="$ARCH" "$0" "$KERNEL" "$TINY" autoclean &
+		      LOG="$L1" BUILDID="$ID-tiny" DSTARCH="$ARCH" "$0" "$KERNEL" "$TINY" autoclean &
 		      avoid_overload
-		      LOG="$LOG-full.txt" BUILDID="$ID-full" DSTARCH="$ARCH" "$0" "$KERNEL" "$FULL" autoclean &
+		      LOG="$L2" BUILDID="$ID-full" DSTARCH="$ARCH" "$0" "$KERNEL" "$FULL" autoclean &
 		      avoid_overload
 		    fi
 		  done
 		done
 
-		count_logfiles() { find . -maxdepth 1 -type f -name 'log-[0-9]\.*' -printf '.' | wc -c; }
+		count_logfiles() { find . -maxdepth 1 -type f -name 'log-[0-9]\.*' -size +0 -printf '.' | wc -c; }
 		while [ "$( count_logfiles )" -lt $I ]; do {
 			test -f 'SMOKE' || break
 			printf '%s\n' "waiting for $I logfiles or '$PWD/SMOKE' disappear"
