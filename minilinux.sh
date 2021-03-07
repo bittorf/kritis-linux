@@ -62,6 +62,7 @@ install_dep()
 }
 
 is_uml() { false; }
+DSTARCH_CMDLINE="$DSTARCH"
 
 case "$DSTARCH" in
 	armel)	# FIXME! on arm / qemu-system-arm / we should switch to qemu -M virt without DTB and smaller config
@@ -301,7 +302,7 @@ autoclean_do()
 
 	{
 		printf '%s\n' "[OK] autoclean done, build ready after $(( $(date +%s) - UNIX0 )) sec"
-		printf '%s\n%s\n' "repeat with:" "DEBUG=true LOG=$( basename "$LOG" ) $0 smoketest_for_release $DSTARCH $KERNEL"
+		printf '%s\n%s\n' "repeat with:" "DEBUG=true $0 smoketest_for_release $DSTARCH_CMDLINE $KERNEL"
 	} >>"${LOG:-/dev/null}"
 }
 
