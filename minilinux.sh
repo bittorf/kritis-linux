@@ -326,7 +326,7 @@ case "$KERNEL" in
 		  for KERNEL in $LIST_KERNEL; do
 		    I=$(( I + 2 ))
 		    ID="${KERNEL}_${ARCH}"
-		    LOG="$PWD/log-$ID"
+		    LOG="$PWD/log-$ID.txt"
                     export FAKEID='kritis-release@github.com'
                     export NOKVM='true'
 
@@ -393,24 +393,28 @@ case "$KERNEL" in
 			  for ARCH in $LIST_ARCH; do
 			    I=$(( I + 1 ))
 			    ID="${KERNEL}_${ARCH}"
-			    L1="$PWD/log-$ID-tiny"	# e.g. log-5.4.100_x86_64-tiny
-			    L2="$PWD/log-$ID-full"
+			    L1="$PWD/log-$ID-tiny.txt"	# e.g. log-5.4.100_x86_64-tiny.txt
+			    L2="$PWD/log-$ID-full.txt"
 
 			    HINT=
-			    STAR=
 			    PANIC=
-
+			    STAR=
 			    grep -qs "BUILDTIME:" "$L1"			&& add_star && add_hint "tiny compiles: $L1"
 			    grep -qs "Linux version $KERNEL" "$L1"	&& add_star && add_hint "tiny kernel boots"
 			    grep -qs "BOOTTIME_SECONDS" "$L1"		&& add_star && add_hint "tiny initrd starts"
 			    grep -qs "Attempted to kill init" "$L1"	&& PANIC=1  && add_hint "tiny kernel panics"
+			    LINK1="<a href='$( basename "$L1" )'>${STAR:-&mdash;}</a>"
+			    STAR_OLD="$STAR"
 
+			    STAR=
 			    grep -qs "BUILDTIME:" "$L2"			&& add_star && add_hint "full compiles: $L2"
 			    grep -qs "Linux version $KERNEL" "$L2"	&& add_star && add_hint "full kernel boots"
 			    grep -qs "BOOTTIME_SECONDS" "$L2"		&& add_star && add_hint "full initrd starts"
 			    grep -qs "Attempted to kill init" "$L2"	&& PANIC=2  && add_hint "full kernel panics"
 
-			    printf '%s' "<td bgcolor='$( stars2color "$PANIC" )' title='${HINT:-does_not_compile}'>${STAR:-&mdash;}</td>"
+			    LINK2="&nbsp;<a href='$( basename "$L2" )'>${STAR:-&mdash;}</a>"
+			    STAR="${STAR_OLD}${STAR}"
+			    printf '%s' "<td bgcolor='$( stars2color "$PANIC" )' title='${HINT:-does_not_compile}'>${LINK1}$LINK2</td>"
 			  done
 			  printf '%s\n' "</tr><!-- end line kernel $KERNEL -->"
 			done
@@ -435,7 +439,8 @@ case "$KERNEL" in
 			echo "$( test -f load.txt && printf '\n%s' 'load-1min during build each 10 sec:' && cat load.txt )</pre></html>"
 		}
 
-		build_matrix_html >'matrix.html' && log "see: '$PWD/matrix.html'"
+		DEST="user@server.de:/var/www/kritis-linux/"
+		build_matrix_html >'matrix.html' && log "see: '$PWD/matrix.html', scp matrix.html log-* $DEST"
 		exit
 	;;
 	'clean')
