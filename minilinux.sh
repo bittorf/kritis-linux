@@ -1874,10 +1874,12 @@ $( test -n "$NOKVM" && echo 'KVM_SUPPORT=' )
 
 $( has_arg 'net' && echo "QEMU_OPTIONS='-net nic,model=rtl8139 -net user'" )
 
-case "${DSTARCH:-\$( arch || echo native )}" in armel|armhf|arm|arm64)
-	DTB='$DTB'
-	KVM_SUPPORT="-M $BOARD \${DTB:+-dtb }\$DTB" ; KVM_PRE=; KERNEL_ARGS='console=ttyAMA0'
-	[ "$DSTARCH" = arm64 ] && KVM_SUPPORT="\$KVM_SUPPORT -cpu max"
+case "${DSTARCH:-\$( arch || echo native )}" in
+	armel|armhf|arm|arm64)
+		QEMU_OPTIONS=	# FIXME! add proper: -net nic,model=XXX -net user
+		DTB='$DTB'
+		KVM_SUPPORT="-M $BOARD \${DTB:+-dtb }\$DTB" ; KVM_PRE=; KERNEL_ARGS='console=ttyAMA0'
+		[ "$DSTARCH" = arm64 ] && KVM_SUPPORT="\$KVM_SUPPORT -cpu max"
 	;;
 	m68k)
 		KVM_SUPPORT="-M $BOARD"
