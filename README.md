@@ -61,7 +61,7 @@ kritis-linux/ci_helper.sh \
 
 * `--initrd` /path/to/initial-ramdisk.tgz
 * `--kconfig` /path/to/.kernel-config
-* `--arch x86_64` or `i386`,`uml`,`armel`,`armhf`,`arm64`,`m68k`,`or1k` (more planned)
+* `--arch x86_64` or `i386`,`uml`,`uml32`,`armel`,`armhf`,`arm64`,`m68k`,`or1k` (more planned)
 * `--clib glibc` or `musl`,`dietlibc`
 * `--features` `is,a,comma,separated,list`
   * e.g. `busybox`,`toybox`,`dash`,`bash`
@@ -120,8 +120,7 @@ jobs:
         run: |
           git clone --depth 1 https://github.com/bittorf/kritis-linux.git
           kritis-linux/ci_helper.sh \
-		--arch uml \
-		--features 32bit \
+		--arch uml32 \
 		--ramsize 2G \
 		--kernel 4.14.x \
 		--initrd initrd.gz \

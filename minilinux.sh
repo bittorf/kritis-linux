@@ -62,7 +62,6 @@ install_dep()
 }
 
 is_uml() { false; }
-has_arg 'UML' && DSTARCH='uml'
 
 case "$DSTARCH" in
 	armel)	# FIXME! on arm / qemu-system-arm / we should switch to qemu -M virt without DTB and smaller config
@@ -131,12 +130,13 @@ case "$DSTARCH" in
 
 		export ARCH='ARCH=um'
 		export DEFCONFIG='tinyconfig'
-		export DSTARCH='uml'
 
 		if has_arg '32bit'; then
+			export DSTARCH='uml32'
 			# install_dep 'gcc-i686-linux-gnu' && export CROSSCOMPILE='CROSS_COMPILE=i686-linux-gnu-'
 			CROSS_DL="https://musl.cc/i686-linux-musl-cross.tgz"	# test "$(arch)" != i686 ???
 		else
+			export DSTARCH='uml'
 			CROSS_DL="https://musl.cc/x86_64-linux-musl-cross.tgz"
 		fi
 	;;
@@ -301,7 +301,7 @@ autoclean_do()
 
 	{
 		printf '%s\n' "[OK] autoclean done, build ready after $(( $(date +%s) - UNIX0 )) sec"
-		printf '%s\n' "repeat with: LOG=$LOG $0 smoketest_for_release $DSTARCH $KERNEL"
+		printf '%s\n%s\n' "repeat with:" "LOG=$( basename "$LOG" ) $0 smoketest_for_release $DSTARCH $KERNEL"
 	} >>"${LOG:-/dev/null}"
 }
 
@@ -1837,7 +1837,7 @@ MAX="\${3:-86400}"	# max running time [seconds] in autotest-mode
 # DISKSPACE: $DISKSPACE
 # ARCHITECTURE: ${DSTARCH:-default} / ${ARCH:-default}
 # COMPILER: ${CROSSCOMPILE:-cc} | $CC_VERSION
-# CMDLINE_OPTIONS: $OPTIONS
+# CMDLINE_OPTIONS: $( set -- $OPTIONS && echo "$*" )
 # $( test -n "$EMBED_CMDLINE" && echo "ENFORCED_KERNEL_CMDLINE: $EMBED_CMDLINE" )
 # $( test -n "$EMBED_CMDLINE" && echo "FILE: $EMBED_CMDLINE_FILE" )
 #
