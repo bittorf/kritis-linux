@@ -369,6 +369,7 @@ case "$KERNEL" in
 	;;
 	'smoketest_report_html')
 		build_matrix_html() {
+			I=0
 			add_star() { STAR="${STAR}&lowast;"; }	# 8 chars long
 			add_hint() { HINT="${HINT}$1
 ";}
@@ -402,7 +403,7 @@ case "$KERNEL" in
 			  printf '%s' "<tr><td title='release_date: ${RELEASE_DATE:-???}'>$KERNEL</td>"
 
 			  for ARCH in $LIST_ARCH; do
-			    I=$(( I + 1 ))
+			    I=$(( I + 2 ))
 			    ID="${KERNEL}_${ARCH}"
 			    L1="$PWD/log-$ID-tiny.txt"	# e.g. log-5.4.100_x86_64-tiny.txt
 			    L2="$PWD/log-$ID-full.txt"
@@ -440,7 +441,8 @@ case "$KERNEL" in
 
 			[ "$1" = 'only_table' ] && echo '</html>' && return
 
-			echo "<pre>feature-set 'tiny' => $TINY"
+			echo "<pre>"
+			echo "feature-set 'tiny' => $TINY"
 			echo "feature-set 'full' => $FULL"
 			echo
 			echo '# we mark each progress step reached with an "asterisk"'
@@ -455,7 +457,7 @@ case "$KERNEL" in
 			# 10 seconds for each line:
 			T="$( wc -l <load.txt || echo 0 )" && T=$(( T * 10 ))
 
-			echo "debug: build $(( I * 2 )) images in $T seconds = $(( T / (I*2) )) sec/image @ $( LC_ALL=C date )"
+			echo "debug: build $I images in $T seconds = $(( T / I )) sec/image @ $( LC_ALL=C date )"
 			echo "uname: $( uname -a )"
 
 			# shellcheck disable=SC2046,SC2048
