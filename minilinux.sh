@@ -304,7 +304,7 @@ autoclean_do()
 	cd "$BASEDIR" && cd .. && rm -fR "$BASEDIR"
 
 	{
-		printf '%s\n' "[OK] autoclean done, build ready after $(( $(date +%s) - UNIX0 )) sec"
+		printf '\n%s\n' "[OK] autoclean done, build ready after $(( $(date +%s) - UNIX0 )) sec"
 		printf '%s\n%s\n' "repeat with:" "CPU=$CPU DEBUG=true $0 smoketest_for_release $DSTARCH_CMDLINE $KERNEL"
 	} >>"${LOG:-/dev/null}"
 }
@@ -337,17 +337,19 @@ case "$KERNEL" in
 		    ID="${KERNEL}_${ARCH}"
 		    L1="$PWD/log-$ID-tiny.txt" && rm -f "$L1"
 		    L2="$PWD/log-$ID-full.txt" && rm -f "$L2"
+		    B1="$L1.build.txt"
+		    B2="$L2.build.txt"
                     export FAKEID='kritis-release@github.com'
                     export NOKVM='true'
 		    export CPU
 
 		    if [ -n "$ARG2" ]; then
-		      LOG="$L1" BUILDID="$ID-tiny" DSTARCH="$ARCH" "$0" "$KERNEL" "$TINY" autoclean >"$L1.build" 2>&1
-		      LOG="$L2" BUILDID="$ID-full" DSTARCH="$ARCH" "$0" "$KERNEL" "$FULL" autoclean >"$L2.build" 2>&1
+		      LOG="$L1" BUILDID="$ID-tiny" DSTARCH="$ARCH" "$0" "$KERNEL" "$TINY" autoclean >"$B1" 2>&1
+		      LOG="$L2" BUILDID="$ID-full" DSTARCH="$ARCH" "$0" "$KERNEL" "$FULL" autoclean >"$B2" 2>&1
 		    else
-		      LOG="$L1" BUILDID="$ID-tiny" DSTARCH="$ARCH" "$0" "$KERNEL" "$TINY" autoclean >"$L1.build" 2>&1 &
+		      LOG="$L1" BUILDID="$ID-tiny" DSTARCH="$ARCH" "$0" "$KERNEL" "$TINY" autoclean >"$B1" 2>&1 &
 		      avoid_overload
-		      LOG="$L2" BUILDID="$ID-full" DSTARCH="$ARCH" "$0" "$KERNEL" "$FULL" autoclean >"$L2.build" 2>&1 &
+		      LOG="$L2" BUILDID="$ID-full" DSTARCH="$ARCH" "$0" "$KERNEL" "$FULL" autoclean >"$B2" 2>&1 &
 		      avoid_overload
 		    fi
 		  done
@@ -404,6 +406,8 @@ case "$KERNEL" in
 			    ID="${KERNEL}_${ARCH}"
 			    L1="$PWD/log-$ID-tiny.txt"	# e.g. log-5.4.100_x86_64-tiny.txt
 			    L2="$PWD/log-$ID-full.txt"
+			    B1="$L1.build.txt"
+			    B2="$L2.build.txt"
 
 			    HINT=
 			    PANIC=
@@ -412,7 +416,9 @@ case "$KERNEL" in
 			    grep -qs "Linux version $KERNEL" "$L1"	&& add_star && add_hint "tiny kernel boots"
 			    grep -qs "BOOTTIME_SECONDS" "$L1"		&& add_star && add_hint "tiny initrd starts"
 			    grep -qs "Attempted to kill init" "$L1"	&& PANIC=1  && add_hint "tiny kernel panics"
-			    LINK1="<a href='$( basename "$L1" )'>${STAR:-&mdash;}</a>"
+
+			    LINK1="<a href='$( basename "$L1" )'>$STAR</a>"
+			    [ -z "$STAR" ] && LINK1="<a href='$( basename "$B1" )'>&mdash;</a>&nbsp;&nbsp;"
 			    STAR_OLD="$STAR"
 
 			    STAR=
@@ -421,9 +427,11 @@ case "$KERNEL" in
 			    grep -qs "BOOTTIME_SECONDS" "$L2"		&& add_star && add_hint "full initrd starts"
 			    grep -qs "Attempted to kill init" "$L2"	&& PANIC=2  && add_hint "full kernel panics"
 
-			    LINK2="&nbsp;<a href='$( basename "$L2" )'>${STAR:-&mdash;}</a>"
+			    LINK2="<a href='$( basename "$L2" )'>$STAR</a>"
+			    [ -z "$STAR" ] && LINK2="<a href='$( basename "$B2" )'>&mdash;</a>&nbsp;&nbsp;"
+
 			    STAR="${STAR_OLD}${STAR}"
-			    printf '%s' "<td bgcolor='$( stars2color "$PANIC" )' title='${HINT:-does_not_compile}'>${LINK1}$LINK2</td>"
+			    printf '%s' "<td bgcolor='$( stars2color "$PANIC" )' title='${HINT:-does_not_compile}'>${LINK1}&nbsp;$LINK2</td>"
 			  done
 			  printf '%s\n' "</tr><!-- end line kernel $KERNEL -->"
 			done
