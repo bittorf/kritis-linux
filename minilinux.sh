@@ -29,7 +29,8 @@ export STORAGE="/tmp/storage"
 mkdir -p "$STORAGE" && log "[OK] cache/storage is here: '$STORAGE'"
 
 # needed for parallel build:
-[ -z "$CPU" ] && CPU="$( nproc || sysctl -n hw.ncpu || lsconf | grep -c 'proc[0-9]' )"
+NPROC="$( nproc || sysctl -n hw.ncpu || lsconf | grep -c 'proc[0-9]' )"
+[ -z "$CPU" ] && CPU="$NPROC"
 [ "${CPU:-0}" -lt 1 ] && CPU=1
 [ "$CPU" = 1 ] && DEBUG=true
 log "[OK] parallel build with -j$CPU"
@@ -324,7 +325,7 @@ esac
 case "$KERNEL" in
 	'smoketest_for_release')
 		load_integer() { local load rest; read -r load rest </proc/loadavg; printf '%s\n' "${load%.*}"; }
-		avoid_overload() { sleep 10; while test "$(load_integer)" -ge "$CPU"; do sleep 10; done; }
+		avoid_overload() { sleep 10; while test "$(load_integer)" -ge "$NPROC"; do sleep 10; done; }
 
 		UNIX0="$( date +%s )" && touch 'SMOKE'
 		test -z "$ARG2" && \
@@ -334,9 +335,8 @@ case "$KERNEL" in
 		  for KERNEL in $LIST_KERNEL; do
 		    I=$(( I + 2 ))
 		    ID="${KERNEL}_${ARCH}"
-		    LOG="$PWD/log-$ID"
-		    L1="$LOG-tiny.txt" && : >"$L1"
-		    L2="$LOG-full.txt" && : >"$L2"
+		    L1="$PWD/log-$ID-tiny.txt" && rm -f "$L1"
+		    L2="$PWD/log-$ID-full.txt" && rm -f "$L2"
                     export FAKEID='kritis-release@github.com'
                     export NOKVM='true'
 		    export CPU
@@ -353,7 +353,7 @@ case "$KERNEL" in
 		  done
 		done
 
-		count_logfiles() { find . -maxdepth 1 -type f -name 'log-[0-9]\.*' -size +0 -printf '.' | wc -c; }
+		count_logfiles() { find . -maxdepth 1 -type f -name 'log-[1-9]\.*' -size +0 -exec grep 'autoclean done' {} \; | wc -l; }
 		while [ "$( count_logfiles )" -lt $I ]; do {
 			test -f 'SMOKE' || break
 			printf '%s\n' "waiting for $I logfiles or '$PWD/SMOKE' disappear"
