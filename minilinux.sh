@@ -2008,6 +2008,8 @@ esac
 
 UMLDIR="\$( mktemp -d )" || exit
 PIDFILE="\$( mktemp -u )" || exit
+case "$DSTARCH" in uml*) PIDFILE= ;; esac
+
 PIPE="\$( mktemp )" || exit
 mkfifo "\$PIPE.in"  || exit
 mkfifo "\$PIPE.out" || exit
