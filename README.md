@@ -183,7 +183,6 @@ done
 ```
 
 ### ToDo list
-* build additive star matrix: tiny/full: compiles, kernel boots, initrd boots, network ok + glibc/musl/diet
 * CI examples: TravisCI, CircleCI
 * fix `or1k` https://lkml.org/lkml/2020/7/4/244
   * wrong `Kernel command line: console=uart,mmio,0x90000000,115200`
@@ -191,7 +190,6 @@ done
 * fix `m68k' net/MACSONIC bringup
 * debian-minimal testrun for deps
 * builddir = mark_cache = no_backup
-* net: nameserver?
 * api kernel+busybox+toybox+gcc... download/version
 * different recipes?: minimal, net, compiler, net-compiler
 * which programs where called? hash?
@@ -200,12 +198,8 @@ done
 * support for USB-sticks + hybrid ISO
 * safe versions of all deps (cc, ld, libc)
 * maybe support https://github.com/jart/cosmopolitan
-* show filesizes
-* needed disk space
 * https://github.com/torvalds/linux/blob/master/Documentation/admin-guide/bootconfig.rst
 * measure sizes: https://events.static.linuxfound.org/sites/events/files/slides/slaballocators.pdf
-* add test and build-matrix: all combinations of
-  * kernel/busybox/toybox/dash/libc/32bit/64bit/archs
 
 ### interesting CONFIG_SYMBOLS
 ```
