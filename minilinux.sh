@@ -466,8 +466,9 @@ case "$KERNEL" in
 
 		DEST="user@server.de:/var/www/kritis-linux/"
 		build_matrix_html >'table.html' only_table
-		build_matrix_html >'index.html' && log "see: '$PWD/matrix.html', scp *.html log-* $DEST"
-		read -r USER_DEST <'autoupload.txt' && scp index.html log-* $USER_DEST
+		build_matrix_html >'index.html' && log "see: '$PWD/index.html', scp ./*.html log-* $DEST"
+
+		[ -z "$NOUPLOAD" ] && read -r USER_DEST <'autoupload.txt' && scp ./*.html log-* $USER_DEST
 		exit
 	;;
 	'clean')
