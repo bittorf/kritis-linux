@@ -2006,6 +2006,8 @@ case "\$ACTION" in
 	;;
 esac
 
+UMLDIR="\$( mktemp -d )" || exit
+PIDFILE="\$( mktemp -u )" || exit
 PIPE="\$( mktemp )" || exit
 mkfifo "\$PIPE.in"  || exit
 mkfifo "\$PIPE.out" || exit
@@ -2017,20 +2019,18 @@ mkfifo "\$PIPE.out" || exit
 			echo "AUTOTEST for \$MAX sec: will start now UML-linux"
 			echo
 
-			DIR="\$( mktemp -d )" || exit
-			export TMPDIR="\$DIR"
+			export TMPDIR="\$UMLDIR"
 
-			if [ -n "$EMBED_CMDLINE" ]; then
+			if [ -n "$EMBED_CMDLINE" ]; then	# test for EMBED_CMDLINE
 				$KERNEL_FILE
 			else
-				$KERNEL_FILE mem=\$MEM \$UMLNET \\
+				$KERNEL_FILE uml_dir="\$UMLDIR" mem=\$MEM \$UMLNET \\
 					initrd=$INITRD_FILE >"\$PIPE.out" 2>&1
 			fi
 
 			rm -fR "\$DIR"
 		;;
 		*)
-			PIDFILE="\$( mktemp -u )"
 			echo "AUTOTEST for \$MAX sec: will start now QEMU: \$KVM_PRE \$QEMU -m \$MEM \$KVM_SUPPORT ..."
 			echo
 
@@ -2048,7 +2048,8 @@ mkfifo "\$PIPE.out" || exit
 T0="\$( date +%s )"
 
 if [ -z "\$PIDFILE" ]; then
-	PID=\$!		# only uml
+	PIDFILE="\$( find "\$UMLDIR" -type f -name 'pid' )"
+	PID="\$( cat \$PIDFILE )"
 else
 	for _ in 1 2 3 4 5; do read -r PID <"\$PIDFILE" && break; sleep 1; done
 	test -n "\$PID" || echo "# ERROR: no PIDFILE or QEMU already stopped"
@@ -2064,7 +2065,7 @@ fi
 
 	case "$DSTARCH" in
 		uml*)
-			echo "$KERNEL_FILE mem=\$MEM \$UMLNET \\\\"
+			echo "$KERNEL_FILE uml_dir=\$UMLDIR mem=\$MEM \$UMLNET \\\\"
 			echo "	initrd=$INITRD_FILE"
 		;;
 		*)
@@ -2073,7 +2074,7 @@ fi
 			echo "	-kernel $KERNEL_FILE \\\\"
 			echo "	-initrd $INITRD_FILE \\\\"
 			echo "	-nographic \\\\"
-			echo "	-append \"\$KERNEL_ARGS\" \$QEMU_OPTIONS -pidfile \"\$( mktemp -u )\""
+			echo "	-append \"\$KERNEL_ARGS\" \$QEMU_OPTIONS -pidfile \"\$PIDFILE\""
 		;;
 	esac
 
