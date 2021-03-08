@@ -2056,12 +2056,18 @@ mkfifo "\$PIPE.out" || exit
 T0="\$( date +%s )"
 
 if [ -z "\$PIDFILE" ]; then
-	PIDFILE="\$( find "\$UMLDIR" -type f -name 'pid' )"
-	PID="\$( cat \$PIDFILE )"
+	for _ in 1 2 3 4 5; do
+		PIDFILE="\$( find "\$UMLDIR" -type f -name 'pid' )"
+		PID="\$( cat "\$PIDFILE" )"
+		[ -n "\$PID" ] && break
+		sleep 1
+	done
 else
 	for _ in 1 2 3 4 5; do read -r PID <"\$PIDFILE" && break; sleep 1; done
-	test -n "\$PID" || echo "# ERROR: no PIDFILE or QEMU already stopped"
 fi
+
+echo "PIDFILE: '\$PIDFILE' PID: '\$PID' UMLDIR: '\$UMLDIR'"
+test -n "\$PID" || echo "# ERROR: no PIDFILE or QEMU/uml-vmlinux already stopped"
 
 {
 	echo "# images generated using:"
