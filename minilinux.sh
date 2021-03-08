@@ -2065,8 +2065,11 @@ if [ -z "\$PIDFILE" ]; then
 		sleep 1
 	done
 else
-	\$KVM_PRE chmod 777 "\$PIDFILE"
-	for _ in 1 2 3 4 5; do read -r PID <"\$PIDFILE" && break; sleep 1; done
+	for _ in 1 2 3 4 5; do
+		read -r PID <"\$PIDFILE" && break
+		sleep 1
+		\$KVM_PRE chmod 777 "\$PIDFILE"
+	done
 fi
 
 echo "PIDFILE: '\$PIDFILE' PID: '\$PID' UMLDIR: '\$UMLDIR'"
@@ -2196,7 +2199,7 @@ echo "# \$0"
 echo "# in dir '\$(pwd)'"
 echo
 
-echo "will now stop '\$QEMU' with pid \$PID" && \$KVM_PRE echo
+echo "will now stop '\$QEMU' with pid '\$PID'" && \$KVM_PRE echo
 while \$KVM_PRE kill -0 \$PID; do \$KVM_PRE kill \$PID; sleep 1; \$KVM_PRE kill -0 \$PID && \$KVM_PRE kill -s KILL \$PID; done
 rm -f "\$PIPE" "\$PIPE.in" "\$PIPE.out" "\$PIDFILE"
 
