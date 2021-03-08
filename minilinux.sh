@@ -305,7 +305,7 @@ autoclean_do()
 
 	{
 		printf '%s\n' "[OK] autoclean done, build ready after $(( $(date +%s) - UNIX0 )) sec"
-		printf '%s\n%s\n' "repeat with:" "DEBUG=true $0 smoketest_for_release $DSTARCH_CMDLINE $KERNEL"
+		printf '%s\n%s\n' "repeat with:" "CPU=$CPU DEBUG=true $0 smoketest_for_release $DSTARCH_CMDLINE $KERNEL"
 	} >>"${LOG:-/dev/null}"
 }
 
@@ -446,12 +446,14 @@ case "$KERNEL" in
 			echo "uname: $( uname -a )"
 
 			# shellcheck disable=SC2046,SC2048
-			echo "nproc/cpu: $( nproc ) @ $( set -- $( grep ^"model name" /proc/cpuinfo | head -n1 ); shift 3; echo $* )"
-			echo "$( test -f load.txt && printf '\n%s' 'load-1min during build each 10 sec:' && cat load.txt )</pre></html>"
+			echo "nproc/cpu: $NPROC @ $( set -- $( grep ^"model name" /proc/cpuinfo | head -n1 ); shift 3; echo $* )"
+			echo "$( test -f load.txt && printf '\n%s' 'load-1min during build each 10 sec:' && cat load.txt )</pre>"
+			echo "<br><pre># generated with: T0=$T0 T1=$T1 $0 smoketest_report_html</pre></html>"
 		}
 
 		DEST="user@server.de:/var/www/kritis-linux/"
-		build_matrix_html >'matrix.html' && log "see: '$PWD/matrix.html', cp matrix.html index.html && scp matrix.html log-* $DEST"
+		build_matrix_html >'index.html' && log "see: '$PWD/matrix.html', scp index.html log-* $DEST"
+		read -r USER_DEST <'autoupload.txt' && scp index.html log-* $USER_DEST
 		exit
 	;;
 	'clean')
