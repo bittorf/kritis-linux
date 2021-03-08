@@ -325,9 +325,9 @@ esac
 case "$KERNEL" in
 	'smoketest_for_release')
 		load_integer() { local load rest; read -r load rest </proc/loadavg; printf '%s\n' "${load%.*}"; }
-		avoid_overload() { sleep 10; while test "$(load_integer)" -ge "$NPROC"; do sleep 10; done; }
+		avoid_overload() { sleep 10; while test "$(load_integer)" -gt "$NPROC"; do sleep 10; done; }
 
-		UNIX0="$( date +%s )" && touch 'SMOKE'
+		touch 'SMOKE'
 		test -z "$ARG2" && \
 		(while [ -f SMOKE ];do J=;L=$(load_integer);for _ in $(seq $L);do J="#$J";done;echo $J ${#J};sleep 10;done >load.txt;) &
 
@@ -360,10 +360,8 @@ case "$KERNEL" in
 			sleep 10
 		} done
 
-		UNIX1="$( date +%s )" && rm 'SMOKE'
-		echo "needed $(( UNIX1 - UNIX0 )) sec"
-
-		T0=$UNIX0 T1=$UNIX1 $0 'smoketest_report_html'
+		rm 'SMOKE'
+		$0 'smoketest_report_html'
 		log "see '$PWD/load.txt"
 		exit
 	;;
@@ -442,13 +440,14 @@ case "$KERNEL" in
 			echo '# step5: kernel boots (full)'
 			echo '# step6: initrd runs  (full)'
 			echo
-			echo "debug: build $(( I * 2 )) images in $(( T1 - T0 )) seconds = $(( (T1-T0) / (I*2) )) sec/image @ $( LC_ALL=C date )"
+			T="$( wc -l <load.txt || echo 0 )"
+			echo "debug: build $(( I * 2 )) images in $T seconds = $(( T / (I*2) )) sec/image @ $( LC_ALL=C date )"
 			echo "uname: $( uname -a )"
 
 			# shellcheck disable=SC2046,SC2048
 			echo "nproc/cpu: $NPROC @ $( set -- $( grep ^"model name" /proc/cpuinfo | head -n1 ); shift 3; echo $* )"
 			echo "$( test -f load.txt && printf '\n%s' 'load-1min during build each 10 sec:' && cat load.txt )</pre>"
-			echo "<br><pre># generated with: T0=$T0 T1=$T1 $0 smoketest_report_html</pre></html>"
+			echo "<br><pre># generated with: $0 smoketest_report_html</pre></html>"
 		}
 
 		DEST="user@server.de:/var/www/kritis-linux/"
@@ -2031,7 +2030,7 @@ fi
 			echo "	-kernel $KERNEL_FILE \\\\"
 			echo "	-initrd $INITRD_FILE \\\\"
 			echo "	-nographic \\\\"
-			echo "	-append \"\$KERNEL_ARGS\" \$QEMU_OPTIONS -pidfile \"\$PIDFILE\""
+			echo "	-append \"\$KERNEL_ARGS\" \$QEMU_OPTIONS -pidfile \"\$( mktemp -u )\""
 		;;
 	esac
 
