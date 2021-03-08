@@ -440,7 +440,10 @@ case "$KERNEL" in
 			echo '# step5: kernel boots (full)'
 			echo '# step6: initrd runs  (full)'
 			echo
-			T="$( wc -l <load.txt || echo 0 )"
+
+			# 10 seconds for each line:
+			T="$( wc -l <load.txt || echo 0 )" && T=$(( T * 10 ))
+
 			echo "debug: build $(( I * 2 )) images in $T seconds = $(( T / (I*2) )) sec/image @ $( LC_ALL=C date )"
 			echo "uname: $( uname -a )"
 
