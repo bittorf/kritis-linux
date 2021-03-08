@@ -4,7 +4,9 @@
 * see [KRITIS](https://de.wikipedia.org/w/index.php?title=KRITIS)
 * and [κριτής](https://en.wiktionary.org/wiki/%CE%BA%CF%81%CE%B9%CF%84%CE%AE%CF%82)
 * still a work-in-progress
-* supports musl, glibc, dietlibc and busybox/toybox
+* supports musl, glibc, dietlibc and busybox/toybox/dash/bash
+
+[![preview_buildmatrix_smoketest](http://intercity-vpn.de/kritis-linux/preview.png)](http://intercity-vpn.de/kritis-linux/)
 
 ### Syntax
 
