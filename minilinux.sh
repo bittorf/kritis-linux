@@ -436,8 +436,11 @@ case "$KERNEL" in
 			  printf '%s\n' "</tr><!-- end line kernel $KERNEL -->"
 			done
 
-			echo "</table><pre>"
-			echo "feature-set 'tiny' => $TINY"
+			echo "</table>"
+
+			[ "$1" = 'only_table' ] && echo '</html>' && return
+
+			echo "<pre>feature-set 'tiny' => $TINY"
 			echo "feature-set 'full' => $FULL"
 			echo
 			echo '# we mark each progress step reached with an "asterisk"'
@@ -462,7 +465,8 @@ case "$KERNEL" in
 		}
 
 		DEST="user@server.de:/var/www/kritis-linux/"
-		build_matrix_html >'index.html' && log "see: '$PWD/matrix.html', scp index.html log-* $DEST"
+		build_matrix_html >'table.html' only_table
+		build_matrix_html >'index.html' && log "see: '$PWD/matrix.html', scp *.html log-* $DEST"
 		read -r USER_DEST <'autoupload.txt' && scp index.html log-* $USER_DEST
 		exit
 	;;
