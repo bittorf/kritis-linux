@@ -1634,18 +1634,12 @@ F='arch/x86/um/shared/sysdep/ptrace_32.h'
 	sed -i "$((LINE-1)),$((LINE+1))d" $F || exit
 	checksum "$F" after plain || emit_doc "applied: kernel-patch in '$PWD/$F' | delete PTRACE_SYSEMU_SINGLESTEP"
 }
-# https://lore.kernel.org/patchwork/patch/630468/
-F='arch/x86/um/Makefile' && checksum "$F" plain
-sed -i "s|obj-\$(CONFIG_BINFMT_ELF) += elfcore.o|obj-\$(CONFIG_ELF_CORE) += elfcore.o|" "$F" || exit
-checksum "$F" after plain || emit_doc "applied: kernel-patch in '$PWD/$F' | uml32? undefined reference to 'dump_emit'"
-#
-emit_doc "applied: kernel-patch | READY"
-
-# kernel 2,3,4 but nut 5.x - FIXME!
-# sed -i 's|-Wall -Wundef|& -fno-pie|' Makefile
-
-T0="$( date +%s )"
-
+is_uml && {
+	# https://lore.kernel.org/patchwork/patch/630468/
+	F='arch/x86/um/Makefile' && checksum "$F" plain
+	sed -i "s|obj-\$(CONFIG_BINFMT_ELF) += elfcore.o|obj-\$(CONFIG_ELF_CORE) += elfcore.o|" "$F" || exit
+	checksum "$F" after plain || emit_doc "applied: kernel-patch in '$PWD/$F' | uml32? undefined reference to 'dump_emit'"
+}
 # e.g.: gcc (Debian 10.2.1-6) 10.2.1 20210110
 for WORD in $CC_VERSION; do {
 	test 2>/dev/null "${WORD%%.*}" -gt 1 || continue
@@ -1662,6 +1656,13 @@ for WORD in $CC_VERSION; do {
 
 	break
 } done
+#
+emit_doc "applied: kernel-patch | READY"
+
+# kernel 2,3,4 but nut 5.x - FIXME!
+# sed -i 's|-Wall -Wundef|& -fno-pie|' Makefile
+
+T0="$( date +%s )"
 
 # or 'make mrproper' ?
 make $SILENT_MAKE $ARCH O="$LINUX_BUILD" distclean || msg_and_die "$?" "make $ARCH O=$LINUX_BUILD distclean"	# needed?
