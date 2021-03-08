@@ -39,14 +39,13 @@ while [ -n "$1" ]; do {
 }
 
 cd "$( dirname "$0" )" || exit
-TMP1="$( mktemp )" || exit
-TMP2="$( mktemp )" || exit
+TMP="$( mktemp )" || exit
 
-echo "[OK] executing ./minilinux.sh '${LINUX_VERSION:=latest}'"
-if ./minilinux.sh "$LINUX_VERSION" >"$TMP1" 2>"$TMP2"; then
-	[ -n "$DEBUG" ] && cat "$TMP1" "$TMP2"
+echo "[OK] executing ./minilinux.sh '${LINUX_VERSION:=latest}' | see log: '$TMP'"
+if ./minilinux.sh "$LINUX_VERSION" >"$TMP" 2>&1; then
+	[ -n "$DEBUG" ] && cat "$TMP"
 else
-	RC="$?" && { cat "$TMP1" "$TMP2"; echo; echo "ERROR:$RC"; exit "$RC"; }
+	RC="$?" && { cat "$TMP"; echo; echo "ERROR:$RC"; exit "$RC"; }
 fi
 
 grep ^'#' minilinux/builds/linux/run.sh && echo
@@ -54,4 +53,3 @@ echo "[OK] generated 'minilinux/builds/linux/run.sh', and run it in autotest-mod
 echo "     waiting max. ${WAIT_SECONDS:-<unlimited>} sec for pattern '${WAIT_PATTERN:-<no pattern set>}'"
 
 minilinux/builds/linux/run.sh autotest "$WAIT_PATTERN" "$WAIT_SECONDS"
-
