@@ -86,7 +86,8 @@ case "$DSTARCH" in
 		# https://wiki.musl-libc.org/getting-started.html#Notes-on-ARM-Float-Mode
 		# https://landley.net/notes-2017.html#04-05-2017
 		# arm7 / 32bit with power / EABI hard float
-		export ARCH='ARCH=arm' QEMU='qemu-system-arm'
+		export ARCH='ARCH=arm' QEMU='qemu-system-arm'	# https://github.com/oreboot/oreboot
+		# FIXME! qemu-system-arm -machine virt -bios target/arm-none-eabihf/release//oreboot.bin -nographic -m 1024M
 		export BOARD='vexpress-a9' DTB='vexpress-v2p-ca9.dtb' DEFCONFIG='vexpress_defconfig'
 		# install_dep 'gcc-arm-linux-gnueabihf' && export CROSSCOMPILE='CROSS_COMPILE=arm-linux-gnueabihf-'
 		CROSS_DL='https://musl.cc/armv7l-linux-musleabihf-cross.tgz'
@@ -1536,6 +1537,7 @@ if mount -t devtmpfs none /dev; then
 	LN="\$( command -v ln || echo 'false ' )"
 	$( has_arg 'procfs' || echo '	LN=false' )
 	# http://www.linuxfromscratch.org/lfs/view/6.1/chapter06/devices.html
+	# https://raw.githubusercontent.com/AcmeSystems/acmepatches/master/buildroot-at91-2020.04.patch
 	\$LN -sf /proc/self/fd   /dev/fd
 	\$LN -sf /proc/self/fd/0 /dev/stdin
 	\$LN -sf /proc/self/fd/1 /dev/stdout
@@ -2063,6 +2065,7 @@ if [ -z "\$PIDFILE" ]; then
 		sleep 1
 	done
 else
+	\$KVM_PRE chmod 777 "\$PIDFILE"
 	for _ in 1 2 3 4 5; do read -r PID <"\$PIDFILE" && break; sleep 1; done
 fi
 
