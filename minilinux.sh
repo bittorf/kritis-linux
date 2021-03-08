@@ -329,7 +329,7 @@ case "$KERNEL" in
 
 		touch 'SMOKE'
 		test -z "$ARG2" && \
-		(while [ -f SMOKE ];do J=;L=$(load_integer);for _ in $(seq $L);do J="#$J";done;echo $J ${#J};sleep 10;done >load.txt;) &
+		(while [ -f SMOKE ];do J=;L=$(load_integer);for _ in $(seq "$L");do J="#$J";done;echo $J ${#J};sleep 10;done >load.txt;) &
 
 		for ARCH in $LIST_ARCH; do
 		  for KERNEL in $LIST_KERNEL; do
@@ -399,7 +399,7 @@ case "$KERNEL" in
 			printf '%s\n' "</tr><!-- end headline arch -->"
 
 			for KERNEL in $LIST_KERNEL; do
-			  RELEASE_DATE="$( download "http://intercity-vpn.de/kernel_history/$KERNEL" && read -r UNIX <"$KERNEL" && rm "$KERNEL" && LC_ALL=C date -d @$UNIX )"
+			  RELEASE_DATE="$( download "http://intercity-vpn.de/kernel_history/$KERNEL" && read -r UNIX <"$KERNEL" && rm "$KERNEL" && LC_ALL=C date -d "@$UNIX" )"
 			  printf '%s' "<tr><td title='release_date: ${RELEASE_DATE:-???}'>$KERNEL</td>"
 
 			  for ARCH in $LIST_ARCH; do
@@ -461,7 +461,7 @@ case "$KERNEL" in
 			echo "uname: $( uname -a )"
 
 			# shellcheck disable=SC2046,SC2048
-			echo "nproc/cpu: $NPROC @ $( set -- $( grep ^"model name" /proc/cpuinfo | head -n1 ); shift 3; echo $* )"
+			echo "nproc/cpu: $NPROC @ $( set -- $( grep ^"model name" /proc/cpuinfo | head -n1 ); shift 3; echo "$*" )"
 			echo "$( test -f load.txt && printf '\n%s' 'load-1min during build each 10 sec:' && cat load.txt )</pre>"
 			echo "<br><pre># generated with: $0 smoketest_report_html</pre></html>"
 		}
@@ -471,8 +471,8 @@ case "$KERNEL" in
 		build_matrix_html >'index.html' && log "see: '$PWD/index.html', scp ./*.html log-* $DEST"
 
 		read -r USER_DEST <'autoupload.txt'
-		[ -n "$USER_DEST" ] && scp ./*.html $USER_DEST
-		[ -z "$NOUPLOAD" ] && [ -n "$USER_DEST" ] && scp log-* $USER_DEST
+		[ -n "$USER_DEST" ] && scp ./*.html "$USER_DEST"
+		[ -z "$NOUPLOAD" ] && [ -n "$USER_DEST" ] && scp log-* "$USER_DEST"
 		[ -z "$NO_IMAGE" ] && [ -n "$USER_DEST" ] && {
 			mkdir -p browsershot
 			cd browsershot || exit
@@ -492,7 +492,7 @@ case "$KERNEL" in
 				echo "});"
 			} >script.js
 
-			bin/phantomjs script.js && scp preview.png $USER_DEST
+			bin/phantomjs script.js && scp preview.png "$USER_DEST"
 		}
 
 		exit
@@ -1084,7 +1084,7 @@ if [ -n "$CROSSCOMPILE" ]; then
 	STRIP="${CHOST}-strip"			#                  -> i686-linux-gnu-strip
 	CONF_HOST="--host=${CHOST}"
 
-	CC_VERSION="$( $CHOST-gcc --version | head -n1 )"
+	CC_VERSION="$( "$CHOST-gcc" --version | head -n1 )"
 	export STRIP CONF_HOST CHOST
 else
 	export STRIP='strip'
