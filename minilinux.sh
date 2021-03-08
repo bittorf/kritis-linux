@@ -469,7 +469,8 @@ case "$KERNEL" in
 		build_matrix_html >'index.html' && log "see: '$PWD/index.html', scp ./*.html log-* $DEST"
 
 		read -r USER_DEST <'autoupload.txt'
-		[ -z "$NOUPLOAD" ] && [ -n "$USER_DEST" ] && scp ./*.html log-* $USER_DEST
+		[ -n "$USER_DEST" ] && scp ./*.html $USER_DEST
+		[ -z "$NOUPLOAD" ] && [ -n "$USER_DEST" ] && scp log-* $USER_DEST
 		[ -z "$NO_IMAGE" ] && [ -n "$USER_DEST" ] && {
 			mkdir -p browsershot
 			cd browsershot || exit
