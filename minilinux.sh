@@ -5,6 +5,7 @@ KERNEL="$1"		# e.g. 'latest' or 'stable' or '5.4.89' or '4.19.x' or URL-to-tarba
 ARG2="$2"		# only used...
 ARG3="$3"		# ...for smoketest
 while shift; do
+	test "$1" = verbose && set -x
 	export OPTIONS="$OPTIONS $1"	# see has_arg(), spaces are not working
 done
 
@@ -89,6 +90,7 @@ case "$DSTARCH" in
 		export BOARD='vexpress-a9' DTB='vexpress-v2p-ca9.dtb' DEFCONFIG='vexpress_defconfig'
 		# install_dep 'gcc-arm-linux-gnueabihf' && export CROSSCOMPILE='CROSS_COMPILE=arm-linux-gnueabihf-'
 		CROSS_DL='https://musl.cc/armv7l-linux-musleabihf-cross.tgz'
+		# https://wiki.alpinelinux.org/wiki/Custom_Kernel
 		export CF_ADD="-marm -march=armv7-a -mfpu=vfp"
 	;;
 	arm64)	# new ARM, 64bit
@@ -648,6 +650,10 @@ file_iscompressed()
 	local option="$2"	# e.g. <empty> or 'info'
 	local line word parse=
 	local threshold=9
+
+	# FIXME! try to really detect compression:
+	# https://gist.githubusercontent.com/skitt/288c0c52b51b5863947a5d6c1180c9f3/raw/25f571a2361305cbcff71f56f57d546e9ff68172/check-vmlinux
+	# https://github.com/bittorf/kalua/blob/master/openwrt-addons/etc/kalua/filetype
 
 	# of this 952040 byte file by 0 percent.
 	line="$( ent "$file" | grep "percent."$ )"
