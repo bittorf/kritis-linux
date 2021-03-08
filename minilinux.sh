@@ -468,7 +468,30 @@ case "$KERNEL" in
 		build_matrix_html >'table.html' only_table
 		build_matrix_html >'index.html' && log "see: '$PWD/index.html', scp ./*.html log-* $DEST"
 
-		[ -z "$NOUPLOAD" ] && read -r USER_DEST <'autoupload.txt' && scp ./*.html log-* $USER_DEST
+		read -r USER_DEST <'autoupload.txt'
+		[ -z "$NOUPLOAD" ] && [ -n "$USER_DEST" ] && scp ./*.html log-* $USER_DEST
+		[ -z "$NO_IMAGE" ] && [ -n "$USER_DEST" ] && {
+			mkdir -p browsershot
+			cd browsershot || exit
+			rm -fR ./*			# always cleanup
+
+			download "https://bitbucket.org/ariya/phantomjs/downloads/phantomjs-2.1.1-linux-x86_64.tar.bz2" || exit
+			untar ./* || exit
+			cd ./* || exit
+
+			{
+				echo "var page = require('webpage').create();"
+				echo "page.open('http://intercity-vpn.de/kritis-linux/table.html', function() {"
+				echo " setTimeout(function() {"
+				echo "  page.render('preview.png');"
+				echo "  phantom.exit();"
+				echo " }, 200);"
+				echo "});"
+			} >script.js
+
+			bin/phantomjs script.js && scp preview.png $USER_DEST
+		}
+
 		exit
 	;;
 	'clean')
