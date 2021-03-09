@@ -1986,7 +1986,7 @@ case "\$ACTION" in
 				DIR="\$( mktemp -d )" || exit
 				export TMPDIR="\$DIR"
 
-				if [ -n "$EMBED_CMDLINE" ]; then
+				if [ -n "$EMBED_CMDLINE" ]; then	# embedded commandline:
 					$KERNEL_FILE
 				else
 					$KERNEL_FILE mem=\$MEM \$UMLNET \\
@@ -2062,9 +2062,14 @@ T0="\$( date +%s )"
 if [ -z "\$PIDFILE" ]; then
 	for _ in 1 2 3 4 5; do
 		PIDFILE="\$( find "\$UMLDIR" -type f -name 'pid' )"
-		PID="\$( cat "\$PIDFILE" )"
+		PID="\$( test -f "\$PIDFILE" && cat "\$PIDFILE" )"
 		[ -n "\$PID" ] && break
 		sleep 1
+
+		[ -n "$EMBED_CMDLINE" ] && {
+			for PID in \$( pidof vmlinux ); do :; done
+			break
+		}
 	done
 else
 	for _ in 1 2 3 4 5; do
