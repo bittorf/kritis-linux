@@ -185,6 +185,8 @@ else
 	SILENT_CONF='--enable-silent-rules'
 fi
 
+STRIP="$( command -v 'strip' || echo 'false' )"
+
 log "[OK] building kernel '$KERNEL' on arch '$DSTARCH' and options '$OPTIONS'"
 
 deps_check()
