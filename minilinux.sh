@@ -14,6 +14,7 @@ UNIX0="$( date +%s )"
 
 URL_TOYBOX='http://landley.net/toybox/downloads/toybox-0.8.4.tar.gz'
 URL_BUSYBOX='https://busybox.net/downloads/busybox-1.33.0.tar.bz2'
+URL_BUSYBOX='https://busybox.net/downloads/busybox-snapshot.tar.bz2'
 URL_DASH='https://git.kernel.org/pub/scm/utils/dash/dash.git/snapshot/dash-0.5.11.3.tar.gz'
 URL_WIREGUARD='https://git.zx2c4.com/wireguard-tools/snapshot/wireguard-tools-1.0.20200827.zip'
 URL_BASH='http://git.savannah.gnu.org/cgit/bash.git/snapshot/bash-5.1.tar.gz'
@@ -41,7 +42,32 @@ OPTIONS="$OPTIONS $( echo "$FEATURES" | tr ',' ' ' ) $( test -n "$DEBUG" && echo
 
 has_arg()
 {
-	case " ${2:-$OPTIONS} " in *" $1 "*) true ;; *) false ;; esac
+	local wish="$1"			# e.g. 'printk' or 'iodine:credentials'
+	local string="${2:-$OPTIONS}"
+	local sub
+
+	case " $string " in
+		*" $wish "*) true ;;
+		*" ${wish%:*}:${wish#*:}:"*)	# e.g. 'iodine:credentials:'
+			for sub in $string; do
+				case "$sub" in
+					"$wish"*)
+						# shellcheck disable=SC2046
+						set -- $( echo "$sub" | tr ':' ' ' )
+
+						# iodine:credentials:foo:bar:baz
+						export PARAM1="$3"	# foo
+						export PARAM2="$4"	# bar
+						export PARAM3="$5"	# baz
+						return 0
+					;;
+				esac
+			done
+
+			false
+		;;
+		*) false ;;
+	esac
 }
 
 install_dep()
@@ -191,7 +217,8 @@ log "[OK] building kernel '$KERNEL' on arch '$DSTARCH' and options '$OPTIONS'"
 
 deps_check()
 {
-	local cmd list='arch basename cat chmod cp file find grep gzip head make mkdir rm sed strip tar tee test touch tr wget'
+	# FIXME! 'program_name' not always 'package_name', e.g. 'mkpasswd' is in package 'whois'
+	local cmd list='arch basename cat chmod cp file find grep gzip head make mkdir rm sed strip tar tee test touch tr wget whois'
 	# these commands are used, but are not essential:
 	# apt, bc, curl, dpkg, ent, logger, vimdiff, xz, zstd
 
@@ -764,6 +791,7 @@ list_kernel_symbols()
 
 	has_arg 'iodine' && {
 		echo 'CONFIG_TUN=y'
+		echo 'CONFIG_POSIX_TIMERS=y'
 	}
 
 	has_arg 'icmptunnel' && {
@@ -828,14 +856,16 @@ EOF
 
 	case "$DSTARCH" in
 		uml*)
-			# CONFIG_COMPAT_BRK=y	// disable head randomization ~500 bytes smaller
-			# CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y
 			# CONFIG_BUILD_SALT="FOOX12345"
+			echo 'CONFIG_UNIX98_PTYS=y'
+			echo 'CONFIG_PTY_CHAN=y'
+			echo 'CONFIG_TTY_CHAN=y'
+			echo 'CONFIG_MULTIUSER=y' 	# for dropbear?
 
 			has_arg 'hostfs' && echo 'CONFIG_HOSTFS=y'
 
 			echo 'CONFIG_STATIC_LINK=y'
-			echo 'CONFIG_LD_SCRIPT_STATIC=y'	# ???
+			echo 'CONFIG_LD_SCRIPT_STATIC=y'	# builds with 'uml.lds.S', see 'arch/um/kernel/vmlinux.lds.S'
 		;;
 		m68k)
 			echo 'CONFIG_MAC=y'
@@ -1163,7 +1193,6 @@ has_arg 'dash' && {
 	$STRIP "$DASH" || exit
 }
 
-
 has_arg 'dropbear' && {
 	prepare() {
 		install_dep 'libcrypt-dev'	# for crypt.h
@@ -1173,7 +1202,7 @@ has_arg 'dropbear' && {
 
 		CFLAGS="-ffunction-sections -fdata-sections $( test "$DSTARCH" = 'i686' && echo "-DLTC_NO_BSWAP" )" \
 		LDFLAGS='-Wl,--gc-sections' ./configure \
-			--disable-zlib --enable-bundled-libtom --enable-static $CONF_HOST
+			--disable-zlib --enable-bundled-libtom --disable-wtmp --enable-static $CONF_HOST
 	}
 
 	build() {
@@ -1188,23 +1217,44 @@ has_arg 'dropbear' && {
 	}
 
 	install_dropbear() {
+		mkdir -p usr usr/bin etc etc/dropbear .ssh	|| exit
+
 		cd bin && {
-			cp -v "$OPT/dropbear/dropbearmulti" dropbear
-			ln -s dropbear ssh
-			ln -s dropbear scp
-			ln -s dropbear usr/bin/dbclient
-			ln -s dropbear dropbearkey
+			cp -v "$OPT/dropbear/dropbearmulti" dropbear	|| exit
+			ln -s dropbear ssh				|| exit
+			ln -s dropbear scp				|| exit
+#			ln -s dropbear ../usr/bin/dbclient		|| exit
+			ln -s dropbear dropbearkey			|| exit
 
 			cd - || exit
-
-			mkdir -p .ssh
-			dropbearkey -t rsa -f .ssh/id_dropbear || exit
 		}
+
+		dropbearkey -t ecdsa -f etc/dropbear/dropbear_ecdsa_host_key	|| exit
+		dropbearkey -t rsa   -f etc/dropbear/dropbear_rsa_host_key	|| exit
+
+		local hint=" on host '\$( cat /mnt/host/etc/hostname )', see /mnt/host/ and /proc/cpuinfo"
+		has_arg 'hostfs' || hint=
+
+		printf	'%s\n\n%s\n%s\n' \
+			'#!/bin/sh' \
+			'export PATH="/sbin:/usr/sbin:/bin:/usr/bin"' \
+			"echo \"welcome on $DSTARCH-vm$hint\"" \
+			>'etc/profile'
+		chmod +x 'etc/profile'
 	}
 
 	init_dropbear()
 	{
-		echo 'dropbear -B -R -p 22'
+		# -R = Create hostkeys as required
+		# -p = port
+		# debug:
+		# -B = Allow blank password logins
+		# -E = Log to stderr rather than syslog
+		# -F = Don't fork into background
+		echo 'dropbear -R -p 22'
+		echo 'mount -t devtmpfs none /dev'
+		echo 'mkdir -p /dev/pts && mount -t devpts devpts /dev/pts'
+		echo 'mkdir -p /var /var/log && : >/var/log/lastlog'
 	}
 
 	compile 'dropbear' "$URL_DROPBEAR"
@@ -1343,6 +1393,17 @@ has_arg 'iodine' && {
 		cp -v "$OPT/iodine/iodine" bin/iodine
 	}
 
+	init_iodine() {
+		has_arg 'iodine:credentials' && {
+			local password="$PARAM1"
+			local nx_server="$PARAM2"
+			local dns_server="${PARAM3:-8.8.8.8}"
+
+			# enforce to background:
+			echo "( echo $password | iodine -r $nx_server $dns_server 2>/dev/null ) & 2>/dev/null"
+		}
+	}
+
 	compile 'iodine' "$URL_IODINE"
 }
 
@@ -1431,8 +1492,16 @@ else
 	mkdir -p "$INITRAMFS_BUILD"
 	cd       "$INITRAMFS_BUILD" || exit
 
-	mkdir -p bin sbin etc proc sys usr/bin usr/sbin dev tmp
+	mkdir -p bin sbin etc proc sys usr/bin usr/sbin usr/bin dev tmp
 	has_arg 'hostfs' && mkdir -p mnt mnt/host
+
+	ROOT_PASS="$( test -n "$TTYPASS" && echo "$TTYPASS" | mkpasswd -m SHA-256 -s || echo 'x' )"
+	ROOT_HOME="/root"
+	ROOT_SHELL="/bin/sh"
+
+	echo "root:$ROOT_PASS:0:0:root:$ROOT_HOME:$ROOT_SHELL" >'etc/passwd'
+	echo "root:x:0:" >'etc/group'
+
 	cp -a "$BUSYBOX_BUILD/_install/"* .
 fi
 
@@ -1490,8 +1559,6 @@ export INITSCRIPT="$PWD/init"
 
 [ -f init ] || cat >'init' <<EOF
 #!$BOOTSHELL
-printf '%s\n' '#'	# init starts...
-export SHELL=$( basename "$BOOTSHELL" )
 $( has_arg 'procfs' || echo 'false ' )mount -t proc none /proc && {
 	read -r UP _ </proc/uptime || UP=\$( cut -d' ' -f1 /proc/uptime )
 	while read -r LINE; do
@@ -1513,18 +1580,20 @@ $( has_arg 'net' || echo 'false ' )command -v 'ip' >/dev/null && \\
 	  ip route add default via 10.0.2.2
 
 $( has_arg 'dropbear' && init_dropbear )
-# wireguard and ssh startup
+$( has_arg 'iodine' && init_iodine )
+# TODO: wireguard startup
 $(
 	test -n "$TTYPASS" && {
 		SHA256="$( { printf '%s' "$TTYPASS"; cat "$SALTFILE"; } | sha256sum )"
 		printf '\n%s\n%s\n%s\n%s\n' \
 			"# tty pass:" \
-			"printf 'id: ' && read -s PASS" \
+			"printf 'file: ' && read -s PASS" \
 			"HASH=\"\$( { printf '%s' \"\$PASS\"; cat \"$SALTFILE\"; } | sha256sum )\"" \
 			"test \"\${HASH%% *}\" = ${SHA256%% *} || exit"
 	}
 )
 
+export SHELL=$( basename "$BOOTSHELL" )
 UNAME="\$( command -v uname || printf '%s' false )"
 printf '%s\n' "# BOOTTIME_SECONDS \${UP:--1 (missing procfs?)}"
 printf '%s\n' "# MEMFREE_KILOBYTES \${MEMAVAIL_KB:--1 (missing procfs?)}"
@@ -1535,7 +1604,7 @@ printf '%s\n' "# READY - to quit $( is_uml && echo "type 'exit'" || echo "press 
 test -f init.user && busybox sleep 2 && AUTO=true ./init.user	# wait for dmesg-trash
 
 printf '%s\n' "mount -t devtmpfs none /dev"
-if mount -t devtmpfs none /dev; then
+if grep -q devtmpfs /proc/mounts || mount -t devtmpfs none /dev; then
 	LN="\$( command -v ln || echo 'false ' )"
 	$( has_arg 'procfs' || echo '	LN=false' )
 	# http://www.linuxfromscratch.org/lfs/view/6.1/chapter06/devices.html
@@ -1560,11 +1629,10 @@ fi
 EOF
 
 chmod +x 'init'
-sh -n 'init' || msg_and_die "$?" "check 'init'"
 
 case "$( file -b 'init' )" in
 	ELF*) ;;
-	*) sh -n 'init' || { RC=$?; echo "$PWD/init"; exit $RC; } ;;
+	*) sh -n 'init' || msg_and_die "$?" "check '$PWD/init'" ;;
 esac
 
 if [ -f "$OWN_INITRD" ]; then
