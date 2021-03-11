@@ -1570,6 +1570,9 @@ $( has_arg 'procfs' || echo 'false ' )mount -t proc none /proc && {
 $( has_arg 'sysfs' || echo 'false ' )mount -t sysfs none /sys
 $( has_arg 'hostfs' || echo 'false ')mount -t hostfs none /mnt/host
 
+CRON="\$( command -v crond && mkdir -p /etc/crontabs || echo false )"
+\$CRON -c /etc/crontabs -L /dev/null
+
 # https://github.com/bittorf/slirp-uml-and-compiler-friendly
 # https://github.com/lubomyr/bochs/blob/master/misc/slirp.conf
 $( has_arg 'net' || echo 'false ' )command -v 'ip' >/dev/null && \\
