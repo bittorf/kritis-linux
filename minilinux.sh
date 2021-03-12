@@ -13,7 +13,7 @@ BASEDIR="$PWD/minilinux${BUILID:+_}${BUILDID}"		# autoclean removes it later
 UNIX0="$( date +%s )"
 
 URL_TOYBOX='http://landley.net/toybox/downloads/toybox-0.8.4.tar.gz'
-URL_BUSYBOX='https://busybox.net/downloads/busybox-1.33.0.tar.bz2'
+URL_BUSYBOX='https://busybox.net/downloads/busybox-1.32.0.tar.bz2'
 URL_BUSYBOX='https://busybox.net/downloads/busybox-snapshot.tar.bz2'
 URL_DASH='https://git.kernel.org/pub/scm/utils/dash/dash.git/snapshot/dash-0.5.11.3.tar.gz'
 URL_WIREGUARD='https://git.zx2c4.com/wireguard-tools/snapshot/wireguard-tools-1.0.20200827.zip'
@@ -235,6 +235,7 @@ deps_check()
 	install_dep 'bison'
 	install_dep 'automake'
 	install_dep 'ncurses-dev'	# for menuconfig
+	install_dep 'whois'
 
 	true
 }
@@ -930,6 +931,7 @@ EOF
 		echo 'CONFIG_BASE_FULL=y'
 		echo 'CONFIG_COMPAT_BRK=y'	# disable head randomization ~500 bytes smaller
 		echo 'CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y'
+		echo 'CONFIG_FUTEX=y'
 	}
 
 	# FIXME! spaces are not working
@@ -1480,6 +1482,7 @@ elif has_arg 'toybox'; then
 else
 	# busybox:
 	make $SILENT_MAKE $ARCH $CROSSCOMPILE "-j$CPU" || msg_and_die "$?" "make $ARCH $CROSSCOMPILE"
+#	make $SILENT_MAKE $ARCH $CROSSCOMPILE "-j1"    || msg_and_die "$?" "make $ARCH $CROSSCOMPILE"
 	make $SILENT_MAKE $ARCH $CROSSCOMPILE install  || msg_and_die "$?" "make $ARCH $CROSSCOMPILE install"
 fi
 
@@ -2288,7 +2291,7 @@ ABORT_PATTERN='# READY'
 [ -f "$OWN_INITRD" ] && ABORT_PATTERN=
 
 chmod +x "$LINUX_BUILD/run.sh" && \
-	 "$LINUX_BUILD/run.sh" 'autotest' "$ABORT_PATTERN" 20
+	 "$LINUX_BUILD/run.sh" 'autotest' "$ABORT_PATTERN" "$( test -z "$EMBED_CMDLINE" && echo '20' || echo '3' )"
 RC=$?
 
 echo
