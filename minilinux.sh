@@ -3,9 +3,12 @@
 KERNEL="$1"		# e.g. 'latest' or 'stable' or '5.4.89' or '4.19.x' or URL-to-tarball
 ARG2="$2"		# only used...
 ARG3="$3"		# ...for smoketest
-while shift; do
-	test "$1" = verbose && set -x
-	export OPTIONS="$OPTIONS $1"	# see has_arg(), spaces are not working
+
+for TAG in "$@"; do
+	case "$TAG" in
+		verbose) set -x ;;
+		*) export OPTIONS="$OPTIONS $TAG" ;;	# see has_arg(), spaces are not working
+	esac
 done
 
 BASEDIR="$PWD/minilinux${BUILID:+_}${BUILDID}"		# autoclean removes it later
