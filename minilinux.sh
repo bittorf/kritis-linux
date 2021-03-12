@@ -1,5 +1,4 @@
-#!/bin/bash
-# script runs on any POSIX shell, but has issues with 'dash 0.5.10.2-7' on ubuntu during 'init' concatenation
+#!/bin/sh
 
 KERNEL="$1"		# e.g. 'latest' or 'stable' or '5.4.89' or '4.19.x' or URL-to-tarball
 ARG2="$2"		# only used...
@@ -1412,14 +1411,18 @@ has_arg 'iodine' && {
 	}
 
 	init_iodine() {
-		has_arg 'iodine:credentials' && {
+		if has_arg 'iodine:credentials'; then
 			local password="$PARAM1"
 			local nx_server="$PARAM2"
 			local dns_server="${PARAM3:-8.8.8.8}"
 
 			# enforce to background:
 			echo "( echo $password | iodine -r $nx_server $dns_server 2>/dev/null ) & 2>/dev/null"
-		}
+			echo
+		else
+			echo "# iodine -r -P password nx_server $dns_server"
+			echo
+		fi
 	}
 
 	compile 'iodine' "$URL_IODINE"
@@ -1546,6 +1549,126 @@ fi
 	ln -s bin/sh bin/dash
 }
 
+init_shebang()
+{
+	echo "#!$BOOTSHELL"
+	echo "export SHELL=$( basename "$BOOTSHELL" )"
+	echo
+}
+
+init_procfs()
+{
+	cat <<EOF
+mount -t proc none /proc && {
+  read -r UP _ </proc/uptime || UP=\$( cut -d' ' -f1 /proc/uptime )
+  while read -r LINE; do
+    # shellcheck disable=SC2086
+    case "\$LINE" in MemAvailable:*) set -- \$LINE; MEMAVAIL_KB=\$2; break ;; esac
+  done </proc/meminfo
+}
+
+EOF
+}
+
+init_sysfs()
+{
+	echo 'mount -t sysfs none /sys'
+}
+
+init_hostfs()
+{
+	echo 'mount -t hostfs none /mnt/host'
+}
+
+init_crond()
+{
+	CRONDIR='var/spool/cron/crontabs'
+	mkdir -p "$CRONDIR"
+	cp "$CRONTAB" "$CRONDIR/root"
+
+	cat <<EOF
+CRON="\$( command -v crond || echo false )"
+\$CRON -c /$CRONDIR -L /dev/null
+
+EOF
+}
+
+init_net()
+{
+	cat <<EOF
+# https://github.com/bittorf/slirp-uml-and-compiler-friendly
+# https://github.com/lubomyr/bochs/blob/master/misc/slirp.conf
+command -v 'ip' >/dev/null && \\
+  ip link show dev eth0 >/dev/null && \\
+    printf '%s\\n' "nameserver $DNS" >/etc/resolv.conf && \\
+      ip address add 10.0.2.15/24 dev eth0 && \\
+	ip link set dev eth0 up && \\
+	  ip route add default via 10.0.2.2
+
+EOF
+}
+
+init_ttypass()
+{
+	SHA256="$( { printf '%s' "$TTYPASS"; cat "$SALTFILE"; } | sha256sum )"
+	printf '\n%s\n%s\n%s\n%s\n' \
+		"# tty-pass:" \
+		"printf 'file: ' && read -s PASS" \
+		"HASH=\"\$( { printf '%s' \"\$PASS\"; cat \"$SALTFILE\"; } | sha256sum )\"" \
+		"test \"\${HASH%% *}\" = ${SHA256%% *} || exit"
+}
+
+init_debuginfo()
+{
+	cat <<EOF
+UNAME="\$( command -v uname || printf '%s' false )"
+printf '%s\n' "# BOOTTIME_SECONDS \${UP:--1 (missing procfs?)}"
+printf '%s\n' "# MEMFREE_KILOBYTES \${MEMAVAIL_KB:--1 (missing procfs?)}"
+printf '%s\n' "# UNAME \$( \$UNAME -a || printf uname_unavailable )"
+printf '%s\n' "# READY - to quit $( is_uml && echo "type 'exit'" || echo "press once CTRL+A and then 'x' or kill qemu" )"
+
+EOF
+}
+
+init_meshack()
+{
+	cat <<EOF
+# hack for MES:
+test -f init.user && busybox sleep 2 && AUTO=true ./init.user	# wait for dmesg-trash
+
+EOF
+}
+
+init_interactive()
+{
+	cat <<EOF
+printf '%s\n' "mount -t devtmpfs none /dev"
+if grep -q devtmpfs /proc/mounts || mount -t devtmpfs none /dev; then
+	LN="\$( command -v ln || echo 'false ' )"
+	$( has_arg 'procfs' || echo '	LN=false' )
+	# http://www.linuxfromscratch.org/lfs/view/6.1/chapter06/devices.html
+	# https://raw.githubusercontent.com/AcmeSystems/acmepatches/master/buildroot-at91-2020.04.patch
+	\$LN -sf /proc/self/fd   /dev/fd
+	\$LN -sf /proc/self/fd/0 /dev/stdin
+	\$LN -sf /proc/self/fd/1 /dev/stdout
+	\$LN -sf /proc/self/fd/2 /dev/stderr
+
+	if command -v setsid; then
+		# https://stackoverflow.com/a/35245823/5688306
+		printf '%s\n' "job_control: exec setsid cttyhack $BOOTSHELL"
+		exec setsid cttyhack $BOOTSHELL
+	else
+		printf '%s\n' "exec $BOOTSHELL"
+		exec $BOOTSHELL 2>/dev/null
+	fi
+else
+	printf '%s\n' "exec $BOOTSHELL"
+	exec $BOOTSHELL 2>/dev/null
+fi
+
+EOF
+}
+
 has_arg 'dropbear' && install_dropbear
 
 has_arg 'bash' && install_bash
@@ -1576,86 +1699,22 @@ export SALTFILE='bin/busybox'		# must be the path, here and in initrd
 export BOOTSHELL='/bin/ash'
 export INITSCRIPT="$PWD/init"
 
-export CRONDIR='var/spool/cron/crontabs' && mkdir -p "$CRONDIR"
-[ -f "$CRONTAB" ] && cp -v "$CRONTAB" "$CRONDIR/root"
+[ -f init ] || {
+	init_shebang
+	has_arg 'procfs'	&& init_procfs
+	has_arg 'sysfs'		&& init_sysfs
+	has_arg 'hostfs'	&& init_hostfs
+	test -f "$CRONTAB"	&& init_crond
+	has_arg 'net'		&& init_net
+	has_arg 'dropbear'	&& init_dropbear
+	has_arg 'iodine'	&& init_iodine
+	test -n "$TTYPASS"	&& init_ttypass
 
-[ -f init ] || cat >'init' <<EOF
-#!$BOOTSHELL
-$( has_arg 'procfs' || echo 'false ' )mount -t proc none /proc && {
-	read -r UP _ </proc/uptime || UP=\$( cut -d' ' -f1 /proc/uptime )
-	while read -r LINE; do
-		# shellcheck disable=SC2086
-		case "\$LINE" in MemAvailable:*) set -- \$LINE; MEMAVAIL_KB=\$2; break ;; esac
-	done </proc/meminfo
-}
-
-$( has_arg 'sysfs' || echo 'false ' )mount -t sysfs none /sys
-$( has_arg 'hostfs' || echo 'false ')mount -t hostfs none /mnt/host
-EOF
-
-test -f "$CRONTAB" && cat >>'init' <<EOF
-CRON="\$( command -v crond || echo false )"
-\$CRON -c /$CRONDIR -L /dev/null
-EOF
-
-cat >>'init' <<EOF
-# https://github.com/bittorf/slirp-uml-and-compiler-friendly
-# https://github.com/lubomyr/bochs/blob/master/misc/slirp.conf
-$( has_arg 'net' || echo 'false ' )command -v 'ip' >/dev/null && \\
-  ip link show dev eth0 >/dev/null && \\
-    printf '%s\\n' "nameserver $DNS" >/etc/resolv.conf && \\
-      ip address add 10.0.2.15/24 dev eth0 && \\
-	ip link set dev eth0 up && \\
-	  ip route add default via 10.0.2.2
-
-$( has_arg 'dropbear' && init_dropbear )
-$( has_arg 'iodine' && init_iodine )
-# TODO: wireguard startup
-$(
-	test -n "$TTYPASS" && {
-		SHA256="$( { printf '%s' "$TTYPASS"; cat "$SALTFILE"; } | sha256sum )"
-		printf '\n%s\n%s\n%s\n%s\n' \
-			"# tty pass:" \
-			"printf 'file: ' && read -s PASS" \
-			"HASH=\"\$( { printf '%s' \"\$PASS\"; cat \"$SALTFILE\"; } | sha256sum )\"" \
-			"test \"\${HASH%% *}\" = ${SHA256%% *} || exit"
-	}
-)
-
-export SHELL=$( basename "$BOOTSHELL" )
-UNAME="\$( command -v uname || printf '%s' false )"
-printf '%s\n' "# BOOTTIME_SECONDS \${UP:--1 (missing procfs?)}"
-printf '%s\n' "# MEMFREE_KILOBYTES \${MEMAVAIL_KB:--1 (missing procfs?)}"
-printf '%s\n' "# UNAME \$( \$UNAME -a || printf uname_unavailable )"
-printf '%s\n' "# READY - to quit $( is_uml && echo "type 'exit'" || echo "press once CTRL+A and then 'x' or kill qemu" )"
-
-# hack for MES:
-test -f init.user && busybox sleep 2 && AUTO=true ./init.user	# wait for dmesg-trash
-
-printf '%s\n' "mount -t devtmpfs none /dev"
-if grep -q devtmpfs /proc/mounts || mount -t devtmpfs none /dev; then
-	LN="\$( command -v ln || echo 'false ' )"
-	$( has_arg 'procfs' || echo '	LN=false' )
-	# http://www.linuxfromscratch.org/lfs/view/6.1/chapter06/devices.html
-	# https://raw.githubusercontent.com/AcmeSystems/acmepatches/master/buildroot-at91-2020.04.patch
-	\$LN -sf /proc/self/fd   /dev/fd
-	\$LN -sf /proc/self/fd/0 /dev/stdin
-	\$LN -sf /proc/self/fd/1 /dev/stdout
-	\$LN -sf /proc/self/fd/2 /dev/stderr
-
-	if command -v setsid; then
-		# https://stackoverflow.com/a/35245823/5688306
-		printf '%s\n' "job_control: exec setsid cttyhack $BOOTSHELL"
-		exec setsid cttyhack $BOOTSHELL
-	else
-		printf '%s\n' "exec $BOOTSHELL"
-		exec $BOOTSHELL 2>/dev/null
-	fi
-else
-	printf '%s\n' "exec $BOOTSHELL"
-	exec $BOOTSHELL 2>/dev/null
-fi
-EOF
+	# init_wireguard
+	init_debuginfo
+	init_meshack
+	init_interactive
+} >'init'
 
 chmod +x 'init'
 
