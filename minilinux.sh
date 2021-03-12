@@ -1140,6 +1140,16 @@ mkdir -p "$MUSL"
 export MUSL_BUILD="$BUILDS/musl"
 mkdir -p "$MUSL_BUILD"
 
+export CRONTAB="$OPT/crontab.txt"
+
+cronjob_add()
+{
+	local context="$1"
+	local line="$2"
+
+	echo "$line" >>"$CRONTAB"
+}
+
 compile()
 {
 	local package="$1"	# e.g. mytool_xy
@@ -1393,6 +1403,12 @@ has_arg 'iodine' && {
 
 	install_iodine() {				# FIXME +cleanup?
 		cp -v "$OPT/iodine/iodine" bin/iodine
+
+		cronjob_add 'iodine' "* * * * * /bin/iodine.check"
+
+		printf '%s\n%s' '#!/bin/sh' "true" \
+			>bin/iodine.check
+		chmod +x bin/iodine.check
 	}
 
 	init_iodine() {
@@ -1559,6 +1575,7 @@ has_arg 'icmptunnel' && install_icmptunnel
 export SALTFILE='bin/busybox'		# must be the path, here and in initrd
 export BOOTSHELL='/bin/ash'
 export INITSCRIPT="$PWD/init"
+cp -v "$CRONTAB" 'etc/crontabs/root'
 
 [ -f init ] || cat >'init' <<EOF
 #!$BOOTSHELL
