@@ -1404,9 +1404,9 @@ has_arg 'iodine' && {
 	install_iodine() {				# FIXME +cleanup?
 		cp -v "$OPT/iodine/iodine" bin/iodine
 
-		cronjob_add 'iodine' "* * * * * /bin/iodine.check"
+		cronjob_add 'iodine' '* * * * * /bin/iodine.check'
 
-		printf '%s\n%s' '#!/bin/sh' "true" \
+		printf '%s\n%s\n' '#!/bin/sh' "true" \
 			>bin/iodine.check
 		chmod +x bin/iodine.check
 	}
@@ -1577,7 +1577,7 @@ export BOOTSHELL='/bin/ash'
 export INITSCRIPT="$PWD/init"
 
 export CRONDIR='var/spool/cron/crontabs' && mkdir -p "$CRONDIR"
-cp -v "$CRONTAB" "$CRONDIR/root" || exit
+[ -f "$CRONTAB" ] && cp -v "$CRONTAB" "$CRONDIR/root"
 
 [ -f init ] || cat >'init' <<EOF
 #!$BOOTSHELL
@@ -1591,10 +1591,14 @@ $( has_arg 'procfs' || echo 'false ' )mount -t proc none /proc && {
 
 $( has_arg 'sysfs' || echo 'false ' )mount -t sysfs none /sys
 $( has_arg 'hostfs' || echo 'false ')mount -t hostfs none /mnt/host
+EOF
 
+test -f "$CRONTAB" && cat >>'init' <<EOF
 CRON="\$( command -v crond || echo false )"
 \$CRON -c /$CRONDIR -L /dev/null
+EOF
 
+cat >>'init' <<EOF
 # https://github.com/bittorf/slirp-uml-and-compiler-friendly
 # https://github.com/lubomyr/bochs/blob/master/misc/slirp.conf
 $( has_arg 'net' || echo 'false ' )command -v 'ip' >/dev/null && \\
