@@ -217,6 +217,14 @@ log "[OK] building kernel '$KERNEL' on arch '$DSTARCH' and options '$OPTIONS'"
 
 deps_check()
 {
+	install_dep 'coreutils'
+	install_dep 'build-essential'
+	install_dep 'flex'
+	install_dep 'bison'
+	install_dep 'automake'
+	install_dep 'ncurses-dev'	# for menuconfig
+	install_dep 'whois'
+
 	# FIXME! 'program_name' not always 'package_name', e.g. 'mkpasswd' is in package 'whois'
 	local cmd list='arch basename cat chmod cp file find grep gzip head make mkdir rm sed strip tar tee test touch tr wget whois'
 	# these commands are used, but are not essential:
@@ -228,14 +236,6 @@ deps_check()
 			return 1
 		}
 	} done
-
-	install_dep 'coreutils'
-	install_dep 'build-essential'
-	install_dep 'flex'
-	install_dep 'bison'
-	install_dep 'automake'
-	install_dep 'ncurses-dev'	# for menuconfig
-	install_dep 'whois'
 
 	true
 }
