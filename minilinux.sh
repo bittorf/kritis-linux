@@ -684,6 +684,9 @@ file_iscompressed()
 	local line word parse=
 	local threshold=9
 
+	# used compression via:
+	# grep -i CONFIG_HAVE_KERNEL_ + CONFIG_KERNEL_ .config
+
 	# FIXME! try to really detect compression:
 	# https://gist.githubusercontent.com/skitt/288c0c52b51b5863947a5d6c1180c9f3/raw/25f571a2361305cbcff71f56f57d546e9ff68172/check-vmlinux
 	# https://github.com/bittorf/kalua/blob/master/openwrt-addons/etc/kalua/filetype
@@ -818,8 +821,10 @@ CONFIG_DEVTMPFS_MOUNT=y
 CONFIG_TTY=y
 EOF
 
-	if [ -f "$INITRD_FILE_PLAIN" ]; then
-		echo "CONFIG_INITRAMFS_SOURCE=\"$INITRD_FILE_PLAIN\""
+	if [ -e "$INITRD_OBJECT_PLAIN" ]; then
+		# https://landley.net/writing/rootfs-howto.html
+		# can be a 'cpio' or 'cpio.gz'-file or a 'directory':
+		echo "CONFIG_INITRAMFS_SOURCE=\"$INITRD_OBJECT_PLAIN ${INITRD_OBJECT_PLAIN}$( test -d "$INITRD_OBJECT_PLAIN" && echo '/' )essential.txt\""
 		echo 'CONFIG_INITRAMFS_COMPRESSION_NONE=y'
 		echo '# CONFIG_RD_GZIP is not set'
 		echo '# CONFIG_RD_BZIP2 is not set'
@@ -935,6 +940,10 @@ EOF
 		echo 'CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y'
 		echo 'CONFIG_FUTEX=y'
 	}
+
+	# enforce kernel compression mode?:
+	# CONFIG_HAVE_KERNEL_XZ=y
+	# CONFIG_KERNEL_XZ=y
 
 	# FIXME! spaces are not working
 	# we can overload CONFIG_SYMBOLS via ARGS
@@ -1644,28 +1653,28 @@ EOF
 
 init_interactive()
 {
-	cat <<EOF
-printf '%s\n' "mount -t devtmpfs none /dev"
-if grep -q devtmpfs /proc/mounts || mount -t devtmpfs none /dev; then
-	LN="\$( command -v ln || echo 'false ' )"
-	$( has_arg 'procfs' || echo '	LN=false' )
+	# for 'setsid' and 'cttyhack' see:
+	# https://stackoverflow.com/a/35245823/5688306
+
+	# for linking /proc/self/fd see:
 	# http://www.linuxfromscratch.org/lfs/view/6.1/chapter06/devices.html
 	# https://raw.githubusercontent.com/AcmeSystems/acmepatches/master/buildroot-at91-2020.04.patch
+
+	cat <<EOF
+if grep -sq devtmpfs /proc/mounts || mount -t devtmpfs none /dev; then
+	LN="\$( command -v ln || echo 'false ' )"
+	$( has_arg 'procfs' || echo '	LN=false' )
 	\$LN -sf /proc/self/fd   /dev/fd
 	\$LN -sf /proc/self/fd/0 /dev/stdin
 	\$LN -sf /proc/self/fd/1 /dev/stdout
 	\$LN -sf /proc/self/fd/2 /dev/stderr
 
 	if command -v setsid; then
-		# https://stackoverflow.com/a/35245823/5688306
-		printf '%s\n' "job_control: exec setsid cttyhack $BOOTSHELL"
-		exec setsid cttyhack $BOOTSHELL
+		exec setsid cttyhack $BOOTSHELL 2>/dev/null
 	else
-		printf '%s\n' "exec $BOOTSHELL"
 		exec $BOOTSHELL 2>/dev/null
 	fi
 else
-	printf '%s\n' "exec $BOOTSHELL"
 	exec $BOOTSHELL 2>/dev/null
 fi
 
@@ -1741,9 +1750,16 @@ else
 	INITRD_FILE4="$( readlink -e "$BUILDS/initramfs.cpio.zstd"  || true )"
 fi
 
+# TODO: uncompress OWN_INITRD?
 [ -n "$ONEFILE" ] && {
-	INITRD_FILE_PLAIN="$BUILDS/initramfs.cpio"
-	gzip -cdk "$INITRD_FILE" >"$INITRD_FILE_PLAIN"
+	INITRD_OBJECT_PLAIN="$INITRAMFS_BUILD"		# directory
+
+	{
+	# see: 'usr/gen_init_cpio -h'
+	echo "dir /dev 0755 0 0"
+	echo "nod /dev/console 0600 0 0 c 5 1"
+	echo "nod /dev/tty0    0600 0 0 c 4 0"
+	} >"$INITRD_OBJECT_PLAIN/essential.txt"
 }
 
 BB_FILE="$BUSYBOX_BUILD/busybox"
@@ -2080,6 +2096,7 @@ $( sed -n '1,5s/^/#                /p' "$CONFIG1" )
 # INITRD files......: $INITRD_FILES
 #        symlinks...: $INITRD_LINKS
 #        directories: $INITRD_DIRS
+#        nodes......: not-implemented-yet
 #        bytes......: $INITRD_BYTES [100%]
 #
 # init:    $INITSCRIPT  ($( wc -c <"$INITSCRIPT" || echo 0 ) bytes = '$BOOTSHELL' script)
@@ -2148,8 +2165,7 @@ case "\$ACTION" in
 				if [ -n "$EMBED_CMDLINE" ]; then	# embedded commandline:
 					$KERNEL_FILE
 				else
-					$KERNEL_FILE mem=\$MEM \$UMLNET \\
-						initrd=$INITRD_FILE
+					$KERNEL_FILE mem=\$MEM \$UMLNET $( test -n "$ONEFILE" || echo "initrd=$INITRD_FILE" )
 				fi
 
 				rm -fR "\$DIR"
@@ -2160,7 +2176,7 @@ case "\$ACTION" in
 
 				\$KVM_PRE \$QEMU -m \$MEM \$KVM_SUPPORT \$BIOS \\
 					-kernel $KERNEL_FILE \\
-					-initrd $INITRD_FILE \\
+					$( test -n "$ONEFILE" || echo "-initrd $INITRD_FILE" ) \\
 					-nographic \\
 					-append "\$KERNEL_ARGS" \$QEMU_OPTIONS && set +x
 			;;
@@ -2196,7 +2212,7 @@ mkfifo "\$PIPE.out" || exit
 				$KERNEL_FILE
 			else
 				$KERNEL_FILE uml_dir="\$UMLDIR" mem=\$MEM \$UMLNET \\
-					initrd=$INITRD_FILE >"\$PIPE.out" 2>&1
+					$( test -n "$ONEFILE" || echo "initrd=$INITRD_FILE" ) >"\$PIPE.out" 2>&1
 			fi
 
 			rm -fR "\$DIR"
@@ -2208,7 +2224,7 @@ mkfifo "\$PIPE.out" || exit
 			# code must be duplicated, see below in LOG
 			\$KVM_PRE \$QEMU -m \$MEM \$KVM_SUPPORT \$BIOS \\
 				-kernel $KERNEL_FILE \\
-				-initrd $INITRD_FILE \\
+				$( test -n "$ONEFILE" || echo "-initrd $INITRD_FILE" ) \\
 				-nographic \\
 				-serial pipe:\$PIPE \\
 				-append "\$KERNEL_ARGS" \$QEMU_OPTIONS -pidfile "\$PIDFILE"
@@ -2251,14 +2267,13 @@ test -n "\$PID" || echo "# ERROR: no PIDFILE or QEMU/uml-vmlinux already stopped
 
 	case "$DSTARCH" in
 		uml*)
-			echo "$KERNEL_FILE uml_dir=\$UMLDIR mem=\$MEM \$UMLNET \\\\"
-			echo "	initrd=$INITRD_FILE"
+			echo "$KERNEL_FILE uml_dir=\$UMLDIR mem=\$MEM \$UMLNET $( test -n "$ONEFILE" || echo "initrd=$INITRD_FILE" )"
 		;;
 		*)
 			# code duplication from above real startup:
 			echo "\$KVM_PRE \$QEMU -m \$MEM \$KVM_SUPPORT \$BIOS \\\\"
 			echo "	-kernel $KERNEL_FILE \\\\"
-			echo "	-initrd $INITRD_FILE \\\\"
+			echo "	$( test -n "$ONEFILE" || echo "-initrd $INITRD_FILE" ) \\\\"
 			echo "	-nographic \\\\"
 			echo "	-append \"\$KERNEL_ARGS\" \$QEMU_OPTIONS -pidfile \"\$PIDFILE\""
 		;;

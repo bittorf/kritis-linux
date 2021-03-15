@@ -189,6 +189,7 @@ done
   * wrong `Kernel command line: console=uart,mmio,0x90000000,115200`
 * fix dev bringup: http://www.linuxfromscratch.org/lfs/view/6.1/chapter06/devices.html
 * fix `m68k' net/MACSONIC bringup
+* support for compression `uml` using `https://github.com/pts/upxbc`
 * debian-minimal testrun for deps
 * builddir = mark_cache = no_backup
 * api kernel+busybox+toybox+gcc... download/version
