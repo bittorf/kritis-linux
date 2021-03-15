@@ -2016,8 +2016,12 @@ case "$DSTARCH" in
 	;;
 	uml*)
 		has_arg 'upx' && {
-			sstrip "$KERNEL_FILE"		|| msg_and_die "$?" "sstrip failed on '$KERNEL_FILE'"
-			upx -v --lzma "$KERNEL_FILE"	|| msg_and_die "$?" "failed: upx -v --lzma $KERNEL_FILE"
+			if file_iscompressed "$KERNEL_FILE"; then
+				log "no UPX compression, file already compressed: $KERNEL_FILE"
+			else
+				sstrip "$KERNEL_FILE"		|| msg_and_die "$?" "failed: sstrip $KERNEL_FILE"
+				upx -v --lzma "$KERNEL_FILE"	|| msg_and_die "$?" "failed: upx -v --lzma $KERNEL_FILE"
+			fi
 		}
 	;;
 esac
@@ -2096,7 +2100,7 @@ $( sed -n '1,5s/^/#                /p' "$CONFIG1" )
 # KERNEL_BUILD_TIME: $KERNEL_TIME sec
 # KERNEL: $KERNEL_FILE
 # KERNEL_ELF: $KERNEL_ELF
-# KERNEL_SIZE: $( wc -c <"$KERNEL_FILE" ) bytes [is $( file_iscompressed "$KERNEL_FILE" 'info' )compressed]
+# KERNEL_SIZE: $( wc -c <"$KERNEL_FILE" ) bytes [is $( file_iscompressed "$KERNEL_FILE" 'info' )compressed$( test -n "$ONEFILE" && echo ', initrd is included' )]
 # KERNEL_ELF: $(  wc -c <"$KERNEL_ELF" ) bytes
 #   show sections with: readelf -S $KERNEL_ELF
 #
