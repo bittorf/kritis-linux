@@ -140,7 +140,7 @@ Start it later as `/sbin/gеtty 38400 tty7` (with cyrillic small 'е')
 ```
 export EMBED_CMDLINE="quiet mem=64M initrd=/tmp/cpio.gz eth0=slirp,FE:FD:01:02:03:04,/tmp/echo"
 export DSTARCH=uml FAKEID='user@box.net' TTYPASS='peter80'
-./minilinux.sh latest printk sysfs procfs hostfs busybox bash net wireguard dropbear speedup
+./minilinux.sh latest printk sysfs procfs hostfs busybox bash net wireguard dropbear speedup upx
 
 ```
 hint: make sure, you use a small/early PID,  
@@ -185,16 +185,11 @@ done
 
 ### ToDo list
 * CI examples: TravisCI, CircleCI
-* fix `or1k` https://lkml.org/lkml/2020/7/4/244
-  * wrong `Kernel command line: console=uart,mmio,0x90000000,115200`
-* fix dev bringup: http://www.linuxfromscratch.org/lfs/view/6.1/chapter06/devices.html
 * fix `m68k' net/MACSONIC bringup
-* support for compression `uml` using `https://github.com/pts/upxbc`
 * debian-minimal testrun for deps
 * builddir = mark_cache = no_backup
 * api kernel+busybox+toybox+gcc... download/version
 * different recipes?: minimal, net, compiler, net-compiler
-* which programs where called? hash?
 * upload/api: good + bad things
 * upload bootable images
 * support for USB-sticks + hybrid ISO
@@ -210,7 +205,6 @@ CONFIG_PREVENT_FIRMWARE_BUILD=y
 # CONFIG_IDE is not set
 CONFIG_SCSI=y
 CONFIG_SCSI_MOD=y
-CONFIG_XZ_DEC=y
 CONFIG_DEBUG_KERNEL=y
 # CONFIG_GPIOLIB is not set
 ```

@@ -230,7 +230,7 @@ deps_check()
 	# FIXME! 'program_name' not always 'package_name', e.g. 'mkpasswd' is in package 'whois'
 	local cmd list='arch basename cat chmod cp file find grep gzip head make mkdir rm sed strip tar tee test touch tr wget whois'
 	# these commands are used, but are not essential:
-	# apt, bc, curl, dpkg, ent, logger, vimdiff, xz, zstd
+	# apt, bc, curl, dpkg, ent, logger, sstrip, upx, vimdiff, xz, zstd
 
 	for cmd in $list; do {
 		command -v "$cmd" >/dev/null || {
@@ -1977,7 +1977,7 @@ fi
 
 cd .. || exit
 
-if has_arg 'UML'; then
+if is_uml; then
 	KERNEL_FILE="$LINUX_BUILD/vmlinux"
 else
 	KERNEL_FILE="$( readlink -e "$KERNEL_FILE" )"
@@ -2008,6 +2008,12 @@ case "$DSTARCH" in
 		else
 			DTB="$( find "$LINUX_BUILD/" -type f -name "$DTB" )"
 		fi
+	;;
+	uml*)
+		has_arg 'upx' && {
+			sstrip "$KERNEL_FILE"
+			upx -v --lzma "$KERNEL_FILE"
+		}
 	;;
 esac
 
