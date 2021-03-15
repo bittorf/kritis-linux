@@ -347,7 +347,7 @@ autoclean_do()
 case "$KERNEL" in
 	'smoketest'*)
 		LIST_ARCH='armel  armhf  arm64  or1k  m68k  uml  uml32  x86  x86_64'
-		LIST_KERNEL='3.18 3.18.140 3.19.8 4.0.9 4.1.52 4.2.8 4.3.6 4.4.260 4.9.260 4.14.224 4.19.179 5.4.103 5.10.21 5.11.4'
+		LIST_KERNEL='3.18 3.18.140 3.19.8 4.0.9 4.1.52 4.2.8 4.3.6 4.4.261 4.9.261 4.14.225 4.19.180 5.4.105 5.10.23 5.11.6'
 
 		FULL='printk procfs sysfs busybox bash dash net wireguard iodine icmptunnel dropbear speedup'
 		TINY='printk busybox'

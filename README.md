@@ -175,7 +175,7 @@ FULL='printk procfs sysfs busybox bash dash net wireguard dropbear speedup'
 TINY='printk'
 
 for ARCH in armel armhf arm64 or1k m68k uml uml32 x86 x86_64; do
-  for KERNEL in 3.18 3.18.140 3.19.8 4.0.9 4.1.52 4.2.8 4.3.6 4.4.260 4.9.260 4.14.224 4.19.179 5.4.103 5.10.21 5.11.4
+  for KERNEL in 3.18 3.18.140 3.19.8 4.0.9 4.1.52 4.2.8 4.3.6 4.4.261 4.9.261 4.14.225 4.19.180 5.4.105 5.10.23 5.11.6
     ID="${KERNEL}_${ARCH}" LOG="$PWD/log-$ID"
     LOG=$LOG-tiny BUILDID=$ID-tiny DSTARCH=$ARCH ./minilinux.sh $KERNEL "$TINY" autoclean
     LOG=$LOG-full BUILDID=$ID-full DSTARCH=$ARCH ./minilinux.sh $KERNEL "$FULL" autoclean
