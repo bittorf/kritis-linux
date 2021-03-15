@@ -429,7 +429,10 @@ case "$KERNEL" in
 			echo "<title>MATRIX</title></head><body>"
 			echo "<table cellspacing=1 cellpadding=1 border=1>"
 
-			printf '%s' '<tr><th><a href="https://github.com/bittorf/kritis-linux">github</a></th>'
+			COMMIT="$( git rev-parse --short HEAD )"
+			LINK="https://github.com/bittorf/kritis-linux/commit/$COMMIT"
+			printf '%s' "<tr><th><a href='$LINK'>github</a></th>"
+
 			for ARCH in $LIST_ARCH; do printf '%s' "<th>$ARCH</th>"; done
 			printf '%s\n' "</tr><!-- end headline arch -->"
 
