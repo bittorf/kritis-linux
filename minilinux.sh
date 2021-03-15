@@ -391,9 +391,9 @@ case "$KERNEL" in
 		done
 
 		count_logfiles() { find . -maxdepth 1 -type f -name 'log-[1-9]\.*' -size +0 -exec grep 'autoclean done' {} \; | wc -l; }
-		while [ "$( count_logfiles )" -lt $I ]; do {
+		while C=$( count_logfiles ); test $C -lt $I; do {
 			test -f 'SMOKE' || break
-			printf '%s\n' "waiting for $I logfiles or '$PWD/SMOKE' disappear"
+			log "waiting for $C/$I logfiles or '$PWD/SMOKE' disappear"
 			sleep 10
 		} done
 
@@ -517,9 +517,11 @@ case "$KERNEL" in
 			untar ./* || exit
 			cd ./* || exit
 
+			HARDCODED_URL="http://intercity-vpn.de/kritis-linux/table.html"		# ugly!
+
 			{
 				echo "var page = require('webpage').create();"
-				echo "page.open('http://intercity-vpn.de/kritis-linux/table.html', function() {"
+				echo "page.open('$HARDCODED_URL', function() {"
 				echo " setTimeout(function() {"
 				echo "  page.render('preview.png');"
 				echo "  phantom.exit();"
