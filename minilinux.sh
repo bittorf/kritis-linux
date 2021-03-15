@@ -375,7 +375,7 @@ case "$KERNEL" in
 		    B1="$L1.build.txt"
 		    B2="$L2.build.txt"
                     export FAKEID='kritis-release@github.com'
-                    export NOKVM='true'
+                    export NOKVM='true' ONEFILE='true'
 		    export CPU
 
 		    if [ -n "$ARG2" ]; then
@@ -2011,8 +2011,8 @@ case "$DSTARCH" in
 	;;
 	uml*)
 		has_arg 'upx' && {
-			sstrip "$KERNEL_FILE"
-			upx -v --lzma "$KERNEL_FILE"
+			sstrip "$KERNEL_FILE"		|| msg_and_die "$?" "sstrip failed on '$KERNEL_FILE'"
+			upx -v --lzma "$KERNEL_FILE"	|| msg_and_die "$?" "failed: upx -v --lzma $KERNEL_FILE"
 		}
 	;;
 esac
