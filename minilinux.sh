@@ -1086,6 +1086,14 @@ apply()
 	true	# FIXME!
 }
 
+elfcrunch_file()
+{
+	local file="$1"
+
+	sstrip "$file"		|| msg_and_die "$?" "failed: sstrip $file"
+	upx -v --lzma "$file"	|| msg_and_die "$?" "failed: upx -v --lzma $file"
+}
+
 ###
 ### busybox|tyobox|dash + rootfs/initrd ####
 ###
@@ -1116,7 +1124,13 @@ case "$DSTARCH" in
 			# e.g. SLIRP_BIN='/tmp/tmp.BGbKLy2cly/slirp-1.0.17/src/slirp'
 			echo "$OK" | grep -q ^'SLIRP_BIN=' || exit
 			SLIRP_BIN="$( echo "$OK" | cut -d"=" -f2 | cut -d"'" -f2 )"
-			$STRIP "$SLIRP_BIN" || exit
+
+			if has_arg 'upx'; then
+				elfcrunch_file "$SLIRP_BIN" || exit
+			else
+				$STRIP "$SLIRP_BIN" || exit
+			fi
+
 			DNS='10.0.2.3'
 		}
 	;;
@@ -1884,7 +1898,7 @@ for WORD in $CC_VERSION; do {
 	# /home/bastian/software/minilinux/minilinux/opt/linux/linux-3.19.8/include/linux/compiler-gcc.h:106:1:
 	# fatal error: linux/compiler-gcc9.h: file or directory not found
 	[ -f "$DEST" ] || {
-		HEADER="$( find include/linux/ -type f -name 'compiler-gcc*.h' | head -n1 )"
+		HEADER="$( find include/linux/ -type f -name 'compiler-gcc[0-9].h' | head -n1 )"
 		[ -f "$HEADER" ] && \
 			cp -v "$HEADER" "$DEST" && \
 				emit_doc "applied: kernel-patch: $HEADER -> $DEST"
@@ -2034,8 +2048,7 @@ case "$DSTARCH" in
 			if file_iscompressed "$KERNEL_FILE"; then
 				log "no UPX compression, file already compressed: $KERNEL_FILE"
 			else
-				sstrip "$KERNEL_FILE"		|| msg_and_die "$?" "failed: sstrip $KERNEL_FILE"
-				upx -v --lzma "$KERNEL_FILE"	|| msg_and_die "$?" "failed: upx -v --lzma $KERNEL_FILE"
+				elfcrunch_file "$KERNEL_FILE" || exit
 			fi
 		}
 	;;
