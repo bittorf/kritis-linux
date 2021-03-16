@@ -68,7 +68,20 @@ has_arg()
 
 			false
 		;;
-		*) false ;;
+		*)
+			# e.g. has_arg '*defconfig' and given 'foo_defconfig'
+			# shellcheck disable=SC2254
+			for sub in $string; do
+				case "$sub" in
+					$wish)
+						export THIS_ARG="$sub"
+						return 0
+					;;
+				esac
+			done
+
+			false
+		;;
 	esac
 }
 
@@ -193,6 +206,7 @@ has_arg 'tinyconfig'	&& DEFCONFIG='tinyconfig'	# supported since kernel 3.17-rc1
 has_arg 'allnoconfig'	&& DEFCONFIG='allnoconfig'
 has_arg 'defconfig'	&& DEFCONFIG='defconfig'
 has_arg 'config'	&& DEFCONFIG='config'		# e.g. kernel 2.4.x
+has_arg '*defconfig'	&& DEFCONFIG="$THIS_ARG"	# e.g. mvme16x_defconfig
 
 case "$DSTARCH" in
 	uml*)
