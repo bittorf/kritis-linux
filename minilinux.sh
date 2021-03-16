@@ -242,9 +242,9 @@ deps_check()
 	install_dep 'whois'
 
 	# FIXME! 'program_name' not always 'package_name', e.g. 'mkpasswd' is in package 'whois'
-	local cmd list='arch basename cat chmod cp file find grep gzip head make mkdir rm sed strip tar tee test touch tr wget whois'
+	local cmd list='arch basename cat chmod cp file find grep gzip head make mkdir rm sed strip tar tee test touch tr wget mkpasswd'
 	# these commands are used, but are not essential:
-	# apt, bc, curl, dpkg, ent, logger, sstrip, upx, vimdiff, xz, zstd
+	# apt, bc, curl, dpkg, ent, hexdump, logger, sstrip, upx, vimdiff, xz, zstd, xxd
 
 	for cmd in $list; do {
 		command -v "$cmd" >/dev/null || {
@@ -1086,12 +1086,77 @@ apply()
 	true	# FIXME!
 }
 
+random_int()
+{
+	local start=10
+	local end=99
+	local seed diff random
+
+	seed="$( hexdump -n 2 -e '/2 "%u"' /dev/urandom )"
+	diff=$(( end + 1 - start ))
+	test $diff -eq 0 && diff=1
+	random=$(( seed % diff ))
+	echo $(( start + random ))
+}
+
 elfcrunch_file()
 {
 	local file="$1"
 
-	sstrip "$file"		|| msg_and_die "$?" "failed: sstrip $file"
-	upx -v --lzma "$file"	|| msg_and_die "$?" "failed: upx -v --lzma $file"
+	local hex1 hex2 hex3 string1 string2 new1 new2
+	local url1="https://github.com/BR903/ELFkickers.git"
+	local url2="https://github.com/upx/upx/releases"
+
+	sstrip        "$file"	|| msg_and_die "$?" "failed: sstrip $file | see: $url1"
+	upx -v --lzma "$file"	|| msg_and_die "$?" "failed: upx -v --lzma $file | see: $url2"
+
+	# obfuscate strings, e.g. 'UPX!'
+	hex1="$( random_int )"
+	hex2="$( random_int )"
+	hex3="$( random_int )"
+	sed -i "s/\x55\x50\x58\x21/\x${hex1}\x${hex2}\x${hex3}\x21/g" "$file"
+
+	# obfuscate these/similar strings:
+	# $Info: This file is packed with the UPX executable packer http://upx.sf.net $
+	# $Id: UPX 3.96 Copyright (C) 1996-2020 the UPX Team. All Rights Reserved. $
+	string1="$( grep --text ' UPX ' "$file" | head -n1 )"
+	string2="$( grep --text ' UPX ' "$file" | tail -n1 )"
+
+	# the last '$' seems to confuse sed later, shorten it
+	string1="$( echo "$string1" | cut -b1-$(( ${#string1} -1 )) )"
+	string2="$( echo "$string2" | cut -b1-$(( ${#string2} -1 )) )"
+
+	generate_random_string()
+	{
+		local length="$1"
+		local i=0
+
+		while [ $i -lt $length ]; do
+			printf '%s' "\x$( random_int )"
+			i=$(( i + 1 ))
+		done
+	}
+
+	string_to_hex()
+	{
+		# foobar -> \x66\x6f\x6f\x62\x61\x72
+		printf '%s' "$1" | xxd -p -c1 | while read -r HEX; do printf '\\x%s' "$HEX"; done
+	}
+
+	new1="$( generate_random_string ${#string1} )"		# e.g. \x65\x66
+	new2="$( generate_random_string ${#string2} )"
+
+	string1="$( string_to_hex "$string1" )"			# e.g. \x67\x68
+	string2="$( string_to_hex "$string2" )"
+
+	sed -i "s/$string1/$new1/g" "$file" || exit
+	sed -i "s/$string2/$new2/g" "$file" || exit
+
+	if grep --text 'UPX' "$file"; then
+		msg_and_die "$?" "obfuscation failed, found UPX in '$file'"
+	else
+		true
+	fi
 }
 
 ###
