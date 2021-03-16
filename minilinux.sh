@@ -1870,9 +1870,10 @@ for WORD in $CC_VERSION; do {
 	# /home/bastian/software/minilinux/minilinux/opt/linux/linux-3.19.8/include/linux/compiler-gcc.h:106:1:
 	# fatal error: linux/compiler-gcc9.h: file or directory not found
 	[ -f "$DEST" ] || {
-		[ -f 'include/linux/compiler-gcc5.h' ] && \
-			cp -v include/linux/compiler-gcc5.h "$DEST" && \
-				emit_doc "applied: kernel-patch: include/linux/compiler-gcc5.h -> $DEST"
+		HEADER="$( find include/linux/ -type f -name 'compiler-gcc*.h' | head -n1 )"
+		[ -f "$HEADER" ] && \
+			cp -v "$HEADER" "$DEST" && \
+				emit_doc "applied: kernel-patch: $HEADER -> $DEST"
 	}
 
 	break
