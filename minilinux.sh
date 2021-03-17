@@ -850,8 +850,8 @@ EOF
 		# can be a 'cpio' or 'cpio.gz'-file or a 'directory':
 		echo "CONFIG_INITRAMFS_SOURCE=\"$INITRD_OBJECT_PLAIN ${INITRD_OBJECT_PLAIN}$( test -d "$INITRD_OBJECT_PLAIN" && echo '/' )essential.txt\""
 		echo 'CONFIG_INITRAMFS_COMPRESSION_NONE=y'
-		echo 'INITRAMFS_ROOT_UID=squash'
-		echo 'INITRAMFS_ROOT_GID=squash'
+		echo 'CONFIG_INITRAMFS_ROOT_UID=squash'
+		echo 'CONFIG_INITRAMFS_ROOT_GID=squash'
 
 		echo '# CONFIG_RD_GZIP is not set'
 		echo '# CONFIG_RD_BZIP2 is not set'
@@ -1268,7 +1268,7 @@ cronjob_add()
 	local context="$1"
 	local line="$2"
 
-	test -f "$CRONTAB" || echo 'PATH="/sbin:/usr/sbin:/bin:/usr/bin"' >"$CRONTAB"
+	test -f "$CRONTAB" || printf '%s\n\n' 'PATH="/sbin:/usr/sbin:/bin:/usr/bin"' >"$CRONTAB"
 	echo "$line" >>"$CRONTAB"
 }
 
