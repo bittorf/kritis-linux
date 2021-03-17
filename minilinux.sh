@@ -107,6 +107,8 @@ install_dep()
 is_uml() { false; }
 DSTARCH_CMDLINE="$DSTARCH"
 
+for ARCH in armel armhf arm64 or1k m68k uml uml32 x86 x86_64; do has_arg "$ARCH" && DSTARCH="$ARCH"; done
+
 case "$DSTARCH" in
 	armel)	# FIXME! on arm / qemu-system-arm / we should switch to qemu -M virt without DTB and smaller config
 		# old ARM, 32bit - from aboriginal linux target armv5l:
