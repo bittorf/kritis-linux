@@ -1544,10 +1544,10 @@ else
 	GW="\$( ipcalc -n \$IP | cut -d= -f2 | sed 's/.0$//' ).1"
 
 	URL="http://\$GW/iodine/"
-	OUT="\$( wget -T5 -qO - \$URL )"
-	test "\$OUT" -gt 0 && echo "\$OUT" >/tmp/IODINE.sleepmin
+	OUT="\$( wget -T5 -qO - \$URL 2>/dev/null )"
+	test "\$OUT" -gt 0 2>/dev/null && echo "\$OUT" >/tmp/IODINE.sleepmin
 
-	pidof iodine || {
+	pidof iodine >/dev/null || {
 EOF
 init_iodine
 		cat <<EOF
