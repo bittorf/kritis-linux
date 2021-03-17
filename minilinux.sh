@@ -897,15 +897,17 @@ EOF
 			echo 'CONFIG_LD_SCRIPT_STATIC=y'	# builds with 'uml.lds.S', see 'arch/um/kernel/vmlinux.lds.S'
 		;;
 		m68k)
-			echo 'CONFIG_MAC=y'
-			echo 'CONFIG_MMU=y'
-			echo 'CONFIG_MMU_MOTOROLA=y'
-			echo 'CONFIG_M68KCLASSIC=y'
-			echo 'CONFIG_M68040=y'
-			echo 'CONFIG_FPU=y'
-			echo 'CONFIG_SERIAL_PMACZILOG=y'
-			echo 'CONFIG_SERIAL_PMACZILOG_TTYS=y'
-			echo 'CONFIG_SERIAL_PMACZILOG_CONSOLE=y'
+			has_arg '*defconfig' || {
+				echo 'CONFIG_MAC=y'
+				echo 'CONFIG_MMU=y'
+				echo 'CONFIG_MMU_MOTOROLA=y'
+				echo 'CONFIG_M68KCLASSIC=y'
+				echo 'CONFIG_M68040=y'
+				echo 'CONFIG_FPU=y'
+				echo 'CONFIG_SERIAL_PMACZILOG=y'
+				echo 'CONFIG_SERIAL_PMACZILOG_TTYS=y'
+				echo 'CONFIG_SERIAL_PMACZILOG_CONSOLE=y'
+			}
 		;;
 		arm64)
 			echo 'CONFIG_SERIAL_AMBA_PL011=y'
