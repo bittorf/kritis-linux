@@ -107,7 +107,7 @@ install_dep()
 is_uml() { false; }
 DSTARCH_CMDLINE="$DSTARCH"
 
-for ARCH in armel armhf arm64 or1k m68k uml uml32 x86 x86_64; do has_arg "$ARCH" && DSTARCH="$ARCH"; done
+for MARCH in armel armhf arm64 or1k m68k uml uml32 x86 x86_64; do has_arg "$MARCH" && DSTARCH="$MARCH"; done
 
 case "$DSTARCH" in
 	armel)	# FIXME! on arm / qemu-system-arm / we should switch to qemu -M virt without DTB and smaller config
@@ -198,6 +198,7 @@ case "$DSTARCH" in
 	;;
 	x86_64|*)
 		DSTARCH='x86_64'
+		# export ARCH='ARCH=x86_64'		# TODO: keep native arch?
 		export DEFCONFIG='tinyconfig'
 		export QEMU='qemu-system-x86_64'
 		CROSS_DL="https://musl.cc/x86_64-linux-musl-cross.tgz"
@@ -849,6 +850,9 @@ EOF
 		# can be a 'cpio' or 'cpio.gz'-file or a 'directory':
 		echo "CONFIG_INITRAMFS_SOURCE=\"$INITRD_OBJECT_PLAIN ${INITRD_OBJECT_PLAIN}$( test -d "$INITRD_OBJECT_PLAIN" && echo '/' )essential.txt\""
 		echo 'CONFIG_INITRAMFS_COMPRESSION_NONE=y'
+		echo 'INITRAMFS_ROOT_UID=squash'
+		echo 'INITRAMFS_ROOT_GID=squash'
+
 		echo '# CONFIG_RD_GZIP is not set'
 		echo '# CONFIG_RD_BZIP2 is not set'
 		echo '# CONFIG_RD_LZMA is not set'
@@ -1883,10 +1887,12 @@ if [ -f "$OWN_INITRD" ]; then
 	INITRD_FILE="$OWN_INITRD"
 else
 	# xz + zstd only for comparison, not productive
-	find . -print0 | cpio --create --null --format=newc | xz -9  --format=lzma    >"$BUILDS/initramfs.cpio.xz"    || true
-	find . -print0 | cpio --create --null --format=newc | xz -9e --format=lzma    >"$BUILDS/initramfs.cpio.xz.xz" || true
-	find . -print0 | cpio --create --null --format=newc | zstd -v -T0 --ultra -22 >"$BUILDS/initramfs.cpio.zstd"  || true
-	find . -print0 | cpio --create --null --format=newc | gzip -9                 >"$BUILDS/initramfs.cpio.gz"
+	# cpio -o = --create -H = --format -> cpio -o -H newc
+	CPIOARGS="--create --null --format=newc --owner=+0:+0"
+	find . -print0 | cpio $CPIOARGS | xz -9  --format=lzma    >"$BUILDS/initramfs.cpio.xz"    || true
+	find . -print0 | cpio $CPIOARGS | xz -9e --format=lzma    >"$BUILDS/initramfs.cpio.xz.xz" || true
+	find . -print0 | cpio $CPIOARGS | zstd -v -T0 --ultra -22 >"$BUILDS/initramfs.cpio.zstd"  || true
+	find . -print0 | cpio $CPIOARGS | gzip -9                 >"$BUILDS/initramfs.cpio.gz"
 
 	INITRD_FILE="$(  readlink -e "$BUILDS/initramfs.cpio.gz" )"
 	INITRD_FILE2="$( readlink -e "$BUILDS/initramfs.cpio.xz"    || true )"
@@ -1897,6 +1903,9 @@ fi
 # TODO: uncompress OWN_INITRD?
 [ -n "$ONEFILE" ] && {
 	INITRD_OBJECT_PLAIN="$INITRAMFS_BUILD"		# directory
+
+	# https://github.com/torvalds/linux/blob/master/usr/gen_initramfs.sh
+	# https://github.com/torvalds/linux/blob/master/usr/gen_init_cpio.c
 
 	{
 	# see: 'usr/gen_init_cpio -h'
