@@ -1264,7 +1264,7 @@ cronjob_add()
 	local context="$1"
 	local line="$2"
 
-	test -f "$CRONTAB" || printf '%s\n\n' 'PATH="/sbin:/usr/sbin:/bin:/usr/bin"' >"$CRONTAB"
+	test -f "$CRONTAB" || echo 'PATH="/sbin:/usr/sbin:/bin:/usr/bin"' >"$CRONTAB"
 	echo "$line" >>"$CRONTAB"
 }
 
@@ -1555,7 +1555,7 @@ else
 EOF
 init_iodine
 		cat <<EOF
-	}
+		}
 	fi
 fi
 
@@ -1669,7 +1669,7 @@ else
 	mkdir -p "$INITRAMFS_BUILD"
 	cd       "$INITRAMFS_BUILD" || exit
 
-	mkdir -p bin sbin etc proc sys usr/bin usr/sbin usr/bin dev tmp
+	mkdir -p bin sbin etc proc sys usr/bin usr/sbin usr/bin dev tmp root
 	has_arg 'hostfs' && mkdir -p mnt mnt/host
 
 	ROOT_PASS="$( test -n "$SSHPASS" && echo "$SSHPASS" | mkpasswd -m SHA-256 -s || echo 'x' )"
@@ -1741,6 +1741,7 @@ init_crond()
 	mkdir -p "$CRONDIR"
 	cp "$CRONTAB" "$CRONDIR/root"
 
+	# debug with: crond -c /var/spool/cron/crontabs -f -l 0
 	cat <<EOF
 CRON="\$( command -v crond || echo false )"
 \$CRON -c /$CRONDIR -L /dev/null
