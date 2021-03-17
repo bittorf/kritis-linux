@@ -802,9 +802,11 @@ list_kernel_symbols()
 				echo 'CONFIG_UML_NET_SLIRP=y'
 			;;
 			m68k)
-				echo 'CONFIG_ADB=y'
-				echo 'CONFIG_ADB_MACII=y'
-				echo 'CONFIG_MACSONIC=y'
+				has_arg '*defconfig' || {
+					echo 'CONFIG_ADB=y'
+					echo 'CONFIG_ADB_MACII=y'
+					echo 'CONFIG_MACSONIC=y'
+				}
 			;;
 			*)
 				echo 'CONFIG_PCI=y'
@@ -1627,7 +1629,7 @@ else
 	mkdir -p bin sbin etc proc sys usr/bin usr/sbin usr/bin dev tmp
 	has_arg 'hostfs' && mkdir -p mnt mnt/host
 
-	ROOT_PASS="$( test -n "$TTYPASS" && echo "$TTYPASS" | mkpasswd -m SHA-256 -s || echo 'x' )"
+	ROOT_PASS="$( test -n "$SSHPASS" && echo "$SSHPASS" | mkpasswd -m SHA-256 -s || echo 'x' )"
 	ROOT_HOME="/root"
 	ROOT_SHELL="/bin/sh"
 
@@ -1893,6 +1895,14 @@ F2='scripts/dtc/dtc-lexer.lex.c_shipped' && checksum "$F2" plain
 	F2='arch/openrisc/boot/dts/or1ksim.dts'  && checksum "$F2" plain
 	sed -i "s|\(^.*bootargs = .*\)|\1\n\t\tlinux,initrd-start = <0x82000000>;\n\t\tlinux,initrd-end = <0x82800000>;|" "$F2" || exit
 	checksum "$F2" after plain || emit_doc "applied: kernel-patch, builtin DTB: '$F2'"
+}
+[ "$DSTARCH" = 'm68k' ] && {
+	F="arch/m68k/mvme16x/config.c"
+	grep -q 'out_8(PCCTOVR1, PCCTOVR1_OVR_CLR);' "$F" && {
+		checksum "$F" plain
+		sed -i 's/out_8(PCCTOVR1, PCCTOVR1_OVR_CLR);/out_8(PCCTOVR1, in_8(PCCTOVR1) | PCCTOVR1_OVR_CLR);/' "$F" || exit
+		checksum "$F" after plain || emit_doc "applied: kernel-patch in '$F'"
+	}
 }
 #
 [ -n "$EMBED_CMDLINE" ] && is_uml && {
