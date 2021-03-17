@@ -1113,6 +1113,7 @@ elfcrunch_file()
 	local url1="https://github.com/BR903/ELFkickers.git"
 	local url2="https://github.com/upx/upx/releases"
 
+	# TODO: --ultra-brute | see: https://github.com/upx/upx/issues/385
 	sstrip        "$file"	|| msg_and_die "$?" "failed: sstrip $file | see: $url1"
 	upx -v --lzma "$file"	|| msg_and_die "$?" "failed: upx -v --lzma $file | see: $url2"
 
@@ -2179,11 +2180,11 @@ P4="[$( gain "$B4" "$INITRD_BYTES" )%]"
 for WORD in $EMBED_CMDLINE; do {
 	case "$WORD" in
 		'initrd='*)
-			cp -v "$INITRD_FILE" "${WORD#*=}"
+			cp -v "$INITRD_FILE" "${WORD#*=}" || log "failed: cp '$INITRD_FILE' '${WORD#*=}' | please do that manually"
 		;;
 		*'=slirp,'*)
 			# eth0=slirp,FE:FD:01:02:03:04,/tmp/slirp.bin
-			cp -v "$SLIRP_BIN" "${WORD##*,}" || exit
+			cp -v "$SLIRP_BIN" "${WORD##*,}" || log "failed: cp '$SLIRP_BIN' '${WORD##*,}' | please do that manually"
 		;;
 	esac
 } done
