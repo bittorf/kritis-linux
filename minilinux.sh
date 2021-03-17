@@ -850,8 +850,8 @@ EOF
 		# can be a 'cpio' or 'cpio.gz'-file or a 'directory':
 		echo "CONFIG_INITRAMFS_SOURCE=\"$INITRD_OBJECT_PLAIN ${INITRD_OBJECT_PLAIN}$( test -d "$INITRD_OBJECT_PLAIN" && echo '/' )essential.txt\""
 		echo 'CONFIG_INITRAMFS_COMPRESSION_NONE=y'
-		echo 'CONFIG_INITRAMFS_ROOT_UID=squash'
-		echo 'CONFIG_INITRAMFS_ROOT_GID=squash'
+#		echo 'CONFIG_INITRAMFS_ROOT_UID=squash'		# FIXME!
+#		echo 'CONFIG_INITRAMFS_ROOT_GID=squash'		# FIXME!
 
 		echo '# CONFIG_RD_GZIP is not set'
 		echo '# CONFIG_RD_BZIP2 is not set'
@@ -1748,6 +1748,7 @@ init_crond()
 	# debug with: crond -c /var/spool/cron/crontabs -f -l 0
 	cat <<EOF
 CRON="\$( command -v crond || echo false )"
+chown -R root:root $CRONDIR
 \$CRON -c /$CRONDIR -L /dev/null
 
 EOF
