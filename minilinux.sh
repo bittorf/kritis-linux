@@ -1161,6 +1161,7 @@ elfcrunch_file()
 	if grep --text 'UPX' "$file"; then
 		msg_and_die "$?" "obfuscation failed, found UPX in '$file'"
 	else
+		log "readable lines: $( strings "$file" | sed 's/[[:space:]]*//g'| sed 's/[^A-Za-z0-9]//g' | sed -r '/^.{,6}$/d' | wc -l )"
 		true
 	fi
 }
@@ -1902,11 +1903,26 @@ F2='scripts/dtc/dtc-lexer.lex.c_shipped' && checksum "$F2" plain
 }
 [ "$DSTARCH" = 'm68k' ] && {
 	F="arch/m68k/mvme16x/config.c"
+	URL="https://github.com/torvalds/linux/commit/19999a8b8782d7f887353753c3c7cb5fca2f3784"
 	grep -q 'out_8(PCCTOVR1, PCCTOVR1_OVR_CLR);' "$F" && {
 		checksum "$F" plain
 		sed -i 's/out_8(PCCTOVR1, PCCTOVR1_OVR_CLR);/out_8(PCCTOVR1, in_8(PCCTOVR1) | PCCTOVR1_OVR_CLR);/' "$F" || exit
-		checksum "$F" after plain || emit_doc "applied: kernel-patch in '$F'"
+		checksum "$F" after plain || emit_doc "applied: kernel-patch in '$F' (eth:repair:$URL)"
 	}
+
+	F="drivers/net/ethernet/i825xx/82596.c"
+	checksum "$F" plain
+	PATT=',1000,"initialization timed out"'
+	STR1=',8000,"initialization timed out"'
+	sed -i "s|$PATT|$STR1|" "$F" || exit
+	checksum "$F" after plain || emit_doc "applied: kernel-patch in '$F' (eth:raise_timeout)"
+
+	checksum "$F" plain
+#	PATT='if (wait_istat'
+#	STR1='int ioaddr = dev->base_addr;'
+#	STR2='i596_reset(dev, lp, ioaddr);'
+#	sed -i "s|^.*$PATT|${STR1}\n${STR2}\n&|" "$F" || exit
+	checksum "$F" after plain || emit_doc "applied: kernel-patch in '$F' (eth:enforce_reset)"
 }
 #
 [ -n "$EMBED_CMDLINE" ] && is_uml && {
