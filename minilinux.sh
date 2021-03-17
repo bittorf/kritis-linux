@@ -2180,10 +2180,12 @@ P4="[$( gain "$B4" "$INITRD_BYTES" )%]"
 for WORD in $EMBED_CMDLINE; do {
 	case "$WORD" in
 		'initrd='*)
+			rm -f "${WORD#*=}" 2>/dev/null
 			cp -v "$INITRD_FILE" "${WORD#*=}" || log "failed: cp '$INITRD_FILE' '${WORD#*=}' | please do that manually"
 		;;
 		*'=slirp,'*)
 			# eth0=slirp,FE:FD:01:02:03:04,/tmp/slirp.bin
+			rm -f "${WORD##*,}" 2>/dev/null
 			cp -v "$SLIRP_BIN" "${WORD##*,}" || log "failed: cp '$SLIRP_BIN' '${WORD##*,}' | please do that manually"
 		;;
 	esac
