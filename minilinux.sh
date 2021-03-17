@@ -1159,8 +1159,8 @@ elfcrunch_file()
 	sed -i "s/$string1/$new1/g" "$file" || exit
 	sed -i "s/$string2/$new2/g" "$file" || exit
 
-	if grep --text 'UPX' "$file"; then
-		msg_and_die "$?" "obfuscation failed, found UPX in '$file'"
+	if grep --text 'UPX!' "$file"; then
+		msg_and_die "$?" "obfuscation failed, found string 'UPX!' in '$file'"
 	else
 		log "readable lines: $( strings "$file" | sed 's/[[:space:]]*//g'| sed 's/[^A-Za-z0-9]//g' | sed -r '/^.{,6}$/d' | wc -l )"
 		true
