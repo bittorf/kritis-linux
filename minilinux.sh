@@ -1523,6 +1523,7 @@ has_arg 'iodine' && {
 
 		cronjob_add 'iodine' '* * * * * /bin/iodine.check'
 
+		{
 		cat <<EOF
 #!/bin/sh
 
@@ -1555,6 +1556,7 @@ fi
 
 true
 EOF
+		}       >bin/iodine.check
 		chmod +x bin/iodine.check
 	}
 
