@@ -1541,18 +1541,22 @@ init_iodine
 else
 	IFDATA="\$( ip -oneline -f inet address show dev dns0 )"
 	for IP in \$IFDATA; do case "\$IP" in */*) break ;; esac; done
+
 	# IP=172.30.0.4/27 -> GW=172.30.0.1
 	GW="\$( ipcalc -n \$IP | cut -d= -f2 | sed 's/.0$//' ).1"
-
 	URL="http://\$GW/iodine/"
-	OUT="\$( wget -T5 -qO - \$URL 2>/dev/null )"
-	test "\$OUT" -gt 0 2>/dev/null && echo "\$OUT" >/tmp/IODINE.sleepmin
 
-	pidof iodine >/dev/null || {
+	OUT="\$( wget -T5 -qO - \$URL 2>/dev/null )"
+	if test "\$OUT" -gt 0 2>/dev/null; then
+		echo "\$OUT" >/tmp/IODINE.sleepmin
+		for PID in \$( pidof iodine ); do kill \$PID; done
+	else
+		pidof iodine >/dev/null || {
 EOF
 init_iodine
 		cat <<EOF
 	}
+	fi
 fi
 
 true
