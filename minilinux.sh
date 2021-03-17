@@ -1533,6 +1533,9 @@ has_arg 'iodine' && {
 #!/bin/sh
 
 if read -r LEFT 2>/dev/null </tmp/IODINE.sleepmin; then
+	# do not drop a running connection:
+	case "\$( pidof dropbear )" in *' '*) LEFT=2 ;; esac
+
 	if test "\$LEFT" -eq 0; then
 		rm /tmp/IODINE.sleepmin
 EOF
