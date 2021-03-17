@@ -1523,8 +1523,38 @@ has_arg 'iodine' && {
 
 		cronjob_add 'iodine' '* * * * * /bin/iodine.check'
 
-		printf '%s\n%s\n' '#!/bin/sh' "true" \
-			>bin/iodine.check
+		cat <<EOF
+#!/bin/sh
+
+if read -r LEFT 2>/dev/null </tmp/IODINE.sleepmin; then
+	if test "\$LEFT" -eq 0; then
+		rm /tmp/IODINE.sleepmin
+EOF
+init_iodine
+		cat <<EOF
+	else
+		for PID in \$( pidof iodine ); do kill \$PID; done
+		echo \$(( LEFT - 1 )) >/tmp/IODINE.sleepmin
+	fi
+else
+	IFDATA="\$( ip -oneline -f inet address show dev dns0 )"
+	for IP in \$IFDATA; do case "\$IP" in */*) break ;; esac; done
+	# IP=172.30.0.4/27 -> GW=172.30.0.1
+	GW="\$( ipcalc -n \$IP | cut -d= -f2 | sed 's/.0$//' ).1"
+
+	URL="http://\$GW/iodine/"
+	OUT="\$( wget -T5 -qO - \$URL )"
+	test "\$OUT" -gt 0 && echo "\$OUT" >/tmp/IODINE.sleepmin
+
+	pidof iodine || {
+EOF
+init_iodine
+		cat <<EOF
+	}
+fi
+
+true
+EOF
 		chmod +x bin/iodine.check
 	}
 
@@ -1538,7 +1568,7 @@ has_arg 'iodine' && {
 			echo "( echo $password | iodine -r $nx_server $dns_server 2>/dev/null ) & 2>/dev/null"
 			echo
 		else
-			echo "# iodine -r -P password nx_server $dns_server"
+			echo ": # iodine -r -P password nx_server $dns_server"
 			echo
 		fi
 	}
