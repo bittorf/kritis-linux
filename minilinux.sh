@@ -1264,6 +1264,7 @@ cronjob_add()
 	local context="$1"
 	local line="$2"
 
+	test -f "$CRONTAB" || printf '%s\n\n' 'PATH="/sbin:/usr/sbin:/bin:/usr/bin"' >"$CRONTAB"
 	echo "$line" >>"$CRONTAB"
 }
 
