@@ -1532,34 +1532,41 @@ has_arg 'iodine' && {
 		{
 		cat <<EOF
 #!/bin/sh
+# iodine: keep quiet until counter is zero, than try again
+# to establish a connection, and if good ask gateway for
+# maybe next downtime (e.g. 1440 = 1 day if silence)
 
 if read -r LEFT 2>/dev/null </tmp/IODINE.sleepmin; then
+	# just be quiet:
 	if test "\$LEFT" -eq 0; then
+		rm /tmp/IODINE.sleepmin
+	else
 		# do not drop a running connection:
 		case "\$( pidof dropbear )" in
 			*' '*)
 			;;
 			* )
 				for PID in \$( pidof iodine ); do kill \$PID; done
-				rm /tmp/IODINE.sleepmin
+				echo \$(( LEFT - 1 )) >/tmp/IODINE.sleepmin
 			;;
 		esac
-	else
-		echo \$(( LEFT - 1 )) >/tmp/IODINE.sleepmin
 	fi
 else
-	IFDATA="\$( ip -oneline -f inet address show dev dns0 )"
+	IFDATA="\$( ip -oneline -f inet address show dev dns0 2>/dev/null )"
 	for IP in \$IFDATA; do case "\$IP" in */*) break ;; esac; done
 
-	# IP=172.30.0.4/27 -> GW=172.30.0.1
-	GW="\$( ipcalc -n \$IP | cut -d= -f2 | sed 's/.0$//' ).1"
-	URL="http://\$GW/iodine/"
+	[ -n "\$IP" ] && {
+		# IP=172.30.0.4/27 -> GW=172.30.0.1
+		GW="\$( ipcalc -n \$IP | cut -d= -f2 | sed 's/.0$//' ).1"
+		URL="http://\$GW/iodine/"
+		OUT="\$( wget -T5 -qO - \$URL 2>/dev/null )"
+	}
 
-	OUT="\$( wget -T5 -qO - \$URL 2>/dev/null )"
 	if test "\$OUT" -gt 0 2>/dev/null; then
+		# valid number: wish of quiet/downtime:
 		echo "\$OUT" >/tmp/IODINE.sleepmin
-		for PID in \$( pidof iodine ); do kill \$PID; done
 	else
+		# keep daemon running:
 		pidof iodine >/dev/null || {
 EOF
 
@@ -1574,6 +1581,7 @@ true
 EOF
 		}       >bin/iodine.check
 		chmod +x bin/iodine.check
+		sh -n    bin/iodine.check || exit
 	}
 
 	init_iodine() {
