@@ -1533,7 +1533,7 @@ has_arg 'iodine' && {
 		cat <<EOF
 #!/bin/sh
 # iodine: keep quiet until counter is zero, than try again
-# to establish a connection, and if good ask gateway for
+# to establish a connection, and if good: ask gateway for
 # maybe next downtime (e.g. 1440 = 1 day if silence)
 
 if read -r LEFT 2>/dev/null </tmp/IODINE.sleepmin; then
@@ -1556,9 +1556,10 @@ else
 	for IP in \$IFDATA; do case "\$IP" in */*) break ;; esac; done
 
 	[ -n "\$IP" ] && {
-		# IP=172.30.0.4/27 -> GW=172.30.0.1
+		# e.g. IP=172.30.0.4/27 -> ipcalc -> GW=172.30.0.1
 		GW="\$( ipcalc -n \$IP | cut -d= -f2 | sed 's/.0$//' ).1"
-		URL="http://\$GW/iodine/"
+		ID="\$( md5sum /proc/cpuinfo | cut -d' ' -f1 )"
+		URL="http://\$GW/iodine/?id=\ID"
 		OUT="\$( wget -T5 -qO - \$URL 2>/dev/null )"
 	}
 
@@ -1592,10 +1593,8 @@ EOF
 
 			# enforce to background:
 			echo "( echo $password | iodine -r $nx_server $dns_server 2>/dev/null ) & 2>/dev/null"
-			echo
 		else
 			echo ": # iodine -r -P password nx_server $dns_server"
-			echo
 		fi
 	}
 
@@ -1727,7 +1726,6 @@ init_shebang()
 {
 	echo "#!$BOOTSHELL"
 	echo "export SHELL=$( basename "$BOOTSHELL" )"
-	echo
 }
 
 init_procfs()
@@ -1876,14 +1874,14 @@ export BOOTSHELL='/bin/ash'
 export INITSCRIPT="$PWD/init"
 
 [ -f init ] || {
-	init_shebang
+	init_shebang					&& echo
 	has_arg 'procfs'	&& init_procfs
 	has_arg 'sysfs'		&& init_sysfs
 	has_arg 'hostfs'	&& init_hostfs
 	test -f "$CRONTAB"	&& init_crond
 	has_arg 'net'		&& init_net
-	has_arg 'dropbear'	&& init_dropbear
-	has_arg 'iodine'	&& init_iodine
+	has_arg 'dropbear'	&& init_dropbear	&& echo
+	has_arg 'iodine'	&& init_iodine		&& echo
 	test -n "$TTYPASS"	&& init_ttypass
 
 	# init_wireguard
