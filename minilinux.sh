@@ -1534,23 +1534,25 @@ has_arg 'iodine' && {
 # to establish a connection, and if good: ask gateway for
 # maybe next downtime (e.g. 1440 = 1 day if silence)
 
-if read -r LEFT 2>/dev/null </tmp/IODINE.sleepmin; then
+ssh_session_active() {
+	case "\$( pidof dropbear )" in
+		*' '*) true ;;
+		*) false ;;
+	esac
+}
+
+if ssh_session_active; then
+	:
+elif read -r LEFT 2>/dev/null </tmp/IODINE.sleepmin; then
 	# just be quiet:
 	if test "\$LEFT" -eq 0; then
 		rm /tmp/IODINE.sleepmin
 	else
-		# do not drop a running connection:
-		case "\$( pidof dropbear )" in
-			*' '*)
-			;;
-			* )
-				for PID in \$( pidof iodine ); do kill \$PID; done
-				echo \$(( LEFT - 1 )) >/tmp/IODINE.sleepmin
-			;;
-		esac
+		for PID in \$( pidof iodine ); do kill \$PID; done
+		echo \$(( LEFT - 1 )) >/tmp/IODINE.sleepmin
 	fi
 else
-	IFDATA="\$( ip -oneline -f inet address show dev dns0 2>/dev/null )"
+	IFDATA="\$( ip -oneline -f inet address show dev dns0 2>/dev/null )"; then
 	for IP in \$IFDATA; do case "\$IP" in */*) break ;; esac; done
 
 	[ -n "\$IP" ] && {
@@ -1568,10 +1570,8 @@ else
 		# keep daemon running:
 		pidof iodine >/dev/null || {
 EOF
-
-printf '\t\t\t'
-init_iodine
-		cat <<EOF
+			printf '\t\t\t' && init_iodine
+			cat <<EOF
 		}
 	fi
 fi
