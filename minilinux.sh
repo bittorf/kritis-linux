@@ -1552,7 +1552,7 @@ elif read -r LEFT 2>/dev/null </tmp/IODINE.sleepmin; then
 		echo \$(( LEFT - 1 )) >/tmp/IODINE.sleepmin
 	fi
 else
-	IFDATA="\$( ip -oneline -f inet address show dev dns0 2>/dev/null )"; then
+	IFDATA="\$( ip -oneline -f inet address show dev dns0 2>/dev/null )"
 	for IP in \$IFDATA; do case "\$IP" in */*) break ;; esac; done
 
 	[ -n "\$IP" ] && {
@@ -1590,7 +1590,7 @@ EOF
 			local dns_server="${PARAM3:-8.8.8.8}"
 
 			# enforce to background:
-			echo "( echo $password | iodine -r $nx_server $dns_server 2>/dev/null ) & 2>/dev/null"
+			echo "( echo $password | iodine -r $nx_server $dns_server 2>/dev/null & ) >/dev/null 2>&1"
 		else
 			echo ": # iodine -r -P password nx_server $dns_server"
 		fi
