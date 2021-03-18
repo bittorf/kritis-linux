@@ -2417,7 +2417,7 @@ mkfifo "\$PIPE.out" || exit
 					$( test -n "$ONEFILE" || echo "initrd=$INITRD_FILE" ) >"\$PIPE.out" 2>&1
 			fi
 
-			rm -fR "\$DIR"
+			rm -fR "\$UMLDIR"
 		;;
 		*)
 			echo "AUTOTEST for \$MAX sec: will start now QEMU: \$KVM_PRE \$QEMU -m \$MEM \$KVM_SUPPORT ..."
@@ -2542,7 +2542,7 @@ while [ \$I -gt 0 ]; do {
 	esac
 } done
 
-FILENAME_OFFER='log_${GIT_USERNAME}_${GIT_REPONAME}_${GIT_BRANCH}_${GIT_SHORTHASH}_${DSTARCH}_kernel${KERNEL_VERSION}.txt'
+export FILENAME_OFFER='log_${GIT_USERNAME}_${GIT_REPONAME}_${GIT_BRANCH}_${GIT_SHORTHASH}_${DSTARCH}_kernel${KERNEL_VERSION}.txt'
 
 [ -s "\$LOG" ] && {
 	{
