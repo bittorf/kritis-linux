@@ -111,6 +111,7 @@ for MARCH in armel armhf arm64 or1k m68k uml uml32 x86 x86_64; do has_arg "$MARC
 
 case "$DSTARCH" in
 	armel)	# FIXME! on arm / qemu-system-arm / we should switch to qemu -M virt without DTB and smaller config
+		# see: https://github.com/landley/aboriginal/blob/master/sources/targets/armv5l
 		# old ARM, 32bit - from aboriginal linux target armv5l:
 		#
 		# "ARM v5, little endian, EABI with vector floating point (vfp).
@@ -1533,16 +1534,17 @@ has_arg 'iodine' && {
 #!/bin/sh
 
 if read -r LEFT 2>/dev/null </tmp/IODINE.sleepmin; then
-	# do not drop a running connection:
-	case "\$( pidof dropbear )" in *' '*) LEFT=2 ;; esac
-
 	if test "\$LEFT" -eq 0; then
-		rm /tmp/IODINE.sleepmin
-EOF
-init_iodine
-		cat <<EOF
+		# do not drop a running connection:
+		case "\$( pidof dropbear )" in
+			*' '*)
+			;;
+			* )
+				for PID in \$( pidof iodine ); do kill \$PID; done
+				rm /tmp/IODINE.sleepmin
+			;;
+		esac
 	else
-		for PID in \$( pidof iodine ); do kill \$PID; done
 		echo \$(( LEFT - 1 )) >/tmp/IODINE.sleepmin
 	fi
 else
@@ -1560,6 +1562,8 @@ else
 	else
 		pidof iodine >/dev/null || {
 EOF
+
+printf '\t\t\t'
 init_iodine
 		cat <<EOF
 		}
