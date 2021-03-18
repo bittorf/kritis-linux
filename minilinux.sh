@@ -1230,9 +1230,6 @@ mkdir -p "$MUSL_BUILD"
 export CRONTAB="$OPT/crontab.txt"
 
 is_uml && has_arg 'net' && {
-	# seems that musl-cc has issues:
-	# https://www.openwall.com/lists/musl/2020/03/31/7
-	#
 	# slirp is special, because it runs on the host, so we
 	# must in theory compile it for the host-arch, not for the image-arch
 
@@ -1526,6 +1523,10 @@ has_arg 'iodine' && {
 
 		cronjob_add 'iodine' '* * * * * /bin/iodine.check'
 
+		# TODO: serverside: index.php
+		# ssh-keygen -f "/home/bastian/.ssh/known_hosts" -R "172.30.0.2"
+		# 172.30.0.3 - - [18/Mar/2021:13:44:00 +0000] "GET /iodine/?id=abcde HTTP/1.1" 200 247 "-" "Wget"
+
 		{
 		cat <<EOF
 #!/bin/sh
@@ -1556,7 +1557,7 @@ else
 		# e.g. IP=172.30.0.4/27 -> ipcalc -> GW=172.30.0.1
 		GW="\$( ipcalc -n \$IP | cut -d= -f2 | sed 's/.0$//' ).1"
 		ID="\$( md5sum /proc/cpuinfo | cut -d' ' -f1 )"
-		URL="http://\$GW/iodine/?id=\ID"
+		URL="http://\$GW/iodine/?id=\$ID"
 		OUT="\$( wget -T5 -qO - \$URL 2>/dev/null )"
 	}
 
