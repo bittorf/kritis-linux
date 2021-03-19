@@ -2050,6 +2050,16 @@ F2='scripts/dtc/dtc-lexer.lex.c_shipped' && checksum "$F2" plain
 		sed -i "s|$PATT.*|static inline int modify_ldt (int func, void \*ptr, unsigned long bytecount)\n{\n\treturn syscall(__NR_modify_ldt, func, ptr, bytecount);\n}\n|" "$F1"
 	}
 	checksum "$F1" after plain || emit_doc "applied: kernel-patch in '$PWD/$F1' | dismiss: $PATT"
+
+	# https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/patch/arch/x86/um/ldt.c?id=da20ab35180780e4a6eadc804544f1fa967f3567
+	F1='arch/x86/um/ldt.c' && PATT="#include <linux/syscalls.h>"
+	checksum "$F1" plain
+	grep -q "$PATT" "$F1" || {
+		sed -i 's|return do_modify_ldt_skas(func, ptr, bytecount);|return (unsigned int)do_modify_ldt_skas(func, ptr, bytecount);|' "$F1"
+		sed -i 's|int sys_modify_ldt(int.*|SYSCALL_DEFINE3(modify_ldt, int , func , void __user \* , ptr ,\n\t\tunsigned long , bytecount)|' "$F1"
+		sed -i "s|#include <linux/slab.h>|&\n$PATT|" "$F1"
+	}
+	checksum "$F1" after plain || emit_doc "applied: kernel-patch in '$PWD/$F1' | dismiss: $PATT"
 }
 #
 [ -n "$FAKEID" ] && {
