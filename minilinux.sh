@@ -2039,7 +2039,7 @@ F2='scripts/dtc/dtc-lexer.lex.c_shipped' && checksum "$F2" plain
 	grep -q "$PATT" "$F1" && {
 		sed -i '/.ss_sp	= (__ptr_t) sig_stack,/d' "$F1"
 		sed -i '/.ss_size 	= size - sizeof(void *) });/d' "$F1"
-		sed -i "s|$PATT.*|stack_t stack = {\n.ss_flags = 0,\n.ss_sp = sig_stack,\n.ss_size = size - sizeof(void *)\n};|" "$F1"
+		sed -i "s|$PATT.*|stack_t stack = {\n\t\t.ss_flags = 0,\n\t\t.ss_sp = sig_stack,\n\t\t.ss_size = size - sizeof(void \*)\n\t};|" "$F1"
 	}
 	checksum "$F1" after plain || emit_doc "applied: kernel-patch in '$PWD/$F1' | dismiss: $PATT"
 
