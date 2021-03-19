@@ -2075,7 +2075,7 @@ F2='scripts/dtc/dtc-lexer.lex.c_shipped' && checksum "$F2" plain
 	# https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/patch/arch/um/include/shared/init.h?id=33def8498fdde180023444b08e12b72a9efed41d
 	F1='arch/um/include/shared/init.h' && PATT="__section(.uml.help.init)"
 	checksum "$F1" plain
-	grep -q "$PATT" "$F1" && sed -i 's/^\(.*__section\)(\(.*\))$/\1("\2")/g' "$F1"
+	grep -q "$PATT" "$F1" && sed -i 's/^\(.*__used __section\)(\(.*\))$/\1("\2")/g' "$F1"
 	checksum "$F1" after plain || emit_doc "applied: kernel-patch in '$PWD/$F1' | add colons"
 }
 #
