@@ -2034,12 +2034,12 @@ F2='scripts/dtc/dtc-lexer.lex.c_shipped' && checksum "$F2" plain
 	checksum "$F1" after plain || emit_doc "applied: kernel-patch in '$PWD/$F1' | dismiss: $PATT"
 
 	# https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/patch/arch/um/os-Linux/signal.c?id=9a75551aeaa8c79fd6ad713cb20e6bbccc767331
-	F1='arch/um/os-Linux/signal.c' && PATT="stack_t stack = ((stack_t) { .ss_flags  = 0,"
+	F1='arch/um/os-Linux/signal.c' && PATT="stack_t stack = ((stack_t)"
 	checksum "$F1" plain
 	grep -q "$PATT" "$F1" && {
 		sed -i '/.ss_sp	= (__ptr_t) sig_stack,/d' "$F1"
 		sed -i '/.ss_size 	= size - sizeof(void *) });/d' "$F1"
-		sed -i "s|$PATT/stack_t stack = {\n.ss_flags = 0,\n.ss_sp = sig_stack,\n.ss_size = size - sizeof(void *)\n};|" "$F1"
+		sed -i "s|$PATT.*|stack_t stack = {\n.ss_flags = 0,\n.ss_sp = sig_stack,\n.ss_size = size - sizeof(void *)\n};|" "$F1"
 	}
 	checksum "$F1" after plain || emit_doc "applied: kernel-patch in '$PWD/$F1' | dismiss: $PATT"
 
