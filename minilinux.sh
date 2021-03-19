@@ -2043,6 +2043,13 @@ F2='scripts/dtc/dtc-lexer.lex.c_shipped' && checksum "$F2" plain
 	}
 	checksum "$F1" after plain || emit_doc "applied: kernel-patch in '$PWD/$F1' | dismiss: $PATT"
 
+	# https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/patch/arch/x86/um/ldt.c?id=37e81a016cc847c03ea71570fea29f12ca390bee
+	F1='arch/x86/um/ldt.c' && PATT='extern int modify_ldt'
+	checksum "$F1" plain
+	grep -q "$PATT" "$F1" && {
+		sed -i "s|$PATT.*|static inline int modify_ldt (int func, void \*ptr, unsigned long bytecount)\n{\n\treturn syscall(__NR_modify_ldt, func, ptr, bytecount);\n}\n|" "$F1"
+	}
+	checksum "$F1" after plain || emit_doc "applied: kernel-patch in '$PWD/$F1' | dismiss: $PATT"
 }
 #
 [ -n "$FAKEID" ] && {
