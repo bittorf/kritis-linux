@@ -2057,7 +2057,18 @@ F2='scripts/dtc/dtc-lexer.lex.c_shipped' && checksum "$F2" plain
 	grep -q "$PATT" "$F1" || {
 		sed -i 's|return do_modify_ldt_skas(func, ptr, bytecount);|return (unsigned int)do_modify_ldt_skas(func, ptr, bytecount);|' "$F1"
 		sed -i 's|int sys_modify_ldt(int.*|SYSCALL_DEFINE3(modify_ldt, int , func , void __user \* , ptr ,\n\t\tunsigned long , bytecount)|' "$F1"
-		sed -i "s|#include <linux/slab.h>|&\n$PATT|" "$F1"
+		sed -i "s|#include <linux/slab.h>|&\n$PATT\n#include <linux/uaccess.h>|" "$F1"
+	}
+	checksum "$F1" after plain || emit_doc "applied: kernel-patch in '$PWD/$F1' | dismiss: $PATT"
+
+	# https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/patch/arch/um/include/shared/init.h?id=cca76c1ad61d08097af5a691195f9a42d72e978f
+	F1='arch/um/include/shared/init.h' && PATT="#define __uml_init_call"
+	checksum "$F1" plain
+	grep -q "$PATT" "$F1" && {
+		sed -i '/extern initcall_t __uml_initcall_start, __uml_initcall_end;/d' "$F1"
+		sed -i "/$PATT.*/d" "$F1"
+		sed -i '/static initcall_t __uml_initcall_.*/d' "$F1"
+		sed -i '/#define __uml_init_call.*/d' "$F1"
 	}
 	checksum "$F1" after plain || emit_doc "applied: kernel-patch in '$PWD/$F1' | dismiss: $PATT"
 }
