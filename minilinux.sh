@@ -1536,7 +1536,7 @@ has_arg 'iodine' && {
 
 ssh_session_active() {
 	case "\$( pidof dropbear )" in
-		*' '*) true ;;
+		*' '*) ;;
 		*) false ;;
 	esac
 }
@@ -2015,6 +2015,12 @@ F2='scripts/dtc/dtc-lexer.lex.c_shipped' && checksum "$F2" plain
 	checksum "$F1" plain
 	sed -i "s|for (i = 1;|$( write_args )for (i = 1;|" "$F1" || exit
 	checksum "$F1" after plain || emit_doc "applied: kernel-patch in '$PWD/$F1' | EMBED_CMDLINE: $EMBED_CMDLINE"
+
+	# https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/patch/arch/um/drivers/net_user.c?id=f9bb3b5947c507d402eecbffabb8fb0864263ad1
+	F1='arch/um/drivers/net_user.c'
+	checksum "$F1" plain
+	grep -q "int stdout;" "$F1" && sed -i 's|stdout|stdout_fd|g' "$F1"
+	checksum "$F1" after plain || emit_doc "applied: kernel-patch in '$PWD/$F1' | macro-fix"
 }
 #
 [ -n "$FAKEID" ] && {
