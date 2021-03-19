@@ -2025,7 +2025,7 @@ F2='scripts/dtc/dtc-lexer.lex.c_shipped' && checksum "$F2" plain
 	# https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/patch/arch/um/os-Linux/file.c?id=8eeba4e9a76cd126e737d3d303d9c424b66ea90d
 	F1='arch/um/os-Linux/file.c'
 	checksum "$F1" plain
-	grep -q "#include <sys/types.h>" "$F1" || sed -i 's|#include <sys/un.h>|&\n#include <sys/types.h>|' "$F1"
+	grep -q "#include <sys/types.h>" "$F1" || sed -i 's|#include <sys/un.h>|#include <sys/sysmacros.h>\n&\n#include <sys/types.h>|' "$F1"
 	checksum "$F1" after plain || emit_doc "applied: kernel-patch in '$PWD/$F1' | types.h dismiss"
 }
 #
