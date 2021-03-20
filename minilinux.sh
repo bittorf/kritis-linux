@@ -2097,6 +2097,7 @@ is_uml && {
 	checksum "$F1" plain
 	grep -q "$PATT" "$F1" && {
 		sed -i '1{s/^.*/#include <stddef.h>\n/}' "$F1"
+		sed -i '1{s/^.*/#include <stddef.h>\n/}' arch/um/include/shared/user.h
 	}
 	checksum "$F1" after plain || emit_doc "applied: kernel-patch in '$PWD/$F1' | add stddef.h"
 
