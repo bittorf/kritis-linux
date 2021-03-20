@@ -2091,6 +2091,25 @@ is_uml && {
 	checksum "$F1" plain
 	grep -q "$PATT" "$F1" && sed -i 's/^\(.*__used __section\)(\(.*\))$/\1("\2")/g' "$F1"
 	checksum "$F1" after plain || emit_doc "applied: kernel-patch in '$PWD/$F1' | add colons"
+
+	# https://github.com/torvalds/linux/commit/30b11ee9ae23d78de66b9ae315880af17a64ba83
+	F1='arch/um/include/shared/init.h' && PATT='#ifdef __UM_HOST__'
+	grep -q "$PATT" "$F1" && {
+		:
+	}
+
+	# https://github.com/torvalds/linux/commit/298e20ba8c197e8d429a6c8671550c41c7919033
+	F1='arch/um/Makefile' && PATT='patsubst -D__KERNEL__,,'
+	checksum "$F1" plain
+	grep -q "$PATT" "$F1" && {
+		# shellcheck disable=SC2016
+		NEW='USER_CFLAGS = $(patsubst $(KERNEL_DEFINES),,$(patsubst -I%,,$(KBUILD_CFLAGS))) $(ARCH_INCLUDE) $(MODE_INCLUDE) $(filter -I%,$(CFLAGS)) -D_FILE_OFFSET_BITS=64 -idirafter include -D__KERNEL__ -D__UM_HOST__'
+		# shellcheck disable=SC2016
+		sed -i '/$(KBUILD_CFLAGS)))) $(ARCH_INCLUDE) $(MODE_INCLUDE)/d' "$F1"
+		sed -i '/-D_FILE_OFFSET_BITS=64 -idirafter include/d' "$F1"
+		sed -i "s|^.*$PATT.*$|$NEW|" "$F1"
+	}
+	checksum "$F1" after plain || emit_doc "applied: kernel-patch in '$PWD/$F1' | dismiss: $PATT"
 }
 #
 [ -n "$FAKEID" ] && {
