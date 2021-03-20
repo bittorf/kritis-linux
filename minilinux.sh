@@ -1097,17 +1097,25 @@ apply()
 	true	# FIXME!
 }
 
-random_int()
+random_hex()
 {
-	local start=10
-	local end=99
-	local seed diff random
+	local start=1
+	local end=255
+	local seed diff random hex
 
 	seed="$( hexdump -n 2 -e '/2 "%u"' /dev/urandom )"
 	diff=$(( end + 1 - start ))
 	test $diff -eq 0 && diff=1
 	random=$(( seed % diff ))
-	echo $(( start + random ))
+
+	# e.g. 00..ff
+	hex="$( printf '%02x\n' "$(( start + random ))" )"
+
+	# https://lists.gnu.org/archive/html/bug-sed/2021-03/msg00001.html
+	# precede any of $*.[\]^ => 24 2a 2e 5b 5c 5d 5e with \x5c
+	case "$hex" in 24|2a|2e|5b|5c|5d|5e) hex="5c\x$hex" ;; esac
+
+	printf '%s\n' "$hex"
 }
 
 elfcrunch_file()
@@ -1123,9 +1131,9 @@ elfcrunch_file()
 	upx -v --lzma "$file"	|| msg_and_die "$?" "failed: upx -v --lzma $file | see: $url2"
 
 	# obfuscate strings, e.g. 'UPX!'
-	hex1="$( random_int )"
-	hex2="$( random_int )"
-	hex3="$( random_int )"
+	hex1="$( random_hex )"
+	hex2="$( random_hex )"
+	hex3="$( random_hex )"
 	sed -i "s/\x55\x50\x58\x21/\x${hex1}\x${hex2}\x${hex3}\x21/g" "$file"
 
 	# obfuscate these/similar strings:
@@ -1134,17 +1142,13 @@ elfcrunch_file()
 	string1="$( grep --text ' UPX ' "$file" | head -n1 )"
 	string2="$( grep --text ' UPX ' "$file" | tail -n1 )"
 
-	# the last '$' seems to confuse sed later, shorten it
-	string1="$( echo "$string1" | cut -b1-$(( ${#string1} -1 )) )"
-	string2="$( echo "$string2" | cut -b1-$(( ${#string2} -1 )) )"
-
 	generate_random_string()
 	{
 		local length="$1"
 		local i=0
 
 		while [ $i -lt $length ]; do
-			printf '%s' "\x$( random_int )"
+			printf '%s' "\x$( random_hex )"
 			i=$(( i + 1 ))
 		done
 	}
@@ -1152,7 +1156,13 @@ elfcrunch_file()
 	string_to_hex()
 	{
 		# foobar -> \x66\x6f\x6f\x62\x61\x72
-		printf '%s' "$1" | xxd -p -c1 | while read -r HEX; do printf '\\x%s' "$HEX"; done
+		printf '%s' "$1" | xxd -p -c1 | while read -r HEX; do
+			# https://lists.gnu.org/archive/html/bug-sed/2021-03/msg00001.html
+			# precede any of $*.[\]^ => 24 2a 2e 5b 5c 5d 5e with \x5c
+			case "$HEX" in 24|2a|2e|5b|5c|5d|5e) HEX="5c\\x$HEX" ;; esac
+
+			printf '\\x%s' "$HEX"
+		done
 	}
 
 	new1="$( generate_random_string ${#string1} )"		# e.g. \x65\x66
