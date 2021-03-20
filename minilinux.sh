@@ -2094,9 +2094,11 @@ is_uml && {
 
 	# https://github.com/torvalds/linux/commit/30b11ee9ae23d78de66b9ae315880af17a64ba83
 	F1='arch/um/include/shared/init.h' && PATT='#ifdef __UM_HOST__'
+	checksum "$F1" plain
 	grep -q "$PATT" "$F1" && {
-		:
+		sed -i '1{s/^.*/#include <stddef.h>\n/}' "$F1"
 	}
+	checksum "$F1" after plain || emit_doc "applied: kernel-patch in '$PWD/$F1' | add stddef.h"
 
 	# https://github.com/torvalds/linux/commit/298e20ba8c197e8d429a6c8671550c41c7919033
 	F1='arch/um/Makefile' && PATT='patsubst -D__KERNEL__,,'
