@@ -1976,13 +1976,6 @@ F2='scripts/dtc/dtc-lexer.lex.c_shipped' && checksum "$F2" plain
 	STR1=',8000,"initialization timed out"'
 	sed -i "s|$PATT|$STR1|" "$F" || exit
 	checksum "$F" after plain || emit_doc "applied: kernel-patch in '$F' (eth:raise_timeout)"
-
-	checksum "$F" plain
-#	PATT='if (wait_istat'
-#	STR1='int ioaddr = dev->base_addr;'
-#	STR2='i596_reset(dev, lp, ioaddr);'
-#	sed -i "s|^.*$PATT|${STR1}\n${STR2}\n&|" "$F" || exit
-	checksum "$F" after plain || emit_doc "applied: kernel-patch in '$F' (eth:enforce_reset)"
 }
 #
 [ -n "$EMBED_CMDLINE" ] && is_uml && {
@@ -2015,6 +2008,27 @@ F2='scripts/dtc/dtc-lexer.lex.c_shipped' && checksum "$F2" plain
 	checksum "$F1" plain
 	sed -i "s|for (i = 1;|$( write_args )for (i = 1;|" "$F1" || exit
 	checksum "$F1" after plain || emit_doc "applied: kernel-patch in '$PWD/$F1' | EMBED_CMDLINE: $EMBED_CMDLINE"
+}
+
+is_uml && {
+	# http://lkml.iu.edu/hypermail/linux/kernel/1806.1/05149.html
+	F='arch/x86/um/shared/sysdep/ptrace_32.h'
+	checksum "$F" plain
+	LINE="$( grep -n '#define PTRACE_SYSEMU 31' $F | cut -d':' -f1 )"
+	LINE=${LINE:-999999}	# does not harm
+	[ -f "$F" ] && sed -i "$((LINE-1)),$((LINE+1))d" "$F"
+	checksum "$F" after plain || emit_doc "applied: kernel-patch in '$PWD/$F' | delete PTRACE_SYSEMU"
+
+	# https://lore.kernel.org/patchwork/patch/630468/
+	F='arch/x86/um/Makefile' && checksum "$F" plain
+	sed -i "s|obj-\$(CONFIG_BINFMT_ELF) += elfcore.o|obj-\$(CONFIG_ELF_CORE) += elfcore.o|" "$F" || exit
+	checksum "$F" after plain || emit_doc "applied: kernel-patch in '$PWD/$F' | uml32? undefined reference to 'dump_emit'"
+
+	checksum "$F" plain
+	LINE="$( grep -n '#define PTRACE_SYSEMU_SINGLESTEP 32' $F | cut -d':' -f1 )"
+	LINE=${LINE:-999999}	# does not harm
+	sed -i "$((LINE-1)),$((LINE+1))d" $F || exit
+	checksum "$F" after plain || emit_doc "applied: kernel-patch in '$PWD/$F' | delete PTRACE_SYSEMU_SINGLESTEP"
 
 	# https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/patch/arch/um/drivers/net_user.c?id=f9bb3b5947c507d402eecbffabb8fb0864263ad1
 	F1='arch/um/drivers/net_user.c'
@@ -2084,27 +2098,6 @@ F2='scripts/dtc/dtc-lexer.lex.c_shipped' && checksum "$F2" plain
 	REPLACE="sed -i 's;#define LINUX_COMPILER .*;#define LINUX_COMPILER \"compiler/linker unset\";' .tmpcompile"
 	sed -i "s|# Only replace the real|${REPLACE}\n\n# Only replace the real|" "$F" || exit
 	checksum "$F" after plain || emit_doc "applied: kernel-patch in '$PWD/$F' | FAKEID"
-}
-# http://lkml.iu.edu/hypermail/linux/kernel/1806.1/05149.html
-F='arch/x86/um/shared/sysdep/ptrace_32.h'
-[ -f "$F" ] && is_uml && {
-	checksum "$F" plain
-	LINE="$( grep -n '#define PTRACE_SYSEMU 31' $F | cut -d':' -f1 )"
-	LINE=${LINE:-999999}	# does not harm
-	sed -i "$((LINE-1)),$((LINE+1))d" $F || exit
-	checksum "$F" after plain || emit_doc "applied: kernel-patch in '$PWD/$F' | delete PTRACE_SYSEMU"
-
-	checksum "$F" plain
-	LINE="$( grep -n '#define PTRACE_SYSEMU_SINGLESTEP 32' $F | cut -d':' -f1 )"
-	LINE=${LINE:-999999}	# does not harm
-	sed -i "$((LINE-1)),$((LINE+1))d" $F || exit
-	checksum "$F" after plain || emit_doc "applied: kernel-patch in '$PWD/$F' | delete PTRACE_SYSEMU_SINGLESTEP"
-}
-is_uml && {
-	# https://lore.kernel.org/patchwork/patch/630468/
-	F='arch/x86/um/Makefile' && checksum "$F" plain
-	sed -i "s|obj-\$(CONFIG_BINFMT_ELF) += elfcore.o|obj-\$(CONFIG_ELF_CORE) += elfcore.o|" "$F" || exit
-	checksum "$F" after plain || emit_doc "applied: kernel-patch in '$PWD/$F' | uml32? undefined reference to 'dump_emit'"
 }
 # e.g.: gcc (Debian 10.2.1-6) 10.2.1 20210110
 for WORD in $CC_VERSION; do {
