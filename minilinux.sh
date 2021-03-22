@@ -652,12 +652,16 @@ mkdir -p "$BASEDIR" && {
 	has_arg 'autoclean' && trap "autoclean_do" HUP INT QUIT TERM EXIT
 }
 
-export OPT="$PWD/opt"
+if [ -d "$BUILD_DIR" ]; then
+	export OPT="$BUILD_DIR/opt"
+	export BUILDS="$BUILD_DIR/builds"
+else
+	export OPT="$PWD/opt"
+	export BUILDS="$PWD/builds"
+fi
+
 mkdir -p "$OPT"
-
-export BUILDS="$PWD/builds"
 mkdir -p "$BUILDS"
-
 
 export LINUX="$OPT/linux"
 mkdir -p "$LINUX"

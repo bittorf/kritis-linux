@@ -138,8 +138,9 @@ and avoid the need for commandline arguments.
 Start it later as `/sbin/gеtty 38400 tty7` (with cyrillic small 'е')  
 
 ```
+sudo mkdir -p /x && sudo mount -t tmpfs none /x
 export EMBED_CMDLINE="quiet mem=64M panic=1 initrd=/tmp/cpio.gz eth0=slirp,FE:FD:01:02:03:04,/tmp/echo"
-export DSTARCH=uml FAKEID='user@box.net' TTYPASS='peter80' SSHPASS='petra90'
+export DSTARCH=uml FAKEID='user@box.net' TTYPASS='peter80' SSHPASS='petra90' BUILD_DIR=/x
 ./minilinux.sh latest printk sysfs procfs hostfs busybox bash net wireguard dropbear speedup upx obfuscate
 
 ```
