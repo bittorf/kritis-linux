@@ -306,13 +306,7 @@ download()
 	local url="$1"
 	local cache
 
-	cache="$STORAGE/$( basename "$url" )"
-
-	case "$url" in
-		*master*)
-			cache="$STORAGE/$( string_hash "$url" )-$( basename "$url" )"
-		;;
-	esac
+	cache="$STORAGE/$( string_hash "$url" )-$( basename "$url" )"
 
 	# e.g. during massively parallel run / release
 	while [ -f "$cache-in_progress" ]; do {
