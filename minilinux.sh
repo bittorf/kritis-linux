@@ -1112,17 +1112,29 @@ random_hex()
 	printf '%02x\n' "$(( start + random ))"
 }
 
+humanreadable_lines()
+{
+	local file="$1"
+
+	# strip non-printable (ascii-subset) and show only lines >6 chars
+	tr -cd '\11\12\15\40-\176' <"$file" | sed -r '/^.{,6}$/d'
+}
+
 elfcrunch_file()
 {
 	local file="$1"
 
-	local hex1 hex2 hex3 string1 string2 new1 new2
+	local hex1 hex2 hex3 string1 string2 new1 new2 size1 size2
 	local url1="https://github.com/BR903/ELFkickers.git"
 	local url2="https://github.com/upx/upx/releases"
 
 	# TODO: --ultra-brute | see: https://github.com/upx/upx/issues/385
 	sstrip        "$file"	|| msg_and_die "$?" "failed: sstrip $file | see: $url1"
 	upx -v --lzma "$file"	|| msg_and_die "$?" "failed: upx -v --lzma $file | see: $url2"
+
+	has_arg 'obfuscate' || return 0
+
+	size1="$( wc -c <"$file" )"
 
 	# obfuscate strings, e.g. 'UPX!'
 	hex1="$( random_hex )"
@@ -1168,10 +1180,14 @@ elfcrunch_file()
 	sed -i "s/$string1/$new1/g" "$file" || exit
 	sed -i "s/$string2/$new2/g" "$file" || exit
 
-	if grep --text 'UPX!' "$file"; then
+	size2="$( wc -c <"$file" )"
+
+	if   [ "$size1" != "$size2" ]; then
+		msg_and_die "$?" "obfuscation failed, filesize changed '$file' before/after: $size1/$size2"
+	elif grep --text 'UPX!' "$file"; then
 		msg_and_die "$?" "obfuscation failed, found string 'UPX!' in '$file'"
 	else
-		log "readable lines: $( strings "$file" | sed 's/[[:space:]]*//g'| sed 's/[^A-Za-z0-9]//g' | sed -r '/^.{,6}$/d' | wc -l )"
+		log "[OK] readable lines: $( humanreadable_lines "$file" | wc -l )"
 		true
 	fi
 }
