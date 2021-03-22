@@ -203,6 +203,8 @@ case "$DSTARCH" in
 		export DEFCONFIG='tinyconfig'
 		export QEMU='qemu-system-x86_64'
 		CROSS_DL="https://musl.cc/x86_64-linux-musl-cross.tgz"
+
+		has_arg 'zig' && CROSS_DL='https://ziglang.org/builds/zig-linux-x86_64-0.8.0-dev.1548+0d96a284e.tar.xz'
 	;;
 esac
 
@@ -294,6 +296,11 @@ kernels()
 	esac
 }
 
+string_hash()
+{
+	echo "$1" | sha256sum | cut -d' ' -f1
+}
+
 download()
 {
 	local url="$1"
@@ -303,7 +310,7 @@ download()
 
 	case "$url" in
 		*master*)
-			cache="$STORAGE/$( echo "$url" | sha256sum | cut -d' ' -f1 )-$( basename "$url" )"
+			cache="$STORAGE/$( string_hash "$url" )-$( basename "$url" )"
 		;;
 	esac
 
@@ -1200,7 +1207,7 @@ install_dep 'build-essential'		# prepare for 'make'
 DNS='8.8.4.4'
 
 [ -n "$CROSS_DL" ] && {
-	export CROSSC="$OPT/cross-${DSTARCH:-native}"
+	CROSSC="$OPT/cross-${DSTARCH:-native}-$( string_hash "$CROSS_DL" )"
 	mkdir -p "$CROSSC"
 
 	cd "$CROSSC" || exit
@@ -1209,20 +1216,25 @@ DNS='8.8.4.4'
 	untar ./* || exit
 	cd ./* || exit
 
-	# e.g. cross-armhf/arm-linux-musleabihf-cross/bin/arm-linux-musleabihf-gcc
-	# e.g.       cross-or1k/or1k-linux-musl-cross/bin/or1k-linux-musl-gcc
-	 CC="$PWD/$( find bin/ -type f -name '*-linux-musl*-gcc'   )"
-	CXX="$PWD/$( find bin/ -type f -name '*-linux-musl*-g++'   )"
+	if [ -f "$PWD/zig" ]; then
+		export CC="$PWD/zig cc"
+	else
+		# FIXME! this hardcodes musl-things:
+		# e.g. cross-armhf/arm-linux-musleabihf-cross/bin/arm-linux-musleabihf-gcc
+		# e.g.       cross-or1k/or1k-linux-musl-cross/bin/or1k-linux-musl-gcc
+		 CC="$PWD/$( find bin/ -type f -name '*-linux-musl*-gcc'   )"
+		CXX="$PWD/$( find bin/ -type f -name '*-linux-musl*-g++'   )"
 
-	test -f  "$CC" || msg_and_die "$?" "CC  not a file: '$CC'  dir: '$PWD/bin'"
-	test -f "$CXX" || msg_and_die "$?" "CXX not a file: '$CXX' dir: '$PWD/bin'"
+		test -f  "$CC" || msg_and_die "$?" "CC  not a file: '$CC'  dir: '$PWD/bin'"
+		test -f "$CXX" || msg_and_die "$?" "CXX not a file: '$CXX' dir: '$PWD/bin'"
 
-	# e.g.                      CC=or1k-linux-musl-gcc
-	# we need later: CROSS_COMPILE=or1k-linux-musl-'
-	#                              ^^^^^^^^^^^^^^^^
-	PRE="$( basename "${CC%-*}" )"		# remove trailing 'gcc'
-	export CROSSCOMPILE="CROSS_COMPILE=$PRE-"
-	export CC CXX PATH="$PWD/bin:$PATH"
+		# e.g.                      CC=or1k-linux-musl-gcc
+		# we need later: CROSS_COMPILE=or1k-linux-musl-'
+		#                              ^^^^^^^^^^^^^^^^
+		PRE="$( basename "${CC%-*}" )"		# remove trailing 'gcc'
+		export CROSSCOMPILE="CROSS_COMPILE=$PRE-"
+		export CC CXX PATH="$PWD/bin:$PATH"
+	fi
 }
 
 if [ -n "$CROSSCOMPILE" ]; then
