@@ -1099,9 +1099,9 @@ apply()
 
 random_hex()
 {
-	local start=1
+	local start=11			# matching chars below/including 10 = 0xa seems hard, so avoid these
 	local end=255
-	local seed diff random hex
+	local seed diff random
 
 	seed="$( hexdump -n 2 -e '/2 "%u"' /dev/urandom )"
 	diff=$(( end + 1 - start ))
@@ -1109,13 +1109,7 @@ random_hex()
 	random=$(( seed % diff ))
 
 	# e.g. 00..ff
-	hex="$( printf '%02x\n' "$(( start + random ))" )"
-
-	# https://lists.gnu.org/archive/html/bug-sed/2021-03/msg00001.html
-	# precede any of $*.[\]^ => 24 2a 2e 5b 5c 5d 5e with \x5c
-	case "$hex" in 24|2a|2e|5b|5c|5d|5e) hex="5c\x$hex" ;; esac
-
-	printf '%s\n' "$hex"
+	printf '%02x\n' "$(( start + random ))"
 }
 
 elfcrunch_file()
