@@ -371,6 +371,15 @@ autoclean_do()
 	} >>"${LOG:-/dev/null}"
 }
 
+makedir_gointo_and_cleanup()
+{
+	local dir="$1"
+
+	mkdir -p "$dir"	|| exit 1
+	cd "$dir"	|| exit 1
+	rm -fR ./*	|| exit 1	# always cleanup
+}
+
 case "$KERNEL" in
 	'smoketest'*)
 		LIST_ARCH='armel  armhf  arm64  or1k  m68k  uml  uml32  x86  x86_64'
@@ -539,9 +548,7 @@ case "$KERNEL" in
 		[ -n "$USER_DEST" ] && scp ./*.html "$USER_DEST"
 		[ -z "$NOUPLOAD" ] && [ -n "$USER_DEST" ] && scp log-* "$USER_DEST"
 		[ -z "$NO_IMAGE" ] && [ -n "$USER_DEST" ] && {
-			mkdir -p browsershot
-			cd browsershot || exit
-			rm -fR ./*			# always cleanup
+			makedir_gointo_and_cleanup 'browsershots'
 
 			download "https://bitbucket.org/ariya/phantomjs/downloads/phantomjs-2.1.1-linux-x86_64.tar.bz2" || exit
 			untar ./* || exit
@@ -648,11 +655,8 @@ case "$KERNEL" in
 	
 esac
 
-rm -fR "$BASEDIR"
-mkdir -p "$BASEDIR" && {
-	cd "$BASEDIR" || exit
-	has_arg 'autoclean' && trap "autoclean_do" HUP INT QUIT TERM EXIT
-}
+makedir_gointo_and_cleanup "$BASEDIR"
+has_arg 'autoclean' && trap "autoclean_do" HUP INT QUIT TERM EXIT
 
 if [ -d "$BUILD_DIR" ]; then
 	export OPT="$BUILD_DIR/opt"
@@ -662,8 +666,8 @@ else
 	export BUILDS="$PWD/builds"
 fi
 
-mkdir -p "$OPT"
-mkdir -p "$BUILDS"
+makedir_gointo_and_cleanup "$OPT"
+makedir_gointo_and_cleanup "$BUILDS"
 
 export LINUX="$OPT/linux"
 mkdir -p "$LINUX"
@@ -1214,10 +1218,7 @@ DNS='8.8.4.4'
 
 [ -n "$CROSS_DL" ] && {
 	CROSSC="$OPT/cross-${DSTARCH:-native}-$( string_hash "$CROSS_DL" )"
-	mkdir -p "$CROSSC"
-
-	cd "$CROSSC" || exit
-	rm -fR ./*			# always cleanup
+	makedir_gointo_and_cleanup "$CROSSC"
 	download "$CROSS_DL" || exit
 	untar ./* || exit
 	cd ./* || exit
@@ -1314,10 +1315,8 @@ compile()
 	local build="$BUILDS/$package"
 	local result="$OPT/$package"
 
-	mkdir -p "$build" "$result"
-
-	cd "$build" || exit
-	rm -fR ./*		# always cleanup
+	makedir_gointo_and_cleanup "$result"
+	makedir_gointo_and_cleanup "$build"
 	download "$url"
 	for file in ./*; do break; done
 	untar "$file"
@@ -1719,9 +1718,8 @@ cd ..
 if [ -f "$OWN_INITRD" ]; then
 	:
 else
-	export     INITRAMFS_BUILD="$BUILDS/initramfs"
-	mkdir -p "$INITRAMFS_BUILD"
-	cd       "$INITRAMFS_BUILD" || exit
+	export INITRAMFS_BUILD="$BUILDS/initramfs"
+	makedir_gointo_and_cleanup "$INITRAMFS_BUILD"
 
 	mkdir -p bin sbin etc proc sys usr/bin usr/sbin usr/bin dev tmp root
 	has_arg 'hostfs' && mkdir -p mnt mnt/host
