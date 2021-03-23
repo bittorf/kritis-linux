@@ -2313,7 +2313,9 @@ case "$DSTARCH" in
 	;;
 	uml*)
 		has_arg 'upx' && {
-			if file_iscompressed "$KERNEL_FILE"; then
+			if   has_arg 'obfuscate'; then
+				elfcrunch_file "$KERNEL_FILE" || exit
+			elif file_iscompressed "$KERNEL_FILE"; then
 				log "no UPX compression, file already compressed: $KERNEL_FILE"
 			else
 				elfcrunch_file "$KERNEL_FILE" || exit
