@@ -1276,6 +1276,38 @@ elfcrunch_file()
 install_dep 'build-essential'		# prepare for 'make'
 DNS='8.8.4.4'
 
+
+is_uml && has_arg 'net' && {
+	# slirp is special, because it runs on the host, so we
+	# must in theory compile it for the host-arch, not for the image-arch
+	# FIXME! i has problems with musl, so for now avoid that
+	# without ppp it builds/upx to 80K with musl, but does not really work
+	# in contrast to GCC, it compiles/upx to 470K on x86_84 (but works)
+
+	SLIRP_DIR="$( mktemp -d )" || msg_and_die "$?" "mktemp -d"
+	cd "$SLIRP_DIR" || exit
+	git clone --depth 1 "$URL_SLIRP"
+	cd ./* || exit
+
+	if has_arg 'quiet' "$EMBED_CMDLINE"; then
+		OK="$( MYCC=static ./run.sh 'quiet' | tail -n1 )"
+	else
+		OK="$( MYCC=static ./run.sh         | tail -n1 )"
+	fi
+
+	# e.g. SLIRP_BIN='/tmp/tmp.BGbKLy2cly/slirp-1.0.17/src/slirp'
+	echo "$OK" | grep -q ^'SLIRP_BIN=' || exit
+	SLIRP_BIN="$( echo "$OK" | cut -d"=" -f2 | cut -d"'" -f2 )"
+
+	if has_arg 'upx'; then
+		elfcrunch_file "$SLIRP_BIN" || exit
+	else
+		$STRIP "$SLIRP_BIN" || exit
+	fi
+
+	DNS='10.0.2.3'
+}
+
 [ -n "$CROSS_DL" ] && {
 	CROSSC="$OPT/cross-${DSTARCH:-native}-$( string_hash "$CROSS_DL" )"
 	makedir_gointo_and_cleanup "$CROSSC"
@@ -1327,34 +1359,6 @@ export MUSL_BUILD="$BUILDS/musl"
 mkdir -p "$MUSL_BUILD"
 
 export CRONTAB="$OPT/crontab.txt"
-
-is_uml && has_arg 'net' && {
-	# slirp is special, because it runs on the host, so we
-	# must in theory compile it for the host-arch, not for the image-arch
-
-	SLIRP_DIR="$( mktemp -d )" || msg_and_die "$?" "mktemp -d"
-	cd "$SLIRP_DIR" || exit
-	git clone --depth 1 "$URL_SLIRP"
-	cd ./* || exit
-
-	if has_arg 'quiet' "$EMBED_CMDLINE"; then
-		OK="$( MYCC=static ./run.sh 'quiet' | tail -n1 )"
-	else
-		OK="$( MYCC=static ./run.sh         | tail -n1 )"
-	fi
-
-	# e.g. SLIRP_BIN='/tmp/tmp.BGbKLy2cly/slirp-1.0.17/src/slirp'
-	echo "$OK" | grep -q ^'SLIRP_BIN=' || exit
-	SLIRP_BIN="$( echo "$OK" | cut -d"=" -f2 | cut -d"'" -f2 )"
-
-	if has_arg 'upx'; then
-		elfcrunch_file "$SLIRP_BIN" || exit
-	else
-		$STRIP "$SLIRP_BIN" || exit
-	fi
-
-	DNS='10.0.2.3'
-}
 
 
 cronjob_add()
