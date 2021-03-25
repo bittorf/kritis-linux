@@ -250,7 +250,7 @@ deps_check()
 	# FIXME! 'program_name' not always 'package_name', e.g. 'mkpasswd' is in package 'whois'
 	local cmd list='arch basename cat chmod cp file find grep gzip head make mkdir rm sed strip tar tee test touch tr wget mkpasswd'
 	# these commands are used, but are not essential:
-	# apt, bc, curl, dpkg, ent, hexdump, logger, sstrip, upx, vimdiff, xz, zstd, xxd
+	# apt, bc, curl, dpkg, ent, hexdump, hunspell logger, sstrip, upx, vimdiff, xz, zstd, xxd
 
 	for cmd in $list; do {
 		command -v "$cmd" >/dev/null || {
@@ -304,6 +304,7 @@ string_hash()
 download()
 {
 	local url="$1"
+	local dest="${2:-.}"
 	local cache
 
 	cache="$STORAGE/$( string_hash "$url" )-$( basename "$url" )"
@@ -316,12 +317,12 @@ download()
 
 	if [ -s "$cache" ]; then
 		log "[OK] download, using cache: '$cache' url: '$url'"
-		cp "$cache" .
+		cp "$cache" $dest
 	else
 		touch "$cache-in_progress"
 		wget -O "$cache" "$url" || rm -f "$cache"
 		rm "$cache-in_progress"
-		cp "$cache" .
+		cp "$cache" $dest
 	fi
 }
 
@@ -333,10 +334,11 @@ untar()		# and delete
 	mime="$( file --brief --mime "$file" )"
 
 	case "$mime" in
-		application/zip*) unzip "$1" && rm "$1" ;;
+		application/zip*)       unzip "$1" && rm "$1" ;;
 		application/x-lzma*)  tar xJf "$1" && rm "$1" ;;
+		application/x-xz*)    tar xJf "$1" && rm "$1" ;;
 		application/x-bzip2*) tar xjf "$1" && rm "$1" ;;
-		application/gzip*)  tar xzf "$1" && rm "$1" ;;
+		application/gzip*)    tar xzf "$1" && rm "$1" ;;
 		*)
 			log "untar() file '$file' unknown mime-type: $mime"
 			false
@@ -380,7 +382,56 @@ makedir_gointo_and_cleanup()
 	rm -fR ./*	|| exit 1	# always cleanup
 }
 
+humanreadable_lines()
+{
+	local file="$1"
+	local minlength="${2:-3}"
+
+	local line word lang lang_list=
+	local file_dict2 file_dict3 url_dict2
+
+	# maybe use: /usr/share/dict/words
+	file_dict2="$( mktemp )"
+	file_dict3="$( mktemp )"
+	url_dict2="https://users.cs.duke.edu/~ola/ap/linuxwords"
+	download "$url_dict2" "$file_dict2"
+
+	sed 's/[^a-zA-Z0-9 ]//g' "$file" | while read -r line; do {
+		for word in $line; do {
+			case "${#word}" in
+				1|2) ;;
+				*) printf '%s\n' "$word" ;;
+			esac
+		} done
+	} done >"$file_dict3"
+
+	install_dep 'hunspell'
+
+	for lang in $( find /usr/share/hunspell/ -type f -iname '*.dic' | sed -n 's|^.*/\(.*\).dic|\1|p' | sort ); do {
+		case "$lang" in
+			en*|de*|es*|ro*)
+				lang_list="${lang_list}${lang_list:+,}$lang"
+			;;
+		esac
+	} done
+
+	log "lang_list: $lang_list"
+
+	# apt-get install myspell-fr myspell-es hunspell-ro hunspell-pl hunspell-no hunspell-sv hunspell-en-* hunspell-de-at hunspell-de-ch hunspell-de-de hunspell-de-med
+	hunspell -G -d $lang_list -l "$file_dict3" | sed -r "/^.{,$minlength}$/d"
+
+	# strip spaces/tabs and non-printable (ascii-subset) and show only lines >6 chars
+#	tr -cd '\11\12\15\40-\176' <"$file" | sed "s/[[:space:]]\+//g" | sed -r "/^.{,$minlength}$/d" | wc -l
+#	sed 's/[^a-zA-Z0-9 ]//g' "$file" | grep --text -F -f "$file_dict1" | sed 's/[^a-zA-Z0-9 ]//g' | sed -r "/^.{,$minlength}$/d" | wc -l
+
+	rm "$file_dict2" "$file_dict3"
+}
+
 case "$KERNEL" in
+	'humanreadable_lines'|'hl')
+		humanreadable_lines "$ARG2" "$ARG3"
+		exit $?
+	;;
 	'smoketest'*)
 		LIST_ARCH='armel  armhf  arm64  or1k  m68k  uml  uml32  x86  x86_64'
 		LIST_KERNEL='3.18 3.18.140 3.19.8 4.0.9 4.1.52 4.2.8 4.3.6 4.4.261 4.9.261 4.14.225 4.19.180 5.4.105 5.10.23 5.11.6'
@@ -1129,19 +1180,11 @@ random_hex()
 	printf '%02x\n' "$(( start + random ))"
 }
 
-humanreadable_lines()
-{
-	local file="$1"
-
-	# strip non-printable (ascii-subset) and show only lines >6 chars
-	tr -cd '\11\12\15\40-\176' <"$file" | sed -r '/^.{,6}$/d'
-}
-
 elfcrunch_file()
 {
 	local file="$1"
 
-	local hex1 hex2 hex3 string1 string2 new1 new2 size1 size2
+	local hex1 hex2 hex3 string1 string2 new1 new2 size1 size2 pos1 pos2
 	local url1="https://github.com/BR903/ELFkickers.git"
 	local url2="https://github.com/upx/upx/releases"
 
@@ -1149,11 +1192,11 @@ elfcrunch_file()
 	sstrip        "$file"	|| msg_and_die "$?" "failed: sstrip $file | see: $url1"
 	upx -v --lzma "$file"	|| msg_and_die "$?" "failed: upx -v --lzma $file | see: $url2"
 
-	has_arg 'obfuscate' || return 0
+	# obfuscate strings, e.g. 'UPX!'
+	has_arg 'obfus*' || return 0
 
 	size1="$( wc -c <"$file" )"
 
-	# obfuscate strings, e.g. 'UPX!'
 	hex1="$( random_hex )"
 	hex2="$( random_hex )"
 	hex3="$( random_hex )"
@@ -1194,6 +1237,11 @@ elfcrunch_file()
 	string1="$( string_to_hex "$string1" )"			# e.g. \x67\x68
 	string2="$( string_to_hex "$string2" )"
 
+	pos1="$( sed -rn "0,/$string1/ {s/^(.*)$string1.*$/\1/p ;t exit; p; :exit }" "$file" | wc -c )"
+	pos2="$( sed -rn "0,/$string2/ {s/^(.*)$string2.*$/\1/p ;t exit; p; :exit }" "$file" | wc -c )"
+	log "byte-position-match1: $pos1"
+	log "byte-position-match2: $pos2"
+
 	sed -i "s/$string1/$new1/g" "$file" || exit
 	sed -i "s/$string2/$new2/g" "$file" || exit
 
@@ -1204,9 +1252,11 @@ elfcrunch_file()
 	elif grep --text 'UPX!' "$file"; then
 		msg_and_die "$?" "obfuscation failed, found string 'UPX!' in '$file'"
 	else
-		log "[OK] readable lines: $( humanreadable_lines "$file" | wc -l )"
+		log "[OK] readable lines: $( humanreadable_lines "$file" | wc -l ) | see: $0 hl $file"
 		true
 	fi
+
+	exit
 }
 
 ###
