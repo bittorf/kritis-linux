@@ -415,7 +415,7 @@ humanreadable_lines()
 		esac
 	} done
 
-	log "lang_list: $lang_list"
+	log "[OK] lang_list: $lang_list"
 
 	# apt-get install myspell-fr myspell-es hunspell-ro hunspell-pl hunspell-no hunspell-sv hunspell-en-* hunspell-de-at hunspell-de-ch hunspell-de-de hunspell-de-med
 	hunspell -G -d $lang_list -l "$file_dict3" | sed -r "/^.{,$minlength}$/d"
@@ -1255,8 +1255,6 @@ elfcrunch_file()
 		log "[OK] readable lines: $( humanreadable_lines "$file" | wc -l ) | see: $0 hl $file"
 		true
 	fi
-
-	exit
 }
 
 ###
