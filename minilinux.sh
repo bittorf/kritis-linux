@@ -89,7 +89,7 @@ install_dep()
 {
 	local package="$1"	# e.g. gcc-i686-linux-gnu
 
-	dpkg -l "$package" >/dev/null || {
+	dpkg -L "$package" >/dev/null || {
 		echo "[OK] need to install package '$package'"
 
 		[ -n "$APT_UPDATE" ] || {
