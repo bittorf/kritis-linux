@@ -396,7 +396,7 @@ humanreadable_lines()
 	url_dict2="https://users.cs.duke.edu/~ola/ap/linuxwords"
 	download "$url_dict2" "$file_dict2"
 
-	sed 's/[^a-zA-Z0-9 ]//g' "$file" | while read -r line; do {
+	sed 's/[^a-zA-Z]/ /g' "$file" | while read -r line; do {
 		for word in $line; do {
 			case "${#word}" in
 				1|2) ;;
@@ -417,8 +417,19 @@ humanreadable_lines()
 
 	log "[OK] lang_list: $lang_list"
 
-	# apt-get install myspell-fr myspell-es hunspell-ro hunspell-pl hunspell-no hunspell-sv hunspell-en-* hunspell-de-at hunspell-de-ch hunspell-de-de hunspell-de-med
-	hunspell -G -d $lang_list -l "$file_dict3" | sed -r "/^.{,$minlength}$/d"
+	words() {
+		# apt-get install myspell-fr myspell-es hunspell-en-* hunspell-de-at hunspell-de-ch hunspell-de-de hunspell-de-med
+		hunspell -G -d $lang_list -l "$file_dict3" | sed -r "/^.{,$minlength}$/d" | while read -r word; do {
+			printf '%s ' "$word"
+		} done
+	}
+	log "[OK] words: $( words )"
+
+	count() {
+		hunspell -G -d $lang_list -l "$file_dict3" | sed -r "/^.{,$minlength}$/d" | wc -l
+	}
+
+	log "[OK] word count: $( count )"
 
 	# strip spaces/tabs and non-printable (ascii-subset) and show only lines >6 chars
 #	tr -cd '\11\12\15\40-\176' <"$file" | sed "s/[[:space:]]\+//g" | sed -r "/^.{,$minlength}$/d" | wc -l
@@ -1201,6 +1212,7 @@ elfcrunch_file()
 	hex2="$( random_hex )"
 	hex3="$( random_hex )"
 	sed -i "s/\x55\x50\x58\x21/\x${hex1}\x${hex2}\x${hex3}\x21/g" "$file"
+	sed -i "s|failed|_o/\\\o_|" "$file"
 
 	# obfuscate these/similar strings:
 	# $Info: This file is packed with the UPX executable packer http://upx.sf.net $
@@ -1239,8 +1251,8 @@ elfcrunch_file()
 
 	pos1="$( sed -rn "0,/$string1/ {s/^(.*)$string1.*$/\1/p ;t exit; p; :exit }" "$file" | wc -c )"
 	pos2="$( sed -rn "0,/$string2/ {s/^(.*)$string2.*$/\1/p ;t exit; p; :exit }" "$file" | wc -c )"
-	log "byte-position-match1: $pos1"
-	log "byte-position-match2: $pos2"
+	log "[OK] byte-position-match1: $pos1"
+	log "[OK] byte-position-match2: $pos2"
 
 	sed -i "s/$string1/$new1/g" "$file" || exit
 	sed -i "s/$string2/$new2/g" "$file" || exit
@@ -1252,7 +1264,7 @@ elfcrunch_file()
 	elif grep --text 'UPX!' "$file"; then
 		msg_and_die "$?" "obfuscation failed, found string 'UPX!' in '$file'"
 	else
-		log "[OK] readable lines: $( humanreadable_lines "$file" | wc -l ) | see: $0 hl $file"
+		humanreadable_lines "$file"
 		true
 	fi
 }
