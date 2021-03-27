@@ -141,7 +141,13 @@ install_dep()
 			fi
 		}
 
-		sudo apt-get install -y "$package" || msg_and_die "$?" "sudo apt-get install -y $package"
+		# Need to get 235 kB of archives.
+		# After this operation, 563 kB of additional disk space will be used.
+		# WARNING: The following packages cannot be authenticated!
+		#   libfl-dev flex
+		# E: There are problems and -y was used without --force-yes
+
+		sudo apt-get install --force-yes -y "$package" || msg_and_die "$?" "sudo apt-get install --force-yes -y $package"
 	}
 }
 
