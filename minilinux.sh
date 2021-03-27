@@ -131,6 +131,7 @@ install_dep()
 {
 	local package="$1"	# e.g. gcc-i686-linux-gnu
 	local option="$2"	# e.g. <empty> or 'weak'
+	local rc
 
 	dpkg -L "$package" >/dev/null || {
 		echo "[OK] need to install package '$package'"
@@ -150,11 +151,13 @@ install_dep()
 		# E: There are problems and -y was used without --force-yes
 
 		sudo apt-get install --force-yes -y "$package" || {
+			rc=$?
+
 			if [ "$option" = 'weak' ]; then
-				log "rc:$? sudo apt-get install --force-yes -y $package"
+				log "rc:$rc sudo apt-get install --force-yes -y $package"
 				false
 			else
-				msg_and_die "$?" "sudo apt-get install --force-yes -y $package"
+				msg_and_die "$rc" "sudo apt-get install --force-yes -y $package"
 			fi
 		}
 	}
@@ -1358,7 +1361,8 @@ if [ -n "$CROSSCOMPILE" ]; then
 	CONF_HOST="${CROSSCOMPILE#*=}"		# e.g. 'CROSS_COMPILE=i686-linux-gnu-'
 	CHOST="${CONF_HOST%?}"			#                  -> i686-linux-gnu
 	STRIP="${CHOST}-strip"			#                  -> i686-linux-gnu-strip
-	CONF_HOST="--host=${CHOST}"
+	CONF_HOST="--host=${CHOST}"		# TODO: configure: WARNING: if you wanted to set the --build type, don't use --host.
+						#       If a cross compiler is detected then cross compile mode will be used
 
 	CC_VERSION="$( "$CHOST-gcc" --version | head -n1 )"
 	export STRIP CONF_HOST CHOST
