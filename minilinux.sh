@@ -287,6 +287,8 @@ log "[OK] building kernel '$KERNEL' on arch '$DSTARCH' and options '$OPTIONS'"
 
 deps_check()
 {
+	local cmd list
+
 	install_dep 'coreutils'
 	install_dep 'build-essential'
 	install_dep 'flex'
@@ -295,7 +297,7 @@ deps_check()
 	install_dep 'whois'
 
 	# FIXME! 'program_name' not always 'package_name', e.g. 'mkpasswd' is in package 'whois'
-	local cmd list='arch basename cat chmod cp file find grep gzip head make mkdir rm sed strip tar tee test touch tr wget mkpasswd'
+	list='arch base64 basename cat chmod cp file find grep gzip head make mkdir rm sed strip tar tee test touch tr wget mkpasswd'
 	# these commands are used, but are not essential:
 	# apt, bc, curl, dpkg, ent, hexdump, hunspell logger, sstrip, upx, vimdiff, xz, zstd, xxd
 
@@ -1454,6 +1456,9 @@ has_arg 'dropbear' && {
 	}
 
 	install_dropbear() {
+		local key_ecdsa='etc/dropbear/dropbear_ecdsa_host_key'
+		local key_rsa='etc/dropbear/dropbear_rsa_host_key'
+
 		mkdir -p usr usr/bin etc etc/dropbear .ssh	|| exit
 
 		cd bin && {
@@ -1466,8 +1471,15 @@ has_arg 'dropbear' && {
 			cd - || exit
 		}
 
-		dropbearkey -t ecdsa -f etc/dropbear/dropbear_ecdsa_host_key	|| exit
-		dropbearkey -t rsa   -f etc/dropbear/dropbear_rsa_host_key	|| exit
+		if command -v dropbearkey >/dev/null; then
+			dropbearkey -t ecdsa -f "$key_ecdsa"	|| exit
+			dropbearkey -t rsa   -f "$key_rsa"	|| exit
+		else
+			printf '%s\n%s\n%s\n' \
+				'AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBKlmAMA3qxEe8UgUTnuI' \
+				'7VTdT15cha1dhpkZhhniLzNsqsn0SRs9UoHSMJ0S7CuKJtGR2uUEcu+R+JsDEgg0DQcAAAAg' \
+				'GwwAoC40kwthP+sG4jNVipi8pcVGBuo7xE76lE+CWEg=' | base64 -d >"$key_ecdsa"
+		fi
 
 		local hint=" on host '\$( cat /mnt/host/etc/hostname )', see /mnt/host/ and /proc/cpuinfo"
 		has_arg 'hostfs' || hint=
