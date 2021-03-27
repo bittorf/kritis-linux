@@ -130,6 +130,7 @@ msg_and_die()
 install_dep()
 {
 	local package="$1"	# e.g. gcc-i686-linux-gnu
+	local option="$2"	# e.g. <empty> or 'weak'
 
 	dpkg -L "$package" >/dev/null || {
 		echo "[OK] need to install package '$package'"
@@ -148,7 +149,14 @@ install_dep()
 		#   libfl-dev flex
 		# E: There are problems and -y was used without --force-yes
 
-		sudo apt-get install --force-yes -y "$package" || msg_and_die "$?" "sudo apt-get install --force-yes -y $package"
+		sudo apt-get install --force-yes -y "$package" || {
+			if [ "$option" = 'weak' ]; then
+				log "rc:$? sudo apt-get install --force-yes -y $package"
+				false
+			else
+				msg_and_die "$?" "sudo apt-get install --force-yes -y $package"
+			fi
+		}
 	}
 }
 
@@ -1437,7 +1445,7 @@ has_arg 'dropbear' && {
 		install_dep 'libcrypt-dev'	# for crypt.h
 		install_dep 'libtommath-dev'
 		install_dep 'libtomcrypt-dev'
-		install_dep 'dropbear-bin'	# only for key generation during build
+		install_dep 'dropbear-bin' weak	# only for key generation during build: dropbearkey
 
 		CFLAGS="-ffunction-sections -fdata-sections $( test "$DSTARCH" = 'i686' && echo "-DLTC_NO_BSWAP" )" \
 		LDFLAGS='-Wl,--gc-sections' ./configure \
