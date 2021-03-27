@@ -1446,7 +1446,7 @@ has_arg 'dash' && {
 
 has_arg 'dropbear' && {
 	prepare() {
-		install_dep 'libcrypt-dev'	# for /usr/include/crypt.h
+		[ -f /usr/include/crypt.h ] || install_dep 'libcrypt-dev'
 		install_dep 'libtommath-dev'
 		install_dep 'libtomcrypt-dev'
 		install_dep 'dropbear-bin' weak	# only for key generation during build: dropbearkey
