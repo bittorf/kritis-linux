@@ -1446,7 +1446,7 @@ has_arg 'dash' && {
 
 has_arg 'dropbear' && {
 	prepare() {
-		install_dep 'libcrypt-dev'	# for crypt.h
+		install_dep 'libcrypt-dev'	# for /usr/include/crypt.h
 		install_dep 'libtommath-dev'
 		install_dep 'libtomcrypt-dev'
 		install_dep 'dropbear-bin' weak	# only for key generation during build: dropbearkey
@@ -1483,7 +1483,8 @@ has_arg 'dropbear' && {
 			cd - || exit
 		}
 
-		if command -v dropbearkey >/dev/null; then
+		# only newer versions understand 'ecdsa'
+		if dropbearkey -t ecdsa -f "$key_ecdsa"; then
 			dropbearkey -t ecdsa -f "$key_ecdsa"	|| exit
 			dropbearkey -t rsa   -f "$key_rsa"	|| exit
 		else
@@ -1634,7 +1635,7 @@ has_arg 'iodine' && {
 		cd "$here" || exit
 		sed -i '/^AC_FUNC_MALLOC/d' configure.ac
 		sed -i 's|alarm dup2|malloc &|' configure.ac	# work around issue: undefined reference to "rpl_malloc"
-		autoreconf --install
+		autoreconf --install				# Autoconf version 2.69 or higher is required
 
 		# this defines __GLIBC__ -> true
 		CFLAGS="-D__GLIBC__=1 -I$zlib_bindir/include -static -lz" \
