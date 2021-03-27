@@ -12,6 +12,7 @@ for TAG in "$@"; do
 done
 
 BASEDIR="$PWD/minilinux${BUILID:+_}${BUILDID}"		# autoclean removes it later
+WGETOPTS='--no-check-certificate'			# TODO: use hashes instead?
 UNIX0="$( date +%s )"
 
 URL_TOYBOX='http://landley.net/toybox/downloads/toybox-0.8.4.tar.gz'
@@ -338,7 +339,7 @@ kernels()
 		21) echo 'https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-4.14.215.tar.xz' ;;
 		22) echo 'https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.4.89.tar.xz' ;;
 		23) echo 'https://mirrors.edge.kernel.org/pub/linux/kernel/v2.4/linux-2.4.26.tar.xz' ;;
-		latest|stable) wget -qO - https://www.kernel.org | grep -A1 "latest_link" | tail -n1 | cut -d'"' -f2 ;;
+		latest|stable) wget $WGETOPTS -qO - https://www.kernel.org | grep -A1 "latest_link" | tail -n1 | cut -d'"' -f2 ;;
 		 *) false ;;
 	esac
 }
@@ -367,7 +368,7 @@ download()
 		cp "$cache" $dest
 	else
 		touch "$cache-in_progress"
-		wget -O "$cache" "$url" || rm -f "$cache"
+		wget $WGETOPTS -O "$cache" "$url" || rm -f "$cache"
 		rm "$cache-in_progress"
 		cp "$cache" $dest
 	fi
@@ -694,7 +695,7 @@ case "$KERNEL" in
 			*'.x')
 				# this will fail, if not on mainpage anymore!
 				KERNEL="$( echo "$KERNEL" | cut -d'x' -f1 )"
-				KERNEL="$( wget -qO - https://www.kernel.org | sed -n "s/.*<strong>\(${KERNEL}[0-9]*\)<.*/\1/p" )"
+				KERNEL="$( wget $WGETOPTS -qO - https://www.kernel.org | sed -n "s/.*<strong>\(${KERNEL}[0-9]*\)<.*/\1/p" )"
 			;;
 		esac
 
