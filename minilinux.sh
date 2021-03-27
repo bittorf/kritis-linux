@@ -85,6 +85,47 @@ has_arg()
 	esac
 }
 
+emit_doc()
+{
+	local message="$1"	# e.g. <any> or 'all' or 'apply_order'
+	local context file="$LINUX_BUILD/doc.txt"
+
+	case "$message" in
+		all)
+			cat "$file"
+			echo "see: '$file'"
+			echo "     '$LINUX_BUILD/.config'"
+		;;
+		apply_order)
+			# grep '| applied:' run.sh | grep '| linux' | cut -d: -f2 | grep -v '# CONFIG'
+			grep 'applied' "$file"
+			echo "# see: '$file'"
+		;;
+		*)
+			context="$( basename "$( pwd )" )"	# e.g. busybox or linux
+
+			echo >>"$file" "# doc | $context | $message"
+		;;
+	esac
+}
+
+msg_and_die()
+{
+	local rc="$1"
+	local txt="$2"
+	local message="[ERROR] rc:$rc | pwd: $PWD | $txt"
+	local log="${LOG:-/dev/null}"
+
+	{
+		emit_doc "$message"
+		emit_doc 'all'
+	} | tee "$log"
+
+	echo >&2 "$message"
+
+	exit "$rc"
+}
+
 install_dep()
 {
 	local package="$1"	# e.g. gcc-i686-linux-gnu
@@ -344,23 +385,6 @@ untar()		# and delete
 			false
 		;;
 	esac
-}
-
-msg_and_die()
-{
-	local rc="$1"
-	local txt="$2"
-	local message="[ERROR] rc:$rc | pwd: $PWD | $txt"
-	local log="${LOG:-/dev/null}"
-
-	{
-		emit_doc "$message"
-		emit_doc 'all'
-	} | tee "$log"
-
-	echo >&2 "$message"
-
-	exit "$rc"
 }
 
 autoclean_do()
@@ -1063,30 +1087,6 @@ EOF
 	} done
 
 	true
-}
-
-emit_doc()
-{
-	local message="$1"	# e.g. <any> or 'all' or 'apply_order'
-	local context file="$LINUX_BUILD/doc.txt"
-
-	case "$message" in
-		all)
-			cat "$file"
-			echo "see: '$file'"
-			echo "     '$LINUX_BUILD/.config'"
-		;;
-		apply_order)
-			# grep '| applied:' run.sh | grep '| linux' | cut -d: -f2 | grep -v '# CONFIG'
-			grep 'applied' "$file"
-			echo "# see: '$file'"
-		;;
-		*)
-			context="$( basename "$( pwd )" )"	# e.g. busybox or linux
-
-			echo >>"$file" "# doc | $context | $message"
-		;;
-	esac
 }
 
 apply()
