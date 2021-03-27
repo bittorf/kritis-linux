@@ -292,7 +292,6 @@ deps_check()
 	install_dep 'flex'
 	install_dep 'bison'
 	install_dep 'automake'
-	install_dep 'ncurses-dev'	# for menuconfig
 	install_dep 'whois'
 
 	# FIXME! 'program_name' not always 'package_name', e.g. 'mkpasswd' is in package 'whois'
@@ -1755,6 +1754,8 @@ else
 fi
 
 has_arg 'menuconfig' && {
+	install_dep 'ncurses-dev'	# /usr/include/ncurses.h
+
 	while :; do {
 		make $SILENT_MAKE $ARCH menuconfig || exit
 		vimdiff '.config' '.config.old'
@@ -2309,6 +2310,8 @@ T1="$( date +%s )"
 KERNEL_TIME_CONFIG=$(( T1 - T0 ))
 
 has_arg 'kmenuconfig' && {
+	install_dep 'ncurses-dev'	# /usr/include/ncurses.h
+
 	while :; do {
 		make $SILENT_MAKE $ARCH menuconfig || exit
 		vimdiff '.config' '.config.old'
