@@ -88,7 +88,7 @@ has_arg()
 emit_doc()
 {
 	local message="$1"	# e.g. <any> or 'all' or 'apply_order'
-	local context file="$LINUX_BUILD/doc.txt"
+	local context file="${LINUX_BUILD:-.}/doc.txt"
 
 	case "$message" in
 		all)
