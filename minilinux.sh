@@ -380,6 +380,7 @@ untar()		# and delete
 		application/x-xz*)    tar xJf "$1" && rm "$1" ;;
 		application/x-bzip2*) tar xjf "$1" && rm "$1" ;;
 		application/gzip*)    tar xzf "$1" && rm "$1" ;;
+		application/x-gzip*)  tar xzf "$1" && rm "$1" ;;
 		*)
 			log "untar() file '$file' unknown mime-type: $mime"
 			false
