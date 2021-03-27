@@ -137,7 +137,7 @@ install_dep()
 			if sudo apt-get update; then
 				APT_UPDATE='true'
 			else
-				msg_and_die "$?" "sudo apt-get update"
+				log "rc:$? sudo apt-get update | but trying to go further"
 			fi
 		}
 
