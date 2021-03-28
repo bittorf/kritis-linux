@@ -2566,11 +2566,11 @@ case "$DSTARCH" in
 		KVM_PRE=				# sudo unneeded?
 		$( test -x "$SLIRP_BIN" && echo "		UMLNET='eth0=slirp,FE:FD:01:02:03:04,$SLIRP_BIN'" )
 	;;
-	x86|x86_64*)
+	i686|x86_64)
 		if [ -n "$QEMUCPU" ]; then
 			case "$DSTARCH" in
-				x86) KVM_SUPPORT="\$KVM_SUPPORT -machine microvm -cpu $QEMUCPU" ;;
-				*64) KVM_SUPPORT="\$KVM_SUPPORT -machine microvm -cpu $QEMUCPU" ;;
+				i686) KVM_SUPPORT="\$KVM_SUPPORT -machine microvm -cpu $QEMUCPU" ;;
+				*_64) KVM_SUPPORT="\$KVM_SUPPORT -machine microvm -cpu $QEMUCPU" ;;
 			esac
 		else
 			KVM_SUPPORT="\$KVM_SUPPORT -cpu host"
