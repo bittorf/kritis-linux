@@ -320,7 +320,7 @@ deps_check()
 	list="$list strip tar tee test touch tr wget mkpasswd"
 
 	# these commands are used, but are not essential:
-	# apt, bc, curl, dpkg, ent, hexdump, hunspell logger, sstrip, upx, vimdiff, xz, zstd, xxd
+	# apt, bc, curl, dpkg, ent, hexdump, hunspell, sstrip, upx, vimdiff, xz, zstd, xxd
 
 	for cmd in $list; do {
 		command -v "$cmd" >/dev/null || {
@@ -1851,7 +1851,7 @@ fi
 		# e.g. ./bin/busybox -> dot is removed in check
 
 		case " $KEEP_LIST " in
-			*" ${LINE#?} "*) logger -s "KEEP_LIST: keeping '$LINE'" ;;
+			*" ${LINE#?} "*) log "KEEP_LIST: keeping '$LINE'" ;;
 			*) test -d "$LINE" || rm -f "$LINE" ;;
 		esac
 	} done
@@ -2407,10 +2407,10 @@ if [ -f "$EXTRACT" ]; then
 	if [ -f "$KERNEL_ELF" ]; then
 		:
 	else
-		logger -s "extracting ELF failed"
+		log "extracting ELF failed"
 	fi
 else
-	logger -s "extractor for ELF not found"
+	log "extractor for ELF not found"
 fi
 
 case "$DSTARCH" in
