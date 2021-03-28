@@ -300,7 +300,7 @@ deps_check()
 {
 	local cmd list
 
-	install_dep 'coreutils'
+	install_dep 'coreutils'		# e.g. stdbuf
 	install_dep 'build-essential'
 	install_dep 'flex'
 	install_dep 'bison'
@@ -309,10 +309,9 @@ deps_check()
 
 	# FIXME! 'program_name' not always 'package_name',
 	# e.g. 'mkpasswd' is in package 'whois'
-	# e.g. 'unbuffer' is in package 'expect'
 
 	# essential:
-	list='arch base64 basename cat chmod cp expect file find grep gzip head make mkdir rm sed'
+	list='arch base64 basename cat chmod cp file find grep gzip head make mkdir rm sed'
 	list="$list strip tar tee test touch tr wget mkpasswd"
 
 	# these commands are used, but are not essential:
@@ -2745,7 +2744,7 @@ test -n "\$PID" || echo "# ERROR: no PIDFILE or QEMU/uml-vmlinux already stopped
 				break
 			;;
 		esac
-	} done <"\$PIPE.out" | unbuffer | tee -a "\$LOG"
+	} done <"\$PIPE.out" | stdbuf -i0 -o0 -e0 tee -a "\$LOG"
 ) &
 
 RC=1
