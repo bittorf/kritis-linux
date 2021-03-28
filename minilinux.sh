@@ -2569,8 +2569,9 @@ case "$DSTARCH" in
 	i686|x86_64)
 		if [ -n "$QEMUCPU" ]; then
 			case "$DSTARCH" in
-				i686) KVM_SUPPORT="\$KVM_SUPPORT -machine microvm -cpu $QEMUCPU" ;;
-				*_64) KVM_SUPPORT="\$KVM_SUPPORT -machine microvm -cpu $QEMUCPU" ;;
+				# microvm: This kernel requires an i586 CPU, but only detected an i486 CPU.
+				i686) KVM_SUPPORT="\$KVM_SUPPORT -cpu $QEMUCPU -machine pc" ;;
+				*_64) KVM_SUPPORT="\$KVM_SUPPORT -cpu $QEMUCPU -machine microvm" ;;
 			esac
 		else
 			KVM_SUPPORT="\$KVM_SUPPORT -cpu host"

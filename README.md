@@ -216,5 +216,5 @@ CONFIG_DEBUG_KERNEL=y
 ```
 KEEP_LIST='/bin/busybox /usr/bin/setsid /bin/cttyhack /bin/mount /bin/ash /bin/wget' \
 INITRD_DIR_ADD=/home/user/live-bootstrap/sysa/tmp \
-DSTARCH=i386 ./minilinux.sh latest busybox procfs sysfs printk net
+QEMUCPU=486 DSTARCH=i386 ./minilinux.sh 3.18.140 busybox procfs sysfs printk net
 ```
