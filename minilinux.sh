@@ -2730,9 +2730,9 @@ test -n "\$PID" || echo "# ERROR: no PIDFILE or QEMU/uml-vmlinux already stopped
 			;;
 		esac
 
+		echo "\$LINE" >>"\$PIPE"
 		case "\$LINE" in
 			'# BOOTTIME_SECONDS '*|'# UNAME '*)
-				echo "\$LINE" >>"\$PIPE"
 			;;
 			"\$PATTERN"*|*' Attempted to kill init'*|'ABORTING HARD'*|'Bootstrapping completed.'*|'Aborted (core dumped)')
 				echo 'READY' >>"\$PIPE"
