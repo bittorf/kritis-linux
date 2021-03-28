@@ -947,9 +947,15 @@ list_kernel_symbols()
 				}
 			;;
 			*)
-				echo 'CONFIG_PCI=y'
-				# echo 'CONFIG_E1000=y'		# lspci -nk will show attached driver
-				echo 'CONFIG_8139CP=y'		# needs: -net nic,model=rtl8139 (but kernel is ~32k smaller)
+				if [ "$QEMUCPU" = 486 ]; then
+					echo 'CONFIG_ISA=y'
+					echo 'CONFIG_PCI is not set'
+					echo 'CONFIG_NE2000=y'		# qemu support is br0ken?
+				else
+					echo 'CONFIG_PCI=y'
+					# echo 'CONFIG_E1000=y'		# lspci -nk will show attached driver
+					echo 'CONFIG_8139CP=y'		# needs: -net nic,model=rtl8139 (but kernel is ~32k smaller)
+				fi
 			;;
 		esac
 	}
@@ -2549,6 +2555,7 @@ $( test -n "$NOKVM" && echo 'KVM_SUPPORT=' )
 [ -n "\$KVM_SUPPORT" ] && test "\$( id -u )" -gt 0 && KVM_PRE="\$( command -v sudo )"
 
 $( has_arg 'net' && echo "QEMU_OPTIONS='-net nic,model=rtl8139 -net user'" )
+$( has_arg 'net' && test "$QEMUCPU" = 486 && echo "QEMU_OPTIONS='-net nic,model=ne2000 -net user'" )
 
 case "$DSTARCH" in
 	armel|armhf|arm|arm64)
