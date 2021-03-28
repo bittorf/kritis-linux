@@ -901,6 +901,7 @@ list_kernel_symbols()
 			if has_arg '32bit'; then
 				echo '# CONFIG_64BIT is not set'
 			elif [ "$DSTARCH" = 'i686' ]; then
+				echo 'CONFIG_M486=y'
 				echo '# CONFIG_64BIT is not set'
 			else
 				echo 'CONFIG_64BIT=y'
@@ -2570,7 +2571,7 @@ case "$DSTARCH" in
 		if [ -n "$QEMUCPU" ]; then
 			case "$DSTARCH" in
 				# microvm: This kernel requires an i586 CPU, but only detected an i486 CPU.
-				i686) KVM_SUPPORT="\$KVM_SUPPORT -cpu $QEMUCPU -machine pc" ;;
+				i686) KVM_SUPPORT="\$KVM_SUPPORT -cpu $QEMUCPU -machine isapc" ;;
 				*_64) KVM_SUPPORT="\$KVM_SUPPORT -cpu $QEMUCPU -machine microvm" ;;
 			esac
 		else
