@@ -898,10 +898,10 @@ list_kernel_symbols()
 		or1k|m68k)
 		;;
 		*)
-			if has_arg '32bit'; then
-				echo '# CONFIG_64BIT is not set'
-			elif [ "$DSTARCH" = 'i686' ]; then
+			if   [ "$DSTARCH" = 'i686' ]; then
 				echo 'CONFIG_M486=y'
+				echo '# CONFIG_64BIT is not set'
+			elif has_arg '32bit'; then
 				echo '# CONFIG_64BIT is not set'
 			else
 				echo 'CONFIG_64BIT=y'
@@ -2752,7 +2752,8 @@ test -n "\$PID" || echo "# ERROR: no PIDFILE or QEMU/uml-vmlinux already stopped
 		case "\$LINE" in
 			'# BOOTTIME_SECONDS '*|'# UNAME '*)
 			;;
-			"\$PATTERN"*|*' Attempted to kill init'*|'ABORTING HARD'*|'Bootstrapping completed.'*|'Aborted (core dumped)')
+			"\$PATTERN"*|*' Attempted to kill init'*|'ABORTING HARD'*|'Bootstrapping completed.'*|\\
+			'Aborted (core dumped)'|'Unable to boot - please use a kernel appropriate for your CPU'*)
 				echo 'READY' >>"\$PIPE"
 				break
 			;;
