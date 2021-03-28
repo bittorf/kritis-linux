@@ -307,9 +307,14 @@ deps_check()
 	install_dep 'automake'
 	install_dep 'whois'
 
-	# FIXME! 'program_name' not always 'package_name', e.g. 'mkpasswd' is in package 'whois'
-	list='arch base64 basename cat chmod cp file find grep gzip head make mkdir'
-	list="$list rm sed strip tar tee test touch tr unbuffer wget mkpasswd"
+	# FIXME! 'program_name' not always 'package_name',
+	# e.g. 'mkpasswd' is in package 'whois'
+	# e.g. 'unbuffer' is in package 'expect'
+
+	# essential:
+	list='arch base64 basename cat chmod cp expect file find grep gzip head make mkdir rm sed'
+	list="$list strip tar tee test touch tr wget mkpasswd"
+
 	# these commands are used, but are not essential:
 	# apt, bc, curl, dpkg, ent, hexdump, hunspell logger, sstrip, upx, vimdiff, xz, zstd, xxd
 
