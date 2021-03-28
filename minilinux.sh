@@ -1094,6 +1094,8 @@ EOF
 		echo 'CONFIG_FUTEX=y'
 	}
 
+	has_arg 'kexec' && echo 'CONFIG_KEXEC=y'	# +20k uncompressed on x84_64
+
 	# enforce kernel compression mode?:
 	# CONFIG_HAVE_KERNEL_XZ=y
 	# CONFIG_KERNEL_XZ=y

@@ -68,7 +68,7 @@ kritis-linux/ci_helper.sh \
 * `--clib glibc` or `musl`,`dietlibc`
 * `--features` `is,a,comma,separated,list`
   * e.g. `busybox`,`toybox`,`dash`,`bash`
-  * e.g. `printk`,`sysfs`,`procfs`,`hostfs`
+  * e.g. `printk`,`sysfs`,`procfs`,`hostfs`,`kexec`
   * e.g. `menuconfig`,`kmenuconfig`,`speedup`
   * e.g. `net`,`wireguard`,`dropbear`,`iodine`,`icmptunnel`
   * e.g. `tinyconfig` or `allnoconfig` or `defconfig` or `config`
