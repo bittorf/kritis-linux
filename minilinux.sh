@@ -1959,7 +1959,7 @@ EOF
 init_meshack()
 {
 	cat <<EOF
-# hack for MES:
+# hack for MES / https://github.com/fosslinux/live-bootstrap:
 test -f init.user && busybox sleep 2 && AUTO=true ./init.user	# wait for dmesg-trash
 
 EOF
@@ -2013,7 +2013,8 @@ has_arg 'icmptunnel' && install_icmptunnel
 
 	test -f "$MYINIT" && mv -v "$MYINIT" 'init'
 
-	test -f 'run-amd64.sh' && {		# FIXME! is a hack for MES
+	# FIXME! is a hack for https://github.com/bittorf/GNU-mes-documentation-attempt
+	test -f 'run-amd64.sh' && {
 		mv 'run-amd64.sh' init.user
 		rm -fR sys usr sbin etc root proc
 		rm -f "LICENSE" "README.md" kernel.bin initramfs.cpio.gz initrd.xz
