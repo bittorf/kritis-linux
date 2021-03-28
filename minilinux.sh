@@ -1004,6 +1004,7 @@ EOF
 		i686)
 			case "$MEM" in
 				*G|[0-9][0-9][0-9][0-9]*)
+					# e.g. 3.5G or 500M
 					echo 'CONFIG_HIGHMEM=y'
 					echo 'CONFIG_HIGHMEM4G=y'
 				;;
@@ -2536,14 +2537,14 @@ QEMU_OPTIONS=
 KERNEL_ARGS='console=ttyS0'
 [ -z "\$PATTERN" ] && PATTERN="<hopefully_this_pattern_will_never_match>"
 
-grep -q svm /proc/cpuinfo && KVM_SUPPORT='-enable-kvm -cpu host'
-grep -q vmx /proc/cpuinfo && KVM_SUPPORT='-enable-kvm -cpu host'
+grep -q svm /proc/cpuinfo && KVM_SUPPORT='-enable-kvm'
+grep -q vmx /proc/cpuinfo && KVM_SUPPORT='-enable-kvm'
 $( test -n "$NOKVM" && echo 'KVM_SUPPORT=' )
 [ -n "\$KVM_SUPPORT" ] && test "\$( id -u )" -gt 0 && KVM_PRE="\$( command -v sudo )"
 
 $( has_arg 'net' && echo "QEMU_OPTIONS='-net nic,model=rtl8139 -net user'" )
 
-case "${DSTARCH:-\$( arch || echo native )}" in
+case "$DSTARCH" in
 	armel|armhf|arm|arm64)
 		QEMU_OPTIONS=	# FIXME! add proper: -net nic,model=XXX -net user
 		DTB='$DTB'
@@ -2564,6 +2565,16 @@ case "${DSTARCH:-\$( arch || echo native )}" in
 		QEMU="$( basename "$KERNEL_FILE" )"	# for later kill
 		KVM_PRE=				# sudo unneeded?
 		$( test -x "$SLIRP_BIN" && echo "		UMLNET='eth0=slirp,FE:FD:01:02:03:04,$SLIRP_BIN'" )
+	;;
+	x86|x86_64*)
+		if [ -n "$QEMUCPU" ]; then
+			case "$DSTARCH" in
+				x86) KVM_SUPPORT="\$KVM_SUPPORT -machine microvm -cpu $QEMUCPU" ;;
+				*64) KVM_SUPPORT="\$KVM_SUPPORT -machine microvm -cpu $QEMUCPU" ;;
+			esac
+		else
+			KVM_SUPPORT="\$KVM_SUPPORT -cpu host"
+		fi
 	;;
 esac
 
