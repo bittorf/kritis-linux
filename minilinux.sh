@@ -253,8 +253,13 @@ case "$DSTARCH" in
 		OPTIONS="$OPTIONS 32bit"
 		export DEFCONFIG='tinyconfig' QEMU='qemu-system-i386'
 		export ARCH='ARCH=i386'
-		# install_dep 'gcc-i686-linux-gnu' && export CROSSCOMPILE='CROSS_COMPILE=i686-linux-gnu-'
-		CROSS_DL="https://musl.cc/i686-linux-musl-cross.tgz"
+
+		if [ "$QEMUCPU" = 486 ]; then
+			CROSS_DL="https://musl.cc/i486-linux-musl-cross.tgz"
+		else
+			# install_dep 'gcc-i686-linux-gnu' && export CROSSCOMPILE='CROSS_COMPILE=i686-linux-gnu-'
+			CROSS_DL="https://musl.cc/i686-linux-musl-cross.tgz"
+		fi
 	;;
 	x86_64|*)
 		DSTARCH='x86_64'
@@ -899,7 +904,7 @@ list_kernel_symbols()
 		;;
 		*)
 			if   [ "$DSTARCH" = 'i686' ]; then
-				echo 'CONFIG_M486=y'
+				[ "$QEMUCPU" = 486 ] && echo 'CONFIG_M486=y'
 				echo '# CONFIG_64BIT is not set'
 			elif has_arg '32bit'; then
 				echo '# CONFIG_64BIT is not set'
