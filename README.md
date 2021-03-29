@@ -221,4 +221,12 @@ user@box:~/live-bootstrap$ mv "$SYSA/init" "$SYSA/init.user"
 
 user@box:~/kritis-linux$ KEEP_LIST='/bin/busybox /usr/bin/setsid /bin/cttyhack /bin/mount /bin/ash /bin/wget' \
                          INITRD_DIR_ADD=$SYSA MEM=4G QEMUCPU=486 DSTARCH=i386 ./minilinux.sh 3.18.140 busybox procfs sysfs printk net
+
+# let live-bootstrap run until end or error / see e.g. sysa/run.sh
+# cd after && set -x && . ./helpers
+# build automake-1.6.3 stage1.sh
+#
+# or e.g.:
+# /bin/busybox vi automake-1.6.3/stage1.sh
+# bash -c 'export PREFIX=/after; set -e; set -x; . helpers.sh; build automake-1.6.3 stage1.sh'
 ```
