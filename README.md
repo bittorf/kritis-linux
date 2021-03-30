@@ -71,7 +71,7 @@ kritis-linux/ci_helper.sh \
   * e.g. `printk`,`sysfs`,`procfs`,`hostfs`,`kexec`
   * e.g. `menuconfig`,`kmenuconfig`,`speedup`
   * e.g. `net`,`wireguard`,`dropbear`,`iodine`,`icmptunnel`
-  * e.g. `tinyconfig` or `allnoconfig` or `defconfig` or `config`
+  * e.g. `tinyconfig`,`allnoconfig`,`defconfig`,`config`,`noconfigtweaks`
   * e.g. `CONFIG_SYMBOL_XY=y`
 * `--log` /path/to/filename
 * `--logtime false` for disabling timestamps

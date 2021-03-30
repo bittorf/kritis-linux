@@ -894,8 +894,24 @@ checksum()			# e.g. checksum 'file' plain
 	fi
 }
 
+list_kernel_symbols_userwish()
+{
+	# FIXME! spaces are not working
+	# we can overload CONFIG_SYMBOLS via ARGS
+	for _ in $OPTIONS; do {
+		case "$_" in
+			CONFIG_*) echo "$_" ;;
+		esac
+	} done
+}
+
 list_kernel_symbols()
 {
+	has_arg 'noconfigtweaks' && {
+		list_kernel_symbols_userwish
+		return 0
+	}
+
 	case "$DSTARCH" in
 		armel|armhf)
 			echo '# CONFIG_64BIT is not set'
@@ -1118,14 +1134,7 @@ EOF
 	# CONFIG_HAVE_KERNEL_XZ=y
 	# CONFIG_KERNEL_XZ=y
 
-	# FIXME! spaces are not working
-	# we can overload CONFIG_SYMBOLS via ARGS
-	for _ in $OPTIONS; do {
-		case "$_" in
-			CONFIG_*) echo "$_" ;;
-		esac
-	} done
-
+	list_kernel_symbols_userwish
 	true
 }
 
