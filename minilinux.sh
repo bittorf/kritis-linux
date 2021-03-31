@@ -1044,6 +1044,8 @@ EOF
 		i686|x86_64)
 			# support 16bit or segmented code (e.g. DOSEMU)
 			echo 'CONFIG_MODIFY_LDT_SYSCALL=y'
+			# enables legacy 16-bit UID syscall wrappers
+			echo 'CONFIG_UID16=y'
 		;;
 	esac
 
