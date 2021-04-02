@@ -1125,12 +1125,13 @@ EOF
 
 	has_arg 'speedup' && {
 		echo 'CONFIG_BASE_FULL=y'
-		echo 'CONFIG_COMPAT_BRK=y'	# disable head randomization ~500 bytes smaller
+		echo 'CONFIG_COMPAT_BRK=y'	# disable heap randomization ~500 bytes smaller
 		echo 'CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y'
 		echo 'CONFIG_FUTEX=y'
 	}
 
 	has_arg 'kexec' && echo 'CONFIG_KEXEC=y'	# +20k uncompressed on x84_64
+	has_arg 'flock' && echo 'CONFIG_FILE_LOCKING=y'	# +11k uncompressed on x84_64
 
 	# enforce kernel compression mode?:
 	# CONFIG_HAVE_KERNEL_XZ=y
