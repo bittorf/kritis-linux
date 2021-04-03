@@ -27,10 +27,10 @@ while [ -n "$1" ]; do {
 } done
 
 # support relative and absolute paths:
-[ -d "$(pwd)/$INITRD_DIR_ADD" ] && INITRD_DIR_ADD="$(pwd)/$INITRD_DIR_ADD"
-[ -f "$(pwd)/$OWN_INITRD" ] && OWN_INITRD="$(pwd)/$OWN_INITRD"
-[ -f "$(pwd)/$OWN_CONFIG" ] && OWN_CONFIG="$(pwd)/$OWN_CONFIG"
-[ -f "$(pwd)/$MYINIT" ] && MYINIT="$(pwd)/$MYINIT"
+[ -d "$PWD/$INITRD_DIR_ADD" ] && INITRD_DIR_ADD="$PWD/$INITRD_DIR_ADD"
+[ -f "$PWD/$OWN_INITRD" ] && OWN_INITRD="$PWD/$OWN_INITRD"
+[ -f "$PWD/$OWN_CONFIG" ] && OWN_CONFIG="$PWD/$OWN_CONFIG"
+[ -f "$PWD/$MYINIT" ] && MYINIT="$PWD/$MYINIT"
 
 [ -d "${GITDIR:=.git}" ] && {
 	[ "$GIT_REPONAME"  ] || GIT_REPONAME="$( basename "$( cd "$GITDIR" && git rev-parse --show-toplevel )" )"

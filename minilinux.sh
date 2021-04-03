@@ -107,7 +107,7 @@ emit_doc()
 			echo "# see: '$file'"
 		;;
 		*)
-			context="$( basename "$( pwd )" )"	# e.g. busybox or linux
+			context="$( basename "$PWD" )"	# e.g. busybox or linux
 
 			echo >>"$file" "# doc | $context | $message"
 		;;
@@ -2411,7 +2411,7 @@ if [ -f "$KERNEL_FILE" ]; then
 		*'not stripped'*) $STRIP "$KERNEL_FILE" ;;
 	esac
 else
-	msg_and_die "$?" "no file found: '$KERNEL_FILE' in pwd: $( pwd )"
+	msg_and_die "$?" "no file found: '$KERNEL_FILE' in pwd: $PWD"
 fi
 
 cd .. || exit
@@ -2443,7 +2443,7 @@ case "$DSTARCH" in
 
 		if [ "$DTB" = 'auto' ]; then
 			qemu-system-aarch64 -machine "$BOARD" -cpu max -machine dumpdtb=auto.dtb -nographic
-			DTB="$( pwd )/auto.dtb"
+			DTB="$PWD/auto.dtb"
 		else
 			DTB="$( find "$LINUX_BUILD/" -type f -name "$DTB" )"
 		fi
@@ -2843,7 +2843,7 @@ echo "# uploaded to: $( test "\$LOG_URL" && echo "\$LOG_URL" || echo '(none)')"
 echo "#"
 echo "# you can manually startup again:"
 echo "# \$0"
-echo "# in dir '\$(pwd)'"
+echo "# in dir '\$PWD'"
 echo
 
 echo "will now stop '\$QEMU' with pid '\$PID'" && \$KVM_PRE echo
