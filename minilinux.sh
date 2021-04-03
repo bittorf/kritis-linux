@@ -166,7 +166,8 @@ install_dep()
 is_uml() { false; }
 DSTARCH_CMDLINE="$DSTARCH"
 
-for MARCH in armel armhf arm64 or1k m68k uml uml32 x86 x86_64; do has_arg "$MARCH" && DSTARCH="$MARCH"; done
+# autotranslate for most DSTARCH via feature commandline:
+for MARCH in armel armhf arm64 or1k m68k uml uml32 i386 x86 x86_64 amd64; do has_arg "$MARCH" && DSTARCH="$MARCH"; done
 
 case "$DSTARCH" in
 	armel)	# FIXME! on arm / qemu-system-arm / we should switch to qemu -M virt without DTB and smaller config
@@ -261,7 +262,7 @@ case "$DSTARCH" in
 			CROSS_DL="https://musl.cc/i686-linux-musl-cross.tgz"
 		fi
 	;;
-	x86_64|*)
+	x86_64|amd64|*)
 		DSTARCH='x86_64'
 		# export ARCH='ARCH=x86_64'		# TODO: keep native arch?
 		export DEFCONFIG='tinyconfig'
