@@ -2,7 +2,7 @@
 
 while [ -n "$1" ]; do {
 	case "$1" in
-		--features) export FEATURES="$2" ;;	# e.g. busybox,toybox,net,xyz,foo
+		--feature*) export FEATURES="$2" ;;	# e.g. busybox,toybox,net,xyz,foo
 		--pattern) WAIT_PATTERN="$2" ;;		# e.g. '# unittest ok'
 		--maxwait) WAIT_SECONDS="$2" ;;		# e.g. 600 (default is 120)
 		--logtime) export LOGTIME="$2" ;;	# e.g. false (default is true)
