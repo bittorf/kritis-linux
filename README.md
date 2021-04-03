@@ -67,10 +67,10 @@ kritis-linux/ci_helper.sh \
 * `--arch x86_64` or `i386`,`uml`,`uml32`,`armel`,`armhf`,`arm64`,`m68k`,`or1k` (more planned)
 * `--clib glibc` or `musl`,`dietlibc`
 * `--features` `is,a,comma,separated,list`
-  * e.g. `busybox`,`toybox`,`dash`,`bash`
-  * e.g. `printk`,`sysfs`,`procfs`,`hostfs`,`kexec`
-  * e.g. `menuconfig`,`kmenuconfig`,`speedup`
-  * e.g. `net`,`wireguard`,`dropbear`,`iodine`,`icmptunnel`
+  * e.g. apps: `busybox`,`toybox`,`dash`,`bash`
+  * e.g. apps: `dropbear`,`wireguard`,`iodine`,`icmptunnel`
+  * e.g. `printk`,`sysfs`,`procfs`,`hostfs`,`kexec`,`kflock`
+  * e.g. `menuconfig`,`kmenuconfig`,`speedup`,`net`
   * e.g. `tinyconfig`,`allnoconfig`,`defconfig`,`config`,`noconfigtweaks`
   * e.g. `CONFIG_SYMBOL_XY=y`
 * `--log` /path/to/filename
@@ -220,7 +220,7 @@ user@box:~/live-bootstrap$ rm "$SYSA/initramfs.igz"
 user@box:~/live-bootstrap$ mv "$SYSA/init" "$SYSA/init.user"
 
 user@box:~/kritis-linux$ KEEP_LIST='/bin/busybox /usr/bin/setsid /bin/cttyhack /bin/mount /bin/ash /bin/wget' \
-                         INITRD_DIR_ADD=$SYSA MEM=4G QEMUCPU=486 DSTARCH=i386 ./minilinux.sh 3.18.140 busybox procfs sysfs printk net
+                         INITRD_DIR_ADD=$SYSA MEM=4G QEMUCPU=486 DSTARCH=i386 ./minilinux.sh 3.18.140 busybox procfs sysfs printk kflock
 
 # let live-bootstrap run until end or error / see e.g. sysa/run.sh
 # cd /after && set -x && . ./helpers.sh

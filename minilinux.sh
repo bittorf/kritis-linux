@@ -1130,8 +1130,8 @@ EOF
 		echo 'CONFIG_FUTEX=y'
 	}
 
-	has_arg 'kexec' && echo 'CONFIG_KEXEC=y'	# +20k uncompressed on x84_64
-	has_arg 'flock' && echo 'CONFIG_FILE_LOCKING=y'	# +11k uncompressed on x84_64
+	has_arg 'kexec' && echo 'CONFIG_KEXEC=y'		# +20k uncompressed on x84_64
+	has_arg 'kflock' && echo 'CONFIG_FILE_LOCKING=y'	# +11k uncompressed on x84_64
 
 	# enforce kernel compression mode?:
 	# CONFIG_HAVE_KERNEL_XZ=y
