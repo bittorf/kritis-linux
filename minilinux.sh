@@ -2806,6 +2806,7 @@ while [ \$I -gt 0 ]; do {
 	esac
 } done
 
+test "$QEMUCPU" = 486 && DSTARCH=i386
 export FILENAME_OFFER='log_${GIT_USERNAME}_${GIT_REPONAME}_${GIT_BRANCH}_${GIT_SHORTHASH}_${DSTARCH}_kernel${KERNEL_VERSION}.txt'
 
 [ -s "\$LOG" ] && {
