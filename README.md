@@ -223,19 +223,22 @@ user@box:~/kritis-linux$ KEEP_LIST='/bin/busybox /usr/bin/setsid /bin/cttyhack /
                          INITRD_DIR_ADD=$SYSA MEM=4G QEMUCPU=486 DSTARCH=i386 ./minilinux.sh 3.18.140 busybox procfs sysfs printk kflock
 
 # let live-bootstrap run until end or error / see e.g. sysa/run.sh
-# cd /after && set -x && . ./helpers.sh
-# build automake-1.6.3 stage1.sh
-#
+cd /after && set -x && . ./helpers.sh
+build automake-1.6.3 stage1.sh
+
 # or e.g.:
-# /bin/busybox vi automake-1.6.3/stage1.sh
-# bash -c 'export PREFIX=/after; set -e; set -x; . helpers.sh; build automake-1.6.3 stage1.sh'
-#
+/bin/busybox vi automake-1.6.3/stage1.sh
+bash -c 'export PREFIX=/after; set -e; set -x; . helpers.sh; build automake-1.6.3 stage1.sh'
+
 # export binaries without networking using bas64:
 # screen: CTRL+A : scrollback 99999
-# echo "markerABC"
-# /bin/busybox base64 /after/bin/bash
-# echo "markerXYZ"
+echo "markerABC"
+/bin/busybox base64 /after/bin/bash
+echo "markerXYZ"
 # screen: CTRL+A hardcopy -h /tmp/foo
 #
-# extract with: sed -n '/markerABC$/,/markerXYZ/p' | base64 -d >mybin
+# extract with:
+sed -n '/markerABC$/,/markerXYZ/p' | base64 -d >mybin
+
+# and check: grep 'sha256sum: WARNING:' $LOG
 ```
