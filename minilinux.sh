@@ -33,12 +33,16 @@ export LC_ALL=C
 export STORAGE="/tmp/storage"
 mkdir -p "$STORAGE" && log "[OK] cache/storage is here: '$STORAGE'"
 
+# e.g. CPUINFO="24 @ Intel(R) Xeon(R) CPU X5680 @ 3.33GHz"
+# shellcheck disable=SC2046
+test -e /proc/cpuinfo && set -- $( grep ^'model name' /proc/cpuinfo | head -n1 ); shift 3; CPUINFO="$*"
+
 # needed for parallel build:
 NPROC="$( nproc || sysctl -n hw.ncpu || lsconf | grep -c 'proc[0-9]' )"
 [ -z "$CPU" ] && CPU="$NPROC"
 [ "${CPU:-0}" -lt 1 ] && CPU=1
 [ "$CPU" = 1 ] && DEBUG=true
-log "[OK] parallel build with -j$CPU"
+log "[OK] parallel build with -j$CPU on $CPUINFO"
 
 # change from comma to space delimited list
 OPTIONS="$OPTIONS $( echo "$FEATURES" | tr ',' ' ' ) $( test -n "$DEBUG" && echo 'debug' )"
@@ -651,8 +655,7 @@ case "$KERNEL" in
 			echo "debug: build $I images in $T seconds = $(( T / I )) sec/image @ $( LC_ALL=C date )"
 			echo "uname: $( uname -a )"
 
-			# shellcheck disable=SC2046,SC2048
-			echo "nproc/cpu: $NPROC @ $( set -- $( grep ^"model name" /proc/cpuinfo | head -n1 ); shift 3; echo "$*" )"
+			echo "nproc/cpu: $NPROC @ $CPUINFO"
 			echo "$( test -f load.txt && printf '\n%s' 'load-1min during build each 10 sec:' && cat load.txt )</pre>"
 			echo "<br><pre># generated with: $0 smoketest_report_html</pre></html>"
 		}
@@ -2519,6 +2522,7 @@ MAX="\${3:-86400}"	# max running time [seconds] in autotest-mode
 # generated: $( date )
 #
 # BUILDTIME: $(( $( date +%s ) - UNIX0 )) sec
+# CPUINFO: $NPROC @ $CPUINFO
 # DISKSPACE: $DISKSPACE
 # ARCHITECTURE: ${DSTARCH:-default} / ${ARCH:-default}
 # COMPILER: ${CROSSCOMPILE:-cc} | $CC_VERSION
