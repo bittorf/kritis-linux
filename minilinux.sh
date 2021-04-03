@@ -2810,6 +2810,11 @@ test "$QEMUCPU" = 486 && DSTARCH=i386
 export FILENAME_OFFER='log_${GIT_USERNAME}_${GIT_REPONAME}_${GIT_BRANCH}_${GIT_SHORTHASH}_${DSTARCH}_kernel${KERNEL_VERSION}.txt'
 
 [ -s "\$LOG" ] && {
+	LOG_URL="\$( command -v 'curl' >/dev/null && test \$MAX -gt 20 && curl -m 30 -F"file=@\$LOG" https://ttm.sh )"
+	LOGLINES="\$( wc -l <"\$LOG" )"
+	LOGSIZE="\$(  wc -c <"\$LOG" )"
+	LOGINFO="(\$LOGLINES lines, \$LOGSIZE bytes) "
+
 	{
 		echo
 		echo "# exit with RC:\$RC"
@@ -2825,11 +2830,6 @@ export FILENAME_OFFER='log_${GIT_USERNAME}_${GIT_REPONAME}_${GIT_BRANCH}_${GIT_S
 		echo "# thanks for using:"
 		echo "# https://github.com/bittorf/kritis-linux"
 	} >>"\$LOG"
-
-	LOG_URL="\$( command -v 'curl' >/dev/null && test \$MAX -gt 5 && curl -m 5 -F"file=@\$LOG" https://ttm.sh )"
-	LOGLINES="\$( wc -l <"\$LOG" )"
-	LOGSIZE="\$(  wc -c <"\$LOG" )"
-	LOGINFO="(\$LOGLINES lines, \$LOGSIZE bytes) "
 }
 
 echo
