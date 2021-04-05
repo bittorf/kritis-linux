@@ -54,4 +54,12 @@ grep ^'#' minilinux/builds/linux/run.sh && echo
 echo "[OK] generated 'minilinux/builds/linux/run.sh', and run it in autotest-mode,"
 echo "     waiting max. ${WAIT_SECONDS:-<unlimited>} sec for pattern '${WAIT_PATTERN:-<no pattern set>}'"
 
-minilinux/builds/linux/run.sh autotest "$WAIT_PATTERN" "$WAIT_SECONDS"
+if [ -n "$MULTI" ]; then
+	MULTI_LOG="$LOG"
+	while [ "$MULTI" -gt 0 ]; do
+		( LOG="$MULTI_LOG-$MULTI" minilinux/builds/linux/run.sh autotest "$WAIT_PATTERN" "$WAIT_SECONDS" ) &
+		MULTI=$(( MULTI - 1 ))
+	done
+else
+	minilinux/builds/linux/run.sh autotest "$WAIT_PATTERN" "$WAIT_SECONDS"
+fi
