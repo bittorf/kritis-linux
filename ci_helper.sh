@@ -11,6 +11,7 @@ while [ -n "$1" ]; do {
 		--diradd) export INITRD_DIR_ADD="$2" ;;	# e.g. '/path/to/my/files' or e.g. simply "$(pwd)"
 		--initrd) export OWN_INITRD="$2" ;;	# e.g. '/path/to/myinit.tgz'
 		--kernel) LINUX_VERSION="$2" ;;		# e.g. 'latest' (=default) or '5.4.89' or an URL to .tgz/.xz
+		--private) export PRIVATE='true' ;;	# makes copy of kernel/initrd, useful in combination with 'MULTI'
 		--fakeid) export FAKEID="$2" ;;		# e.g. 'foo@bar.baz'
 		--ttypass) export TTYPASS="$2" ;;	# e.g. 'golf2'
 		--sshpass) export SSHPASS="$2" ;;	# e.g. 'golf3'
@@ -19,6 +20,7 @@ while [ -n "$1" ]; do {
 		--kconfig) export OWN_KCONFIG="$2" ;;	# e.g. '/path/to/.config'
 		--myinit) export MYINIT="$2" ;;		# e.g. 'my_file.sh' (relative to diradd-path)
 		--nokvm) export NOKVM='true' ;;
+		--multi) export MULTI="$2" ;;		# e.g. 32
 		--debug) export DEBUG="$2" ;;		# e.g. true
 		--keep) export KEEP_LIST="$2" ;;	# e.g. '/bin/busybox /bin/sh /bin/cat' 
 		--arch) export DSTARCH="$2" ;;		# e.g. one of i386,x86_64,armel,armhf,arm64,mips,m68k,or1k (default is x86_64)

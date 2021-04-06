@@ -2519,6 +2519,16 @@ MAX="\${3:-86400}"	# max running time [seconds] in autotest-mode
 [ -z "\$LOGTIME" ] && LOGTIME=true
 [ -z "\$QEMU" ] && QEMU="${QEMU:-qemu-system-i386}"
 
+[ -n "$PRIVATE" ] && {
+	F1="$( mktemp )" || exit 1
+	F2="$( mktemp )" || exit 1
+	cp -v "$KERNEL_FILE" "\$F1" && KERNEL_FILE="\$F1"
+	cp -v "$INITRD_FILE" "\$F2" && INITRD_FILE="\$F2"
+
+	cleanup() { rm -f "\$F1" "\$F2"; }
+	trap cleanup EXIT SIGINT
+}
+
 # generated: $( date )
 #
 # BUILDTIME: $(( $( date +%s ) - UNIX0 )) sec
