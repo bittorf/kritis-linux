@@ -2519,15 +2519,18 @@ MAX="\${3:-86400}"	# max running time [seconds] in autotest-mode
 [ -z "\$LOGTIME" ] && LOGTIME=true
 [ -z "\$QEMU" ] && QEMU="${QEMU:-qemu-system-i386}"
 
-[ -n "$PRIVATE" ] && {
-	F1="$( mktemp )" || exit 1
-	F2="$( mktemp )" || exit 1
+if [ -n "$PRIVATE" ]; then
+	F1="\$( mktemp )" || exit 1
+	F2="\$( mktemp )" || exit 1
 	cp -v "$KERNEL_FILE" "\$F1" && KERNEL_FILE="\$F1"
 	cp -v "$INITRD_FILE" "\$F2" && INITRD_FILE="\$F2"
 
 	cleanup() { rm -f "\$F1" "\$F2"; }
 	trap cleanup EXIT SIGINT
-}
+else
+	KERNEL_FILE="$KERNEL_FILE"
+	INITRD_FILE="$INITRD_FILE"
+fi
 
 # generated: $( date )
 #
@@ -2603,7 +2606,7 @@ case "$DSTARCH" in
 		KVM_SUPPORT="-M $BOARD \${DTB:+-dtb }\$DTB -cpu or1200"
 	;;
 	uml*)
-		QEMU="$( basename "$KERNEL_FILE" )"	# for later kill
+		QEMU="\$( basename "\$KERNEL_FILE" )"	# for later kill
 		KVM_PRE=				# sudo unneeded?
 		$( test -x "$SLIRP_BIN" && echo "		UMLNET='eth0=slirp,FE:FD:01:02:03:04,$SLIRP_BIN'" )
 	;;
@@ -2638,9 +2641,9 @@ case "\$ACTION" in
 				export TMPDIR="\$DIR"
 
 				if [ -n "$EMBED_CMDLINE" ]; then	# embedded commandline:
-					$KERNEL_FILE
+					\$KERNEL_FILE
 				else
-					$KERNEL_FILE mem=\$MEM \$UMLNET $( test -n "$ONEFILE" || echo "initrd=$INITRD_FILE" )
+					\$KERNEL_FILE mem=\$MEM \$UMLNET $( test -n "$ONEFILE" || echo "initrd=\$INITRD_FILE" )
 				fi
 
 				rm -fR "\$DIR"
@@ -2650,8 +2653,8 @@ case "\$ACTION" in
 				echo
 
 				\$KVM_PRE \$QEMU -m \$MEM \$KVM_SUPPORT \$BIOS \\
-					-kernel $KERNEL_FILE \\
-					$( test -n "$ONEFILE" || echo "-initrd $INITRD_FILE" ) \\
+					-kernel \$KERNEL_FILE \\
+					$( test -n "$ONEFILE" || echo "-initrd \$INITRD_FILE" ) \\
 					-nographic \\
 					-append "\$KERNEL_ARGS" \$QEMU_OPTIONS && set +x
 			;;
@@ -2684,10 +2687,10 @@ mkfifo "\$PIPE.out" || exit
 			export TMPDIR="\$UMLDIR"
 
 			if [ -n "$EMBED_CMDLINE" ]; then	# test for EMBED_CMDLINE
-				$KERNEL_FILE
+				\$KERNEL_FILE
 			else
-				$KERNEL_FILE uml_dir="\$UMLDIR" mem=\$MEM \$UMLNET \\
-					$( test -n "$ONEFILE" || echo "initrd=$INITRD_FILE" ) >"\$PIPE.out" 2>&1
+				\$KERNEL_FILE uml_dir="\$UMLDIR" mem=\$MEM \$UMLNET \\
+					$( test -n "$ONEFILE" || echo "initrd=\$INITRD_FILE" ) >"\$PIPE.out" 2>&1
 			fi
 
 			rm -fR "\$UMLDIR"
@@ -2698,8 +2701,8 @@ mkfifo "\$PIPE.out" || exit
 
 			# code must be duplicated, see below in LOG
 			\$KVM_PRE \$QEMU -m \$MEM \$KVM_SUPPORT \$BIOS \\
-				-kernel $KERNEL_FILE \\
-				$( test -n "$ONEFILE" || echo "-initrd $INITRD_FILE" ) \\
+				-kernel \$KERNEL_FILE \\
+				$( test -n "$ONEFILE" || echo "-initrd \$INITRD_FILE" ) \\
 				-nographic \\
 				-serial pipe:\$PIPE \\
 				-append "\$KERNEL_ARGS" \$QEMU_OPTIONS -pidfile "\$PIDFILE"
@@ -2742,13 +2745,13 @@ test -n "\$PID" || echo "# ERROR: no PIDFILE or QEMU/uml-vmlinux already stopped
 
 	case "$DSTARCH" in
 		uml*)
-			echo "$KERNEL_FILE uml_dir=\$UMLDIR mem=\$MEM \$UMLNET $( test -n "$ONEFILE" || echo "initrd=$INITRD_FILE" )"
+			echo "\$KERNEL_FILE uml_dir=\$UMLDIR mem=\$MEM \$UMLNET $( test -n "$ONEFILE" || echo "initrd=\$INITRD_FILE" )"
 		;;
 		*)
 			# code duplication from above real startup:
 			echo "\$KVM_PRE \$QEMU -m \$MEM \$KVM_SUPPORT \$BIOS \\\\"
-			echo "	-kernel $KERNEL_FILE \\\\"
-			echo "	$( test -n "$ONEFILE" || echo "-initrd $INITRD_FILE" ) \\\\"
+			echo "	-kernel \$KERNEL_FILE \\\\"
+			echo "	$( test -n "$ONEFILE" || echo "-initrd \$INITRD_FILE" ) \\\\"
 			echo "	-nographic \\\\"
 			echo "	-append \"\$KERNEL_ARGS\" \$QEMU_OPTIONS -pidfile \"\$PIDFILE\""
 		;;
