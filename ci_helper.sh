@@ -57,11 +57,27 @@ echo "[OK] generated 'minilinux/builds/linux/run.sh', and run it in autotest-mod
 echo "     waiting max. ${WAIT_SECONDS:-<unlimited>} sec for pattern '${WAIT_PATTERN:-<no pattern set>}'"
 
 if [ -n "$MULTI" ]; then
+	UNIX1="$( date +%s )"
 	MULTI_LOG="$LOG"
+	count() { find "$( basename "$LOG" )" -type f -name '*-multilog-*.running' -printf '.' | wc -c; }
+
 	while [ "$MULTI" -gt 0 ]; do
-		( LOG="$MULTI_LOG-$MULTI" minilinux/builds/linux/run.sh autotest "$WAIT_PATTERN" "$WAIT_SECONDS" ) &
+		(
+			export LOG="${MULTI_LOG}-multilog-${MULTI}"
+			touch "$LOG.running"
+			minilinux/builds/linux/run.sh autotest "$WAIT_PATTERN" "$WAIT_SECONDS" 2>&1
+			rm "$LOG.running"
+			echo "[OK] job ready: $LOG"
+		) &
 		MULTI=$(( MULTI - 1 ))
 	done
+
+	while C="$( count )"; test "$C" -ne 0; do {
+		echo "[OK] still $C jobs running"
+	} done
+
+	UNIX2="$( date +%s )"
+	echo "[OK] lasts $(( UNIX2 - UNIX1 )) seconds"
 else
 	minilinux/builds/linux/run.sh autotest "$WAIT_PATTERN" "$WAIT_SECONDS"
 fi
