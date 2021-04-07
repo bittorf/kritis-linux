@@ -62,12 +62,12 @@ while [ ${REPEAT:=1} -ne 0 ]; do {
 
 	if [ -n "$MULTI" ]; then
 		UNIX1="$( date +%s )"
-		MULTI_LOG="$LOG"
+		MULTI_LOG="${LOG:-$( mktemp )}"
 		count() { find "$( basename "$LOG" )" -type f -name '*-multilog-*.running' -printf '.' | wc -c; }
 
 		while [ "$MULTI" -gt 0 ]; do
 			(
-				export LOG="${MULTI_LOG}-multilog-${MULTI}"
+				export LOG="${MULTI_LOG}-multilog-${MULTI}-$UNIX1"
 				touch "$LOG.running"
 				minilinux/builds/linux/run.sh autotest "$WAIT_PATTERN" "$WAIT_SECONDS" 2>&1
 				rm "$LOG.running"
