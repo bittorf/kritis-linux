@@ -20,7 +20,8 @@ while [ -n "$1" ]; do {
 		--kconfig) export OWN_KCONFIG="$2" ;;	# e.g. '/path/to/.config'
 		--myinit) export MYINIT="$2" ;;		# e.g. 'my_file.sh' (relative to diradd-path)
 		--nokvm) export NOKVM='true' ;;
-		--multi) export MULTI="$2" ;;		# e.g. 32
+		--repeat) export REPEAT="$2" ;;		# e.g. 6 (how often MULTI runs)
+		--multi) export MULTI="$2" ;;		# e.g. 32 (parallel invocations of some kernel/initrd)
 		--debug) export DEBUG="$2" ;;		# e.g. true
 		--keep) export KEEP_LIST="$2" ;;	# e.g. '/bin/busybox /bin/sh /bin/cat' 
 		--arch) export DSTARCH="$2" ;;		# e.g. one of i386,x86_64,armel,armhf,arm64,mips,m68k,or1k (default is x86_64)
@@ -56,6 +57,9 @@ grep ^'#' minilinux/builds/linux/run.sh && echo
 echo "[OK] generated 'minilinux/builds/linux/run.sh', and run it in autotest-mode,"
 echo "     waiting max. ${WAIT_SECONDS:-<unlimited>} sec for pattern '${WAIT_PATTERN:-<no pattern set>}'"
 
+while [ ${REPEAT:=1} -ne 0 ]; do {
+	REPEAT=$(( REPEAT - 1 ))
+
 if [ -n "$MULTI" ]; then
 	UNIX1="$( date +%s )"
 	MULTI_LOG="$LOG"
@@ -81,3 +85,4 @@ if [ -n "$MULTI" ]; then
 else
 	minilinux/builds/linux/run.sh autotest "$WAIT_PATTERN" "$WAIT_SECONDS"
 fi
+} done
