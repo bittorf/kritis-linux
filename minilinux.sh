@@ -1141,6 +1141,7 @@ EOF
 	}
 
 	has_arg 'highrestimers' && {
+		echo 'CONFIG_HIGH_RES_TIMERS=y'
 		echo 'CONFIG_SCHED_HRTICK=y'
 		echo 'CONFIG_HZ_100=y'
 	}
