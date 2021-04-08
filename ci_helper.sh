@@ -56,14 +56,19 @@ fi
 grep ^'#' minilinux/builds/linux/run.sh && echo
 echo "[OK] generated 'minilinux/builds/linux/run.sh', and run it in autotest-mode,"
 echo "     waiting max. ${WAIT_SECONDS:-<unlimited>} sec for pattern '${WAIT_PATTERN:-<no pattern set>}'"
+echo "     repeat: ${REPEAT:=1} multi: ${MULTI:--}"
 
-while [ ${REPEAT:=1} -ne 0 ]; do {
+R="$REPEAT"
+M="$MULTI"
+K=0
+
+while [ $REPEAT -gt 0 ]; do {
 	REPEAT=$(( REPEAT - 1 ))
 
 	if [ -n "$MULTI" ]; then
 		UNIX1="$( date +%s )"
 		MULTI_LOG="${LOG:-$( mktemp )}"
-		count() { find "$( basename "$LOG" )" -type f -name '*-multilog-*.running' -printf '.' | wc -c; }
+		count() { find "$( dirname "$LOG" )" -type f -name '*-multilog-*.running' -printf '.' 2>/dev/null | wc -c; }
 
 		while [ "$MULTI" -gt 0 ]; do
 			(
@@ -74,14 +79,17 @@ while [ ${REPEAT:=1} -ne 0 ]; do {
 				echo "[OK] job ready: $LOG"
 			) &
 			MULTI=$(( MULTI - 1 ))
+			K=$(( K + 1 ))
 		done
 
 		while C="$( count )"; test "$C" -ne 0; do {
-			echo "[OK] still $C jobs running"
+			echo "[OK] still $C/$M jobs running, repeat $REPEAT/$R, overall runs: $K"
+			sleep 15
 		} done
 
+		MULTI="$M"
 		UNIX2="$( date +%s )"
-		echo "[OK] lasts $(( UNIX2 - UNIX1 )) seconds"
+		echo "[OK] lasts $(( UNIX2 - UNIX1 )) seconds, repeat: $REPEAT overall runs: $K"
 	else
 		minilinux/builds/linux/run.sh autotest "$WAIT_PATTERN" "$WAIT_SECONDS"
 	fi
