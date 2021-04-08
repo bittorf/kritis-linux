@@ -1046,6 +1046,12 @@ EOF
 
 	case "$DSTARCH" in
 		i686|x86_64)
+			# TODO: CONFIG_X86_16BIT=y
+			# This option is required by programs like Wine to
+			# run 16-bit protected mode legacy code on x86 processors.
+			# Disabling this option saves about 300 bytes on i386,
+			# or around 6K text plus 16K runtime memory on x86-64,
+
 			# support 16bit or segmented code (e.g. DOSEMU)
 			echo 'CONFIG_MODIFY_LDT_SYSCALL=y'
 			# enables legacy 16-bit UID syscall wrappers
@@ -1132,6 +1138,11 @@ EOF
 		echo 'CONFIG_COMPAT_BRK=y'	# disable heap randomization ~500 bytes smaller
 		echo 'CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y'
 		echo 'CONFIG_FUTEX=y'
+	}
+
+	has_arg 'highrestimers' && {
+		echo 'CONFIG_SCHED_HRTICK=y'
+		echo 'CONFIG_HZ_100=y'
 	}
 
 	has_arg 'kexec' && echo 'CONFIG_KEXEC=y'		# +20k uncompressed on x84_64
