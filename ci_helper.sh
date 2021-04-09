@@ -74,7 +74,7 @@ while [ $REPEAT -gt 0 ]; do {
 			(
 				export LOG="${MULTI_LOG}-multilog-${MULTI}-$UNIX1"
 				touch "$LOG.running"
-				minilinux/builds/linux/run.sh autotest "$WAIT_PATTERN" "$WAIT_SECONDS" 2>&1
+				minilinux/builds/linux/run.sh autotest "$WAIT_PATTERN" "$WAIT_SECONDS" >/dev/null 2>&1
 				rm "$LOG.running"
 				echo "[OK] job ready: $LOG"
 			) &
