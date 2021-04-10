@@ -247,7 +247,11 @@ case "$DSTARCH" in
 		if has_arg '32bit'; then
 			export DSTARCH='uml32'
 			# install_dep 'gcc-i686-linux-gnu' && export CROSSCOMPILE='CROSS_COMPILE=i686-linux-gnu-'
-			CROSS_DL="https://musl.cc/i686-linux-musl-cross.tgz"	# test "$(arch)" != i686 ???
+			if [ "$QEMUCPU" = 486 ]; then
+				CROSS_DL="https://musl.cc/i486-linux-musl-cross.tgz"
+			else
+				CROSS_DL="https://musl.cc/i686-linux-musl-cross.tgz"	# test "$(arch)" != i686 ???
+			fi
 		else
 			export DSTARCH='uml'
 			CROSS_DL="https://musl.cc/x86_64-linux-musl-cross.tgz"
@@ -1533,8 +1537,7 @@ has_arg 'dropbear' && {
 
 		# only newer versions understand 'ecdsa'
 		if dropbearkey -t ecdsa -f "$key_ecdsa"; then
-			dropbearkey -t ecdsa -f "$key_ecdsa"	|| exit
-			dropbearkey -t rsa   -f "$key_rsa"	|| exit
+			dropbearkey -t rsa   -f "$key_rsa" || exit
 		else
 			printf '%s\n%s\n%s\n' \
 				'AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBKlmAMA3qxEe8UgUTnuI' \
@@ -2531,7 +2534,7 @@ MAX="\${3:-86400}"	# max running time [seconds] in autotest-mode
 [ -z "\$LOGTIME" ] && LOGTIME=true
 [ -z "\$QEMU" ] && QEMU="${QEMU:-qemu-system-i386}"
 
-if [ -n "$PRIVATE" ]; then
+if [ -n "$PRIVATE" ]; then		# generate exclusive/private files?
 	F1="\$( mktemp )" || exit 1
 	F2="\$( mktemp )" || exit 1
 	cp -v "$KERNEL_FILE" "\$F1" && KERNEL_FILE="\$F1"
