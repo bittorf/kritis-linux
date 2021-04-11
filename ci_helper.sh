@@ -74,7 +74,16 @@ while [ $REPEAT -gt 0 ]; do {
 			(
 				export LOG="${MULTI_LOG}-multilog-${MULTI}-$UNIX1"
 				touch "$LOG.running"
-				minilinux/builds/linux/run.sh autotest "$WAIT_PATTERN" "$WAIT_SECONDS" >/dev/null 2>&1
+
+				MAX_BOOTFAILS=10
+				while [ $MAX_BOOTFAILS -gt 0 ]; do {
+					MAX_BOOTFAILS=$(( MAX_BOOTFAILS - 1 ))
+
+					minilinux/builds/linux/run.sh autotest "$WAIT_PATTERN" "$WAIT_SECONDS" >/dev/null 2>&1
+					grep 'autotest-mode ready after 0 ' "$LOG" || break
+					sleep 1
+				} done
+
 				rm "$LOG.running"
 				echo "[OK] job ready: $LOG"
 			) &
