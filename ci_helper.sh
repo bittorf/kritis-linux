@@ -28,8 +28,8 @@ while [ -n "$1" ]; do {
 		--arch) export DSTARCH="$2" ;;		# e.g. one of i386,x86_64,armel,armhf,arm64,mips,m68k,or1k (default is x86_64)
 		--log|--logfile) export LOG="$2" ;;	# e.g. '/path/to/file.txt'
 		*) echo "invalid keyword: $1" && exit ;;
-	esac && shift
-	case "$1" in --private|--onefile|--nokvm|--verbose) ;; *) shift ;; esac
+	esac
+	case "$1" in --private|--onefile|--nokvm|--verbose) shift ;; *) shift 2 ;; esac
 } done
 
 # support relative and absolute paths:
