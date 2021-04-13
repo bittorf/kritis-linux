@@ -2,6 +2,7 @@
 
 while [ -n "$1" ]; do {
 	case "$1" in
+		--verbose) set -x ;;
 		--feature*) export FEATURES="$2" ;;	# e.g. busybox,toybox,net,xyz,foo
 		--pattern) WAIT_PATTERN="$2" ;;		# e.g. '# unittest ok'
 		--maxwait) WAIT_SECONDS="$2" ;;		# e.g. 600 (default is 120)
@@ -25,8 +26,10 @@ while [ -n "$1" ]; do {
 		--debug) export DEBUG="$2" ;;		# e.g. true
 		--keep) export KEEP_LIST="$2" ;;	# e.g. '/bin/busybox /bin/sh /bin/cat' 
 		--arch) export DSTARCH="$2" ;;		# e.g. one of i386,x86_64,armel,armhf,arm64,mips,m68k,or1k (default is x86_64)
-		--log) export LOG="$2" ;;		# e.g. '/path/to/file.txt'
+		--log|--logfile) export LOG="$2" ;;	# e.g. '/path/to/file.txt'
+		*) echo "invalid keyword: $1" && exit ;;
 	esac && shift
+	case "$1" in --private|--onefile|--nokvm|--verbose) ;; *) shift ;; esac
 } done
 
 # support relative and absolute paths:
@@ -67,8 +70,9 @@ while [ $REPEAT -gt 0 ]; do {
 
 	if [ -n "$MULTI" ]; then
 		UNIX1="$( date +%s )"
-		MULTI_LOG="${LOG:-$( mktemp )}"
-		count() { find "$( dirname "$LOG" )" -type f -name '*-multilog-*.running' -printf '.' 2>/dev/null | wc -c; }
+		MULTI_LOG="${LOG:=$( mktemp )}"
+		LOGDIR="$( dirname "$LOG" )"
+		count() { find "$LOGDIR" -type f -name '*-multilog-*.running' -printf '.' 2>/dev/null | wc -c; }
 
 		while [ "$MULTI" -gt 0 ]; do
 			(
