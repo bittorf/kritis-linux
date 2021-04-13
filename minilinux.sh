@@ -811,8 +811,8 @@ chmod +x "$OPT/fakeid/"*
 	export KBUILD_BUILD_USER="${FAKEID%@*}"
 	export KBUILD_BUILD_HOST="${FAKEID#*@}"
 	SCRIPTDIR="$( dirname "$( realpath "$0" )" )"
-	KBUILD_BUILD_TIMESTAMP="$( cd "$SCRIPTDIR" && git rev-parse --short HEAD )"
-	KBUILD_BUILD_VERSION="$(   cd "$SCRIPTDIR" && git show -s --format=%ci )"
+	KBUILD_BUILD_TIMESTAMP="$( cd "$SCRIPTDIR" && test -d .git && git rev-parse --short HEAD )"
+	KBUILD_BUILD_VERSION="$(   cd "$SCRIPTDIR" && test -d .git && git show -s --format=%ci )"
 	export SCRIPTDIR KBUILD_BUILD_TIMESTAMP KBUILD_BUILD_VERSION
 }
 
@@ -888,6 +888,7 @@ checksum()			# e.g. checksum 'file' plain
 
 	if [ -f "$file" ]; then
 		filehash="$( sha256sum "$file" | cut -d' ' -f1 )"
+		[ "$name1" = plain ] && cp "$file" "$file.orig"		# just for debug
 	else
 		export STATE1=
 		return 1
@@ -2192,6 +2193,7 @@ F2='scripts/dtc/dtc-lexer.lex.c_shipped' && checksum "$F2" plain
 	}
 
 	checksum "$F1" plain
+#	sed -i 's|(int argc, char \*\*argv)|(int argc, const char \*\*argv)|' "$F1" || exit
 	sed -i "s|for (i = 1;|$( write_args )for (i = 1;|" "$F1" || exit
 	checksum "$F1" after plain || emit_doc "applied: kernel-patch in '$PWD/$F1' | EMBED_CMDLINE: $EMBED_CMDLINE"
 }
