@@ -64,6 +64,7 @@ echo "     repeat: ${REPEAT:=1} multi: ${MULTI:--}"
 R="$REPEAT"
 M="$MULTI"
 K=0
+UNIX0="$( date +%s )"
 
 while [ $REPEAT -gt 0 ]; do {
 	REPEAT=$(( REPEAT - 1 ))
@@ -95,14 +96,14 @@ while [ $REPEAT -gt 0 ]; do {
 			K=$(( K + 1 ))
 		done
 
+		echo "[OK] still $C/$M jobs running, repeat $REPEAT/$R, overall runs: $K"
 		while C="$( count )"; test "$C" -ne 0; do {
-			echo "[OK] still $C/$M jobs running, repeat $REPEAT/$R, overall runs: $K"
 			sleep 15
 		} done
 
 		MULTI="$M"
 		UNIX2="$( date +%s )"
-		echo "[OK] lasts $(( UNIX2 - UNIX1 )) seconds, repeat: $REPEAT overall runs: $K"
+		echo "[OK] lasts $(( UNIX2 - UNIX1 )) seconds, repeat: $REPEAT overall runs: $K, overall $(( UNIX2 - UNIX0 )) sec"
 	else
 		minilinux/builds/linux/run.sh autotest "$WAIT_PATTERN" "$WAIT_SECONDS"
 	fi
