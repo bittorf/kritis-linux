@@ -185,6 +185,7 @@ case "$DSTARCH" in
 		#
 		export ARCH='ARCH=arm' QEMU='qemu-system-arm'
 		export BOARD='versatilepb' DTB='versatile-pb.dtb' DEFCONFIG='versatile_defconfig'
+		# "If your GCC installation is riscv64-linux-gnu-gcc, I recommend --target=riscv64-linux-gnu-"
 		# install_dep 'gcc-arm-linux-gnueabi' && export CROSSCOMPILE='CROSS_COMPILE=arm-linux-gnueabi-'
 		CROSS_DL='https://musl.cc/armel-linux-musleabi-cross.tgz'
 		# https://github.com/zerotier/ZeroTierOne/blob/master/make-linux.mk#L278
@@ -278,6 +279,7 @@ case "$DSTARCH" in
 		CROSS_DL="https://musl.cc/x86_64-linux-musl-cross.tgz"
 
 		has_arg 'zig' && CROSS_DL='https://ziglang.org/builds/zig-linux-x86_64-0.8.0-dev.1548+0d96a284e.tar.xz'
+		# CF_ADD='-fno-pie'	# needed for kernel 2.6.32.71
 	;;
 esac
 

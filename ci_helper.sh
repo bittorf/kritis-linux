@@ -96,7 +96,7 @@ while [ $REPEAT -gt 0 ]; do {
 			K=$(( K + 1 ))
 		done
 
-		echo "[OK] still $C/$M jobs running, repeat $REPEAT/$R, overall runs: $K"
+		echo "[OK] still $C/$M jobs running, repeat $REPEAT/$R, overall runs: $K | $( date )"
 		while C="$( count )"; test "$C" -ne 0; do {
 			sleep 15
 		} done
