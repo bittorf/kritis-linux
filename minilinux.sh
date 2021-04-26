@@ -2757,6 +2757,9 @@ test -n "\$PID" || echo "# ERROR: no PIDFILE or QEMU/uml-vmlinux already stopped
 {
 	echo "# images generated using:"
 	echo "# https://github.com/bittorf/kritis-linux"
+	echo "#"
+	echo "# extract essential parts like:"
+	echo "# cut -b13- logfile | sed -n '/SeaBIOS (version/,/^RC:/p'"
 	echo
 	grep ^'#' "\$0"
 	echo
