@@ -219,8 +219,8 @@ user@box:~/live-bootstrap$ export SYSA="$PWD/sysa/tmp"
 user@box:~/live-bootstrap$ rm "$SYSA/initramfs.igz"
 user@box:~/live-bootstrap$ mv "$SYSA/init" "$SYSA/init.user"
 
-user@box:~/kritis-linux$ KEEP_LIST='/bin/busybox /usr/bin/setsid /bin/cttyhack /bin/mount /bin/ash /bin/wget' \
-                         INITRD_DIR_ADD=$SYSA MEM=4G QEMUCPU=486 DSTARCH=i386 ./minilinux.sh 3.18.140 busybox procfs sysfs printk kflock
+user@box:~/kritis-linux$ KEEP_LIST='/bin/busybox /usr/bin/setsid /bin/cttyhack /bin/mount /bin/ash /bin/wget' INITRD_DIR_ADD=$SYSA \
+                         MEM=1400M QEMUCPU=486 DSTARCH=i386 ./minilinux.sh 3.18.140 busybox procfs sysfs printk kflock meshack
 
 # let live-bootstrap run until end or error / see e.g. sysa/run.sh
 cd /after && set -x && . ./helpers.sh

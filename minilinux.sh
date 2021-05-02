@@ -1993,26 +1993,32 @@ EOF
 init_meshack()
 {
 	# extract later with:
-	# sed -n 's/^\(..\)h\(..\)m\(..\)s .*\(MemAvailable:.*[0-9] kB\).*/\1 \2 \3 \4/p'
+	# sed -n 's/^\(..\)h\(..\)m\(..\)s .*\(MemAvailable:.*[0-9] kB\).*/\1 \2 \3 \4/p' LOG >T
+	#
 	# FORMAT: seconds used_megabytes
-	# while read L; do set -- $L; echo "$((10#$1*3600+(10#$2*60)+10#$3)) $((4096-($5/1024)))"; done
+	# RAM=1400;while read L; do set -- $L; echo "$((10#$1*3600+(10#$2*60)+10#$3)) $(($RAM-($5/1024)))"; done <T >bootstrap.txt
+	#
 	# printf '%s\n%s\n%s\n%s\n%s\n' "set term png size 1920,1080" "set output 'bootstrap.png'" "set xlabel 'run time in [seconds]'" "set ylabel 'used RAM in [megabytes]'" "plot 'bootstrap.txt' using 1:2 with lines, '' using 1:3 with lines" >BOOT.gnuplot
-	# gnuplot -p bootstrap.gnuplot
+	#
+	# gnuplot -p BOOT.gnuplot && rm T bootstrap.txt BOOT.gnuplot
 
-	cat <<EOF
+	if has_arg 'meshack'; then
+		cat <<EOF
 # hack for https://github.com/fosslinux/live-bootstrap
 #       or https://github.com/bittorf/GNU-mes-documentation-attempt
 if command -v ./kaem.run; then
 	/bin/busybox cat /proc/meminfo
 	/bin/busybox cat init
 	mount -t devtmpfs none /dev
-	( while :; do while read -r L; do case "\$L" in MemAvailable*) >&2 printf '%s\\n' "\$L"; break ;; esac; done </proc/meminfo; /bin/busybox sleep 5; done ) &
+	( while :; do while read -r L; do case "\$L" in MemAvailable*) >&2 printf '%s\\n' "\$L"; break ;; esac; done </proc/meminfo; /bin/busybox sleep 1; done ) &
 	exec setsid cttyhack ./init.user
 elif command -v step00/stage0_monitor.hex0; then
 	/bin/busybox sleep 2 && AUTO=true ./init.user	# wait for dmesg-trash
 fi
-
 EOF
+	else
+		echo '/bin/busybox sleep 2 && AUTO=true ./init.user'
+	fi
 }
 
 init_interactive()
@@ -2833,8 +2839,9 @@ test -n "\$PID" || echo "# ERROR: no PIDFILE or QEMU/uml-vmlinux already stopped
 		case "\$LINE" in
 			'# BOOTTIME_SECONDS '*|'# UNAME '*)
 			;;
-			"\$PATTERN"*|*' Attempted to kill init'*|'ABORTING HARD'*|'Bootstrapping completed.'*|\\
-			'Aborted (core dumped)'|'Unable to boot - please use a kernel appropriate for your CPU'*)
+			"\$PATTERN"*|'Aborted (core dumped)'|'ABORTING HARD'*|'Bootstrapping completed.'*|\\
+			*' Attempted to kill init'*|'Out of memory: Kill process'*|\\
+			'Unable to boot - please use a kernel appropriate for your CPU'*)
 				echo 'READY' >>"\$PIPE"
 				break
 			;;
