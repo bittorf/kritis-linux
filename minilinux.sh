@@ -1992,9 +1992,25 @@ EOF
 
 init_meshack()
 {
+	# extract later with:
+	# sed -n 's/^\(..\)h\(..\)m\(..\)s .*\(MemAvailable:.*[0-9] kB\).*/\1 \2 \3 \4/p'
+	# FORMAT: seconds used_megabytes
+	# while read L; do set -- $L; echo "$((10#$1*3600+(10#$2*60)+10#$3)) $((4096-($5/1024)))"; done
+	# printf '%s\n%s\n%s\n%s\n%s\n' "set term png size 1920,1080" "set output 'bootstrap.png'" "set xlabel 'run time in [seconds]'" "set ylabel 'used RAM in [megabytes]'" "plot 'bootstrap.txt' using 1:2 with lines, '' using 1:3 with lines" >BOOT.gnuplot
+	# gnuplot -p bootstrap.gnuplot
+
 	cat <<EOF
-# hack for MES / https://github.com/fosslinux/live-bootstrap:
-test -f init.user && busybox sleep 2 && AUTO=true ./init.user	# wait for dmesg-trash
+# hack for https://github.com/fosslinux/live-bootstrap
+#       or https://github.com/bittorf/GNU-mes-documentation-attempt
+if command -v ./kaem.run; then
+	/bin/busybox cat /proc/meminfo
+	/bin/busybox cat init
+	mount -t devtmpfs none /dev
+	( while :; do while read -r L; do case "\$L" in MemAvailable*) >&2 printf '%s\\n' "\$L"; break ;; esac; done </proc/meminfo; /bin/busybox sleep 5; done ) &
+	exec setsid cttyhack ./init.user
+elif command -v step00/stage0_monitor.hex0; then
+	/bin/busybox sleep 2 && AUTO=true ./init.user	# wait for dmesg-trash
+fi
 
 EOF
 }
