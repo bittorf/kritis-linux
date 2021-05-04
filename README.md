@@ -70,7 +70,7 @@ kritis-linux/ci_helper.sh \
   * e.g. apps: `busybox`,`toybox`,`dash`,`bash`
   * e.g. apps: `dropbear`,`wireguard`,`iodine`,`icmptunnel`
   * e.g. `printk`,`sysfs`,`procfs`,`hostfs`,`kexec`,`kflock`
-  * e.g. `menuconfig`,`kmenuconfig`,`speedup`,`net`
+  * e.g. `menuconfig`,`kmenuconfig`,`speedup`,`net`, `slub`
   * e.g. `tinyconfig`,`allnoconfig`,`defconfig`,`config`,`noconfigtweaks`
   * e.g. `CONFIG_SYMBOL_XY=y`
 * `--log` /path/to/filename
@@ -142,7 +142,7 @@ Start it later as `/sbin/gеtty 38400 tty7` (with cyrillic small 'е')
 sudo mkdir -p /x && sudo mount -t tmpfs none /x
 export EMBED_CMDLINE="quiet mem=64M panic=1 initrd=/tmp/cpio.gz eth0=slirp,FE:FD:01:02:03:04,/tmp/echo"
 export DSTARCH=uml FAKEID='user@box.net' TTYPASS='peter80' SSHPASS='petra90' BUILD_DIR=/x
-./minilinux.sh latest printk sysfs procfs hostfs busybox bash net wireguard dropbear speedup upx obfuscate
+./minilinux.sh latest printk sysfs procfs hostfs busybox bash net wireguard dropbear speedup slub upx obfuscate
 
 ```
 hint: make sure, you use a small/early PID,  

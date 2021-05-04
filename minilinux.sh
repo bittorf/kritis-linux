@@ -1153,6 +1153,7 @@ EOF
 		echo 'CONFIG_HZ_100=y'
 	}
 
+	has_arg 'slub' && echo 'CONFIG_SLUB=y'			# modern mem-allocator without fragmentation +1k
 	has_arg 'kexec' && echo 'CONFIG_KEXEC=y'		# +20k uncompressed on x84_64
 	has_arg 'kflock' && echo 'CONFIG_FILE_LOCKING=y'	# +11k uncompressed on x84_64
 
@@ -1993,12 +1994,12 @@ EOF
 init_meshack()
 {
 	# extract later with:
-	# sed -n 's/^\(..\)h\(..\)m\(..\)s .*\(MemAvailable:.*[0-9] kB\).*/\1 \2 \3 \4/p' LOG >T
+	# sed -n 's/^\(..\)h\(..\)m\(..\)s .*\(DEBUG_Mem.*[0-9] kB\).*/\1 \2 \3 \4/p' LOG >T
 	#
 	# FORMAT: seconds used_megabytes
 	# RAM=1400;while read L; do set -- $L; echo "$((10#$1*3600+(10#$2*60)+10#$3)) $(($RAM-($5/1024)))"; done <T >bootstrap.txt
 	#
-	# printf '%s\n%s\n%s\n%s\n%s\n' "set term png size 1920,1080" "set output 'bootstrap.png'" "set xlabel 'run time in [seconds]'" "set ylabel 'used RAM in [megabytes]'" "plot 'bootstrap.txt' using 1:2 with lines, '' using 1:3 with lines" >BOOT.gnuplot
+	# printf '%s\n%s\n%s\n%s\n%s\n' "set term png size 1920,1080" "set output 'bootstrap.png'" "set xlabel 'run time in [seconds]'" "set ylabel 'used RAM in [megabytes] out of $RAM total'" "plot 'bootstrap.txt' using 1:2 with lines, '' using 1:3 with lines" >BOOT.gnuplot
 	#
 	# gnuplot -p BOOT.gnuplot && rm T bootstrap.txt BOOT.gnuplot
 
@@ -2010,7 +2011,18 @@ if command -v ./kaem.run; then
 	/bin/busybox cat /proc/meminfo
 	/bin/busybox cat init
 	mount -t devtmpfs none /dev
-	( while :; do while read -r L; do case "\$L" in MemAvailable*) >&2 printf '%s\\n' "\$L"; break ;; esac; done </proc/meminfo; /bin/busybox sleep 1; done ) &
+
+#	for FILE in /proc/sys/vm/*; do LINE="\$( /bin/busybox cat \$FILE )"; printf '%s\\n' "\$FILE \$LINE"; done
+#	printf '%s\\n' 0 >/proc/sys/vm/min_free_kbytes
+#	printf '%s\\n' 0 >/proc/sys/vm/user_reserve_kbytes
+#	printf '%s\\n' 0 >/proc/sys/vm/admin_reserve_kbytes
+#	for FILE in /proc/sys/vm/*; do LINE="\$( /bin/busybox cat \$FILE )"; printf '%s\\n' "\$FILE \$LINE"; done
+
+	( while :; do while read -r L; do case "\$L" in MemFree*) set -- \$L; FREE=\$2 ;; MemAvailable*) set -- \$L; AVAIL=\$2; >&2 printf '%s\\n' "DEBUG_Mem free: \$FREE avail: \$AVAIL"; break ;; esac; done </proc/meminfo; /bin/busybox sleep 1; command -v /tmp/READY && break; done ) &
+
+#	( while :; do while read -r L; do case "\$L" in MemAvailable*) >&2 printf '%s\\n' "DEBUG_\$L"; break ;; esac; done </proc/meminfo; /bin/busybox sleep 1; done ) &
+#	( while :; do while read -r L; do printf '%s\\n' "\$L"; done </proc/meminfo; /bin/busybox sleep 5; done ) &
+
 	exec setsid cttyhack ./init.user
 elif command -v step00/stage0_monitor.hex0; then
 	/bin/busybox sleep 2 && AUTO=true ./init.user	# wait for dmesg-trash
