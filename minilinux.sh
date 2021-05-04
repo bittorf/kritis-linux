@@ -1153,6 +1153,17 @@ EOF
 		echo 'CONFIG_HZ_100=y'
 	}
 
+	has_arg 'zram' && {
+		echo 'CONFIG_BLOCK=y'
+		echo 'CONFIG_SWAP=y'
+		echo 'CONFIG_BLK_DEV=y'
+		echo 'CONFIG_ZSMALLOC=y'
+		echo 'CONFIG_ZRAM=y'
+		echo 'CONFIG_CRYPTO=y'
+		echo 'CONFIG_FRONTSWAP=y'
+		echo 'CONFIG_ZSWAP=y'
+	}
+
 	has_arg 'slub' && echo 'CONFIG_SLUB=y'			# modern mem-allocator without fragmentation +1k
 	has_arg 'kexec' && echo 'CONFIG_KEXEC=y'		# +20k uncompressed on x84_64
 	has_arg 'kflock' && echo 'CONFIG_FILE_LOCKING=y'	# +11k uncompressed on x84_64
