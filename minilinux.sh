@@ -3,6 +3,7 @@
 KERNEL="$1"		# e.g. 'latest' or 'stable' or '5.4.89' or '4.19.x' or URL-to-tarball
 ARG2="$2"		# only used...
 ARG3="$3"		# ...for smoketest
+ARG4="$4"		# ...and 'plot'
 
 for TAG in "$@"; do
 	case "$TAG" in
@@ -503,6 +504,63 @@ humanreadable_lines()
 	rm "$file_dict2" "$file_dict3"
 }
 
+plot_memory()
+{
+	local logfile="$1"	# see init_meshack() and e.g. DEBUG_MemFree:  541924 kB
+	local x="${2:-1800}"	#                         or: DEBUG_Mem free: 542296 avail: 695252
+	local y="${3:-800}"
+	local mem1 mem2 ramsize sec line name max=0
+	local temp1 temp2 temp3 temp4 temp5 val1 val2 val3
+
+	temp1="$( mktemp )" || return 1		# logfile -> DEBUG-lines only
+	temp2="$( mktemp )" || return 1		# DEBUG-lines -> values
+	temp3="$( mktemp )" || return 1		# GNU-plot.program
+	temp4="$( mktemp )" || return 1		# outfile.png
+
+	# sed -n 's/^\(..\)h\(..\)m\(..\)s .*\(DEBUG_MemFree:[0-9] kB\).*/\1 \2 \3 \4/p'   LOG >T
+	sed -n 's/^\(..\)h\(..\)m\(..\)s .*\(DEBUG_Mem free: [0-9].*\).*/\1 \2 \3 \4/p' "$logfile" >"$temp1"
+
+	# size in *megabytes* or FIXME: gigabytes
+	ramsize="$( grep 'qemu-system' "$logfile" | sed -n 's/^.*qemu-system.* -m \([0-9]*\)[MG] .*/\1/p' )"
+
+	# resulting FORMAT: seconds used_megabytes_free used_megabytes_avail
+	#
+	while read -r line; do {
+		# e.g. 00 49 39 DEBUG_Mem free: 226296 avail: 670244
+		set -- $line
+		val1=$1 && while case "$val1" in 0*) ;; *) false ;; esac do val1=${val1#?}; done
+		val2=$2 && while case "$val2" in 0*) ;; *) false ;; esac do val2=${val2#?}; done
+		val3=$3 && while case "$val3" in 0*) ;; *) false ;; esac do val3=${val3#?}; done
+		sec=$(( val1*3600 + (val2*60) + val3 ))
+		mem1=$((ramsize-($6/1024))) && test $mem1 -gt $max && max=$mem1
+		mem2=$((ramsize-($8/1024)))
+		printf '%s\n' "$sec $mem1 $mem2"
+	} done <"$temp1" >"$temp2"
+
+	# printf '%s\n%s\n%s\n%s\n%s\n' "set term png size 1920,1080" "set output 'bootstrap.png'" "set xlabel 'run time in [seconds]'" "set ylabel 'used RAM in [megabytes] out of $RAM total'" "plot 'bootstrap.txt' using 1:2 with lines, '' using 1:3 with lines" >BOOT.gnuplot
+	#
+	cat >"$temp3" <<EOF
+set term png size $x,$y
+set output '$temp4'
+set xlabel 'run time in [seconds]'
+set ylabel 'used RAM in [megabytes] out of $ramsize total (peak: $max)'
+set ytics 50
+set xtics 60
+set grid
+plot '$temp2' using 1:2 title 'Used_A = MemTotal minus MemFree' with lines, \\
+           '' using 1:3 title 'Used_B = MemTotal minus MemAvail' with lines
+EOF
+	gnuplot -p "$temp3"
+	name="$( basename "$logfile" )-${ramsize}M"
+
+	chmod 777 "$temp4"
+	set -x
+	scp "$temp4" root@intercity-vpn.de:/var/www/bootstrap/memplot-$name.png
+	set +x
+
+	rm "$temp1" "$temp2" "$temp3" "$temp4"
+}
+
 case "$KERNEL" in
 	'humanreadable_lines'|'hl')
 		humanreadable_lines "$ARG2" "$ARG3"
@@ -521,6 +579,10 @@ case "$KERNEL" in
 esac
 
 case "$KERNEL" in
+	'plot')
+		plot_memory "$ARG2" "$ARG3" "$ARG4"
+		exit $?
+	;;
 	'smoketest_for_release')
 		load_integer() { local load rest; read -r load rest </proc/loadavg; printf '%s\n' "${load%.*}"; }
 		avoid_overload() { sleep 10; while test "$(load_integer)" -gt "$NPROC"; do sleep 10; done; }
@@ -2004,16 +2066,6 @@ EOF
 
 init_meshack()
 {
-	# extract later with:
-	# sed -n 's/^\(..\)h\(..\)m\(..\)s .*\(DEBUG_Mem.*[0-9] kB\).*/\1 \2 \3 \4/p' LOG >T
-	#
-	# FORMAT: seconds used_megabytes
-	# RAM=1400;while read L; do set -- $L; echo "$((10#$1*3600+(10#$2*60)+10#$3)) $(($RAM-($5/1024)))"; done <T >bootstrap.txt
-	#
-	# printf '%s\n%s\n%s\n%s\n%s\n' "set term png size 1920,1080" "set output 'bootstrap.png'" "set xlabel 'run time in [seconds]'" "set ylabel 'used RAM in [megabytes] out of $RAM total'" "plot 'bootstrap.txt' using 1:2 with lines, '' using 1:3 with lines" >BOOT.gnuplot
-	#
-	# gnuplot -p BOOT.gnuplot && rm T bootstrap.txt BOOT.gnuplot
-
 	if has_arg 'meshack'; then
 		cat <<EOF
 # hack for https://github.com/fosslinux/live-bootstrap
@@ -2029,7 +2081,7 @@ if command -v ./kaem.run; then
 #	printf '%s\\n' 0 >/proc/sys/vm/admin_reserve_kbytes
 #	for FILE in /proc/sys/vm/*; do LINE="\$( /bin/busybox cat \$FILE )"; printf '%s\\n' "\$FILE \$LINE"; done
 
-	( while :; do while read -r L; do case "\$L" in MemFree*) set -- \$L; FREE=\$2 ;; MemAvailable*) set -- \$L; AVAIL=\$2; >&2 printf '%s\\n' "DEBUG_Mem free: \$FREE avail: \$AVAIL"; break ;; esac; done </proc/meminfo; /bin/busybox sleep 1; command -v /tmp/READY && break; done ) &
+	( while :; do while read -r L; do case "\$L" in MemFree*) set -- \$L; FREE=\$2 ;; MemAvailable*) set -- \$L; AVAIL=\$2; >&2 printf '%s\\n' "DEBUG_Mem free: \$FREE avail: \$AVAIL"; break ;; esac; done </proc/meminfo; /bin/busybox sleep 0.25; command -v /tmp/READY && break; done ) &
 
 #	( while :; do while read -r L; do case "\$L" in MemAvailable*) >&2 printf '%s\\n' "DEBUG_\$L"; break ;; esac; done </proc/meminfo; /bin/busybox sleep 1; done ) &
 #	( while :; do while read -r L; do printf '%s\\n' "\$L"; done </proc/meminfo; /bin/busybox sleep 5; done ) &
