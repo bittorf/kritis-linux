@@ -504,13 +504,15 @@ humanreadable_lines()
 	rm "$file_dict2" "$file_dict3"
 }
 
-plot_memory()
+plot_progress()
 {
-	local logfile="$1"	# see init_meshack() and e.g. DEBUG_MemFree:  541924 kB
-	local x="${2:-1800}"	#                         or: DEBUG_Mem free: 542296 avail: 695252
+	local logfile="$1"	# see init_meshack()
+	local x="${2:-1800}"
 	local y="${3:-800}"
-	local mem1 mem2 ramsize sec line name max=0
-	local temp1 temp2 temp3 temp4 temp5 val1 val2 val3
+	local mem1 mem2 ramsize sec line line2 name max=0
+	local temp1 temp2 temp3 temp4 temp5 val1 val2 val3 taskname id sec_start
+	local heading1='bootstraping a full system'
+	local heading2='https://github.com/fosslinux/live-bootstrap @ 8504c35'
 
 	temp1="$( mktemp )" || return 1		# logfile -> DEBUG-lines only
 	temp2="$( mktemp )" || return 1		# DEBUG-lines -> values
@@ -518,46 +520,175 @@ plot_memory()
 	temp4="$( mktemp )" || return 1		# outfile.png
 
 	# sed -n 's/^\(..\)h\(..\)m\(..\)s .*\(DEBUG_MemFree:[0-9] kB\).*/\1 \2 \3 \4/p'   LOG >T
+
+	# 00h59m48s | DEBUG_Mem free: 92728 avail: 448580
 	sed -n 's/^\(..\)h\(..\)m\(..\)s .*\(DEBUG_Mem free: [0-9].*\).*/\1 \2 \3 \4/p' "$logfile" >"$temp1"
+
+	# 00h52m55s | DEBUGps: before_build: automake-1.7 | 264
+	sed -n 's/^\(..\)h\(..\)m\(..\)s .*\(DEBUGps: .*_build: .* | [0-9]*\)/\1 \2 \3 \4/p' "$logfile" >>"$temp1"
 
 	# size in *megabytes* or FIXME: gigabytes
 	ramsize="$( grep 'qemu-system' "$logfile" | sed -n 's/^.*qemu-system.* -m \([0-9]*\)[MG] .*/\1/p' )"
 
+	timestamps_to_seconds()
+	{
+		local val1="$1"
+		local val2="$2"
+		local val3="$3"
+
+		while case "$val1" in 0*) ;; *) false ;; esac do val1=${val1#?}; done
+		while case "$val2" in 0*) ;; *) false ;; esac do val2=${val2#?}; done
+		while case "$val3" in 0*) ;; *) false ;; esac do val3=${val3#?}; done
+
+		sec=$(( val1*3600 + (val2*60) + val3 ))
+	}
+
+	isnumber()
+	{
+		case "$1" in
+			[0-9]|\
+			[0-9][0-9]|\
+			[0-9][0-9][0-9]|\
+			[0-9][0-9][0-9][0-9]|\
+			[0-9][0-9][0-9][0-9][0-9]| \
+			[0-9][0-9][0-9][0-9][0-9][0-9]| \
+			[0-9][0-9][0-9][0-9][0-9][0-9][0-9]) true ;;
+			*) false ;;
+		esac
+	}
+
 	# resulting FORMAT: seconds used_megabytes_free used_megabytes_avail
 	#
+	{
+	echo '$MEM << EOD'
 	while read -r line; do {
+		case "$line" in *'DEBUG_Mem'*) ;; *) continue ;; esac
+
 		# e.g. 00 49 39 DEBUG_Mem free: 226296 avail: 670244
 		set -- $line
-		val1=$1 && while case "$val1" in 0*) ;; *) false ;; esac do val1=${val1#?}; done
-		val2=$2 && while case "$val2" in 0*) ;; *) false ;; esac do val2=${val2#?}; done
-		val3=$3 && while case "$val3" in 0*) ;; *) false ;; esac do val3=${val3#?}; done
-		sec=$(( val1*3600 + (val2*60) + val3 ))
+		timestamps_to_seconds "$1" "$2" "$3"	# sets var $sec
+		isnumber "$6" || continue
+		isnumber "$8" || continue
+
 		mem1=$((ramsize-($6/1024))) && test $mem1 -gt $max && max=$mem1
 		mem2=$((ramsize-($8/1024)))
 		printf '%s\n' "$sec $mem1 $mem2"
-	} done <"$temp1" >"$temp2"
+	} done <"$temp1"
+	echo 'EOD'
+	} >"$temp3"
 
-	# printf '%s\n%s\n%s\n%s\n%s\n' "set term png size 1920,1080" "set output 'bootstrap.png'" "set xlabel 'run time in [seconds]'" "set ylabel 'used RAM in [megabytes] out of $RAM total'" "plot 'bootstrap.txt' using 1:2 with lines, '' using 1:3 with lines" >BOOT.gnuplot
+	insert_from_to_as()
+	{
+		local file="$logfile"
+		local from="$1"
+		local to="$2"
+		local as="$3"
+		local line1 line2 t1 t2
+
+		# first match:
+		line1="$( grep " | $from" "$file" )" || { log "notfound: $from" && return 1; }
+		line1="$( grep " | $from" "$file" | head -n1 )"
+		line2="$( grep " | $to" "$file" )" || { log "notfound: $to" && return 1; }
+		line2="$( grep " | $to" "$file" | head -n1 )"
+
+		line1="$( echo "$line1" | sed -n 's/^\(..\)h\(..\)m\(..\)s \(.*\)/\1 \2 \3 \4/p' )"
+		line2="$( echo "$line2" | sed -n 's/^\(..\)h\(..\)m\(..\)s \(.*\)/\1 \2 \3 \4/p' )"
+
+		set -- $line1
+		timestamps_to_seconds "$1" "$2" "$3"
+		t1=$sec
+
+		set -- $line2
+		timestamps_to_seconds "$1" "$2" "$3"
+		t2=$sec
+
+		printf '%s\n' "$as $t1 $t2 $(( t2 - t1 ))"
+	}
+
+	# TODO: add early tasks eplicitely using fixed search patterns
+	# 00 36 47 DEBUGps: before_build: perl-5.000 | buildid 20 | ps: 47
+	# 00 36 47 DEBUGps: before_build: perl-5.000 | buildid 20 | READY: 3284  <--- 1st
+	# 00 36 49 DEBUGps: after_build: perl-5.000 | buildid 20 | ps: 48
+	# 00 36 49 DEBUGps: after_build: perl-5.000 | buildid 20 | READY: 3284   <--- 2nd
+	{
+	echo
+	echo '$STEPS << EOD'
+	# https://github.com/fosslinux/live-bootstrap/blob/master/parts.rst
+	insert_from_to_as '+> ./hex0 kaem-minimal.hex0 kaem-0' 'Hello,M2-mes!'		'stage0'
+	insert_from_to_as 'Hello,M2-mes!' 'Hello,Mes!'					'M2-mes...Mes'
+	insert_from_to_as 'Hello,Mes!' '+> mes-tcc -version'				'mes-tcc'
+	insert_from_to_as 'tcc version 0.9.26 (i386 Linux)' '+> boot5-tcc -version'	'tcc-0.9.26'
+	insert_from_to_as '+> pkg=untar' '/after/bin/untar: OK'				'untar'
+	insert_from_to_as '+> pkg=gzip-1.2.4' '/after/bin/zcat: OK'			'gzip'
+	insert_from_to_as '+> pkg=tar-1.12' '/after/bin/tar: OK'			'tar'
+	insert_from_to_as '+> pkg=sed-4.0.9' '/after/bin/sed: OK'			'sed'
+	insert_from_to_as '+> pkg=patch-2.5.9' '/after/bin/patch: OK'			'patch'
+	insert_from_to_as '+> pkg=sha-2-61555d' '/after/bin/sha256sum: OK'		'sha256sum'
+	insert_from_to_as '+> pkg=make-3.80' '/after/bin/make: OK'			'make-3.80'
+	insert_from_to_as '+> pkg=bzip2-1.0.8' '/after/bin/bzip2: OK'			'bzip2'
+	insert_from_to_as '+> pkg=tcc-0.9.27' '/after/bin/tcc: OK'			'tinycc-0.9.27'
+	insert_from_to_as '+> pkg=coreutils-5.0' '/after/bin/rm: OK'			'coreutils-5.0'
+	insert_from_to_as '+> pkg=heirloom-devtools-070527' '/after/bin/yacc: OK'	'heirloom-yacc'
+	insert_from_to_as '+> pkg=bash-2.05b' '/after/bin/bash: OK'			'bash-2.05b'
+
+	while read -r line; do {
+		case "$line" in *'DEBUGps: before_build: '*' | READY: '*) ;; *) continue ;; esac
+
+		set -- $line
+		timestamps_to_seconds "$1" "$2" "$3"	# sets var $sec
+		sec_start=$sec
+
+		taskname=$6
+		id=$9
+
+		line2="$( grep "after_build: $taskname | buildid $id | READY: " "$temp1" )" && {
+			set -- $line2
+			timestamps_to_seconds "$1" "$2" "$3"	# sets var $sec
+			printf '%s\n' "$taskname-$id $sec_start $sec $(( sec - sec_start ))"
+		}
+	} done <"$temp1"
+	echo 'EOD'
+	} >>"$temp3"
+
+cp "$temp1" /tmp/2
+
+	# printf '%s\n%s\n%s\n%s\n%s\n' "set term png size 1920,1080" "set output 'bootstrap.png'" "set xlabel 'run time in [seconds]'" "set ylabel 'used RAM in [megabytes] out of $RAM total'" "plot 'data.txt' using 1:2 with lines, '' using 1:3 with lines" >BOOT.gnuplot
 	#
-	cat >"$temp3" <<EOF
+	cat >>"$temp3" <<EOF
+
 set term png size $x,$y
 set output '$temp4'
 set xlabel 'run time in [seconds]'
 set ylabel 'used RAM in [megabytes] out of $ramsize total (peak: $max)'
 set ytics 50
 set xtics 60
-set grid
-plot '$temp2' using 1:2 title 'Used_A = MemTotal minus MemFree' with lines, \\
-           '' using 1:3 title 'Used_B = MemTotal minus MemAvail' with lines
+set mxtics 4
+set grid x y
+
+# unset key
+set title "{/=15 $heading1}\n\n{/:Bold $heading2}"
+set border 3
+
+# set style arrow 66 filled size screen 0.02, 15 fixed linetype 3 linewidth 1.5
+# set style arrow 66 head filled size 7, 20, 60 fixed linetype -1
+set style arrow 66 head filled size 3, 3, 3 fixed linetype 3 linewidth 12
+
+# removed ": yticlabel(1) with vector"
+plot \$MEM using 1:2 title 'Used_A = MemTotal minus MemFree' with lines, \\
+	'' using 1:3 title 'Used_B = MemTotal minus MemAvail' with lines, \\
+	\$STEPS using 2 : (\$0)*18 : 4 : (0.0) with vector as 66 notitle, \\
+	\$STEPS using 2 : (\$0)*18 : 1 with labels right offset 4 notitle
 EOF
 	gnuplot -p "$temp3"
 	name="$( basename "$logfile" )-${ramsize}M"
 
-	chmod 777 "$temp4"
 	set -x
+	chmod 777 "$temp4" "$temp3"
 	scp "$temp4" root@intercity-vpn.de:/var/www/bootstrap/memplot-$name.png
+	scp "$temp3" root@intercity-vpn.de:/var/www/bootstrap/memplot-$name.txt
 	set +x
 
+	cp "$temp3" /tmp/1
 	rm "$temp1" "$temp2" "$temp3" "$temp4"
 }
 
@@ -580,7 +711,7 @@ esac
 
 case "$KERNEL" in
 	'plot')
-		plot_memory "$ARG2" "$ARG3" "$ARG4"
+		plot_progress "$ARG2" "$ARG3" "$ARG4"
 		exit $?
 	;;
 	'smoketest_for_release')
@@ -2741,6 +2872,15 @@ esac
 
 $( test -f "$BIOS" && echo "BIOS='-bios \"$BIOS\"'" )
 $( has_arg 'net' && echo "KERNEL_ARGS=\"\$KERNEL_ARGS ip=dhcp nameserver=8.8.8.8\"" )
+
+# https://en.wikibooks.org/wiki/QEMU/Monitor#Virtual_machine
+# telnet 127.0.0.1 1337
+# stop
+# migrate "exec: gzip -c >/tmp/foo.gz"
+# cont
+#
+# qemu -incoming "exec: gzip -cd /tmp/foo.gz" -snapshot
+QEMU_OPTIONS="\$QEMU_OPTIONS -monitor tcp::1337,server,nowait -snapshot"
 
 case "\$ACTION" in
 	autotest)
