@@ -615,6 +615,7 @@ plot_progress()
 	echo '$STEPS << EOD'
 	# https://github.com/fosslinux/live-bootstrap/blob/master/parts.rst
 	insert_from_to_as '+> ./hex0 kaem-minimal.hex0 kaem-0' 'Hello,M2-mes!'		'stage0'
+	insert_from_to_as '+> M2-Planet .* -f fletcher16.c' '/after/bin/fletcher16: OK'	'fletcher16'
 	insert_from_to_as 'Hello,M2-mes!' 'Hello,Mes!'					'M2-mes...Mes'
 	insert_from_to_as 'Hello,Mes!' '+> mes-tcc -version'				'mes-tcc'
 	insert_from_to_as 'tcc version 0.9.26 (i386 Linux)' '+> boot5-tcc -version'	'tcc-0.9.26'
