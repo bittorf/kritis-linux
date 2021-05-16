@@ -525,7 +525,7 @@ plot_progress()
 	sed -n 's/^\(..\)h\(..\)m\(..\)s .*\(DEBUG_Mem free: [0-9].*\).*/\1 \2 \3 \4/p' "$logfile" >"$temp1"
 
 	# 00h52m55s | DEBUGps: before_build: automake-1.7 | 264
-	sed -n 's/^\(..\)h\(..\)m\(..\)s .*\(DEBUGps: .*_build: .* | [0-9]*\)/\1 \2 \3 \4/p' "$logfile" >>"$temp1"
+	sed -n 's/^\(..\)h\(..\)m\(..\)s .*\(ps: .*_build: .* | [0-9]*\)/\1 \2 \3 \4/p' "$logfile" >>"$temp1"
 
 	# size in *megabytes* or FIXME: gigabytes
 	ramsize="$( grep 'qemu-system' "$logfile" | sed -n 's/^.*qemu-system.* -m \([0-9]*\)[MG] .*/\1/p' )"
@@ -614,6 +614,7 @@ plot_progress()
 	echo
 	echo '$STEPS << EOD'
 	# https://github.com/fosslinux/live-bootstrap/blob/master/parts.rst
+	# +> ../bin/kaem --verbose --strict -f mescc-tools-full-kaem.kaem
 	insert_from_to_as '+> ./hex0 kaem-minimal.hex0 kaem-0' 'Hello,M2-mes!'		'stage0'
 	insert_from_to_as '+> M2-Planet .* -f fletcher16.c' '/after/bin/fletcher16: OK'	'fletcher16'
 	insert_from_to_as 'Hello,M2-mes!' 'Hello,Mes!'					'M2-mes...Mes'
@@ -633,7 +634,7 @@ plot_progress()
 	insert_from_to_as '+> pkg=bash-2.05b' '/after/bin/bash: OK'			'bash-2.05b'
 
 	while read -r line; do {
-		case "$line" in *'DEBUGps: before_build: '*' | READY: '*) ;; *) continue ;; esac
+		case "$line" in *'ps: before_build: '*' | READY: '*) ;; *) continue ;; esac
 
 		set -- $line
 		timestamps_to_seconds "$1" "$2" "$3"	# sets var $sec
@@ -642,16 +643,18 @@ plot_progress()
 		taskname=$6
 		id=$9
 
-		line2="$( grep "after_build: $taskname | buildid $id | READY: " "$temp1" )" && {
+		if line2="$( grep "after_build: $taskname | buildid $id | " "$temp1" )"; then
 			set -- $line2
 			timestamps_to_seconds "$1" "$2" "$3"	# sets var $sec
 			printf '%s\n' "$taskname-$id $sec_start $sec $(( sec - sec_start ))"
-		}
+		else
+			log "rc: $? line: $line"
+			log "strange: NOT found: 'after_build: $taskname | buildid $id | READY: '"
+			log "is: |$( grep "fter_build: $taskname" "$temp1" )|"
+		fi
 	} done <"$temp1"
 	echo 'EOD'
 	} >>"$temp3"
-
-cp "$temp1" /tmp/2
 
 	# printf '%s\n%s\n%s\n%s\n%s\n' "set term png size 1920,1080" "set output 'bootstrap.png'" "set xlabel 'run time in [seconds]'" "set ylabel 'used RAM in [megabytes] out of $RAM total'" "plot 'data.txt' using 1:2 with lines, '' using 1:3 with lines" >BOOT.gnuplot
 	#
@@ -685,11 +688,11 @@ EOF
 
 	set -x
 	chmod 777 "$temp4" "$temp3"
-	scp "$temp4" root@intercity-vpn.de:/var/www/bootstrap/memplot-$name.png
-	scp "$temp3" root@intercity-vpn.de:/var/www/bootstrap/memplot-$name.txt
+	scp "$temp4"   root@intercity-vpn.de:/var/www/bootstrap/memplot-$name.png
+	scp "$temp3"   root@intercity-vpn.de:/var/www/bootstrap/memplot-$name.txt
+	scp "$logfile" root@intercity-vpn.de:/var/www/bootstrap/memplot-$name-log.txt
 	set +x
 
-	cp "$temp3" /tmp/1
 	rm "$temp1" "$temp2" "$temp3" "$temp4"
 }
 
