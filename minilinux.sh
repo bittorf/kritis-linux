@@ -507,10 +507,10 @@ humanreadable_lines()
 plot_progress()
 {
 	local logfile="$1"	# see init_meshack()
-	local x="${2:-1800}"
-	local y="${3:-800}"
+	local x="${2:-5000}"
+	local y="${3:-880}"
 	local mem1 mem2 ramsize sec line line2 name max=0
-	local temp1 temp2 temp3 temp4 temp5 val1 val2 val3 taskname id sec_start
+	local temp1 temp2 temp3 temp4 temp5 val1 val2 val3 taskname id sec_start min=9999
 	local heading1='bootstraping a full system'
 	local heading2='https://github.com/fosslinux/live-bootstrap @ 8504c35'
 
@@ -560,21 +560,29 @@ plot_progress()
 	# resulting FORMAT: seconds used_megabytes_free used_megabytes_avail
 	#
 	{
-	echo '$MEM << EOD'
-	while read -r line; do {
-		case "$line" in *'DEBUG_Mem'*) ;; *) continue ;; esac
+		echo '#!/usr/bin/env gnuplot'
+		echo
+		echo '$MEM << EOD'
 
-		# e.g. 00 49 39 DEBUG_Mem free: 226296 avail: 670244
-		set -- $line
-		timestamps_to_seconds "$1" "$2" "$3"	# sets var $sec
-		isnumber "$6" || continue
-		isnumber "$8" || continue
+		while read -r line; do {
+			case "$line" in *'DEBUG_Mem'*) ;; *) continue ;; esac
 
-		mem1=$((ramsize-($6/1024))) && test $mem1 -gt $max && max=$mem1
-		mem2=$((ramsize-($8/1024)))
-		printf '%s\n' "$sec $mem1 $mem2"
-	} done <"$temp1"
-	echo 'EOD'
+			# e.g. 00 49 39 DEBUG_Mem free: 226296 avail: 670244
+			set -- $line
+			timestamps_to_seconds "$1" "$2" "$3"	# sets var $sec
+			isnumber "$6" || continue
+			isnumber "$8" || continue
+
+			mem2=$((ramsize-($8/1024)))
+			mem1=$((ramsize-($6/1024))) && {
+				test $mem1 -gt $max && max=$mem1
+				test $mem1 -lt $min && min=$mem1
+			}
+
+			printf '%s\n' "$sec $mem1 $mem2"
+		} done <"$temp1"
+
+		echo 'EOD'
 	} >"$temp3"
 
 	insert_from_to_as()
@@ -616,6 +624,8 @@ plot_progress()
 	# https://github.com/fosslinux/live-bootstrap/blob/master/parts.rst
 	# +> ../bin/kaem --verbose --strict -f mescc-tools-full-kaem.kaem
 	insert_from_to_as '+> ./hex0 kaem-minimal.hex0 kaem-0' 'Hello,M2-mes!'		'stage0'
+	insert_from_to_as '+> .* -o cp.M1' '+> .*cp --exec_enable'			'cp'
+	insert_from_to_as '+> .* -o chmod.M1' '+> .*chmod --exec_enable'		'chmod'
 	insert_from_to_as '+> M2-Planet .* -f fletcher16.c' '/after/bin/fletcher16: OK'	'fletcher16'
 	insert_from_to_as 'Hello,M2-mes!' 'Hello,Mes!'					'M2-mes...Mes'
 	insert_from_to_as 'Hello,Mes!' '+> mes-tcc -version'				'mes-tcc'
@@ -663,25 +673,21 @@ plot_progress()
 set term png size $x,$y
 set output '$temp4'
 set xlabel 'run time in [seconds]'
-set ylabel 'used RAM in [megabytes] out of $ramsize total (peak: $max)'
+set ylabel 'used RAM in [megabytes] out of $ramsize total (min: $min peak-usage: $max)'
 set ytics 50
 set xtics 60
 set mxtics 4
 set grid x y
 
-# unset key
+set key left top
 set title "{/=15 $heading1}\n\n{/:Bold $heading2}"
 set border 3
-
-# set style arrow 66 filled size screen 0.02, 15 fixed linetype 3 linewidth 1.5
-# set style arrow 66 head filled size 7, 20, 60 fixed linetype -1
 set style arrow 66 head filled size 3, 3, 3 fixed linetype 3 linewidth 12
 
-# removed ": yticlabel(1) with vector"
 plot \$MEM using 1:2 title 'Used_A = MemTotal minus MemFree' with lines, \\
 	'' using 1:3 title 'Used_B = MemTotal minus MemAvail' with lines, \\
 	\$STEPS using 2 : (\$0)*18 : 4 : (0.0) with vector as 66 notitle, \\
-	\$STEPS using 2 : (\$0)*18 : 1 with labels right offset 4 notitle
+	\$STEPS using 2 : (\$0)*18 : 1 with labels font "Times,10" right offset 7 notitle
 EOF
 	gnuplot -p "$temp3"
 	name="$( basename "$logfile" )-${ramsize}M"
@@ -2363,6 +2369,12 @@ cd ./* || exit		# there is only 1 dir
 
 # Kernel PATCHES:
 emit_doc "applied: kernel-patch | BEGIN"
+F="$( find . -name 'initramfs.c' )"
+[ -f "xxx-$F" ] && {
+	checksum "$F" plain
+	sed -i 's/.tv_sec = mtime;/.tv_sec = 65222;/g' "$F"
+	checksum "$F" after plain || emit_doc "applied: kernel-patch, initrd-time-faker '$PWD/$F'"
+}
 #
 # GCC10 + kernel3.18 workaround:
 # https://github.com/Tomoms/android_kernel_oppo_msm8974/commit/11647f99b4de6bc460e106e876f72fc7af3e54a6
