@@ -686,8 +686,8 @@ set style arrow 66 head filled size 3, 3, 3 fixed linetype 3 linewidth 12
 
 plot \$MEM using 1:2 title 'Used_A = MemTotal minus MemFree' with lines, \\
 	'' using 1:3 title 'Used_B = MemTotal minus MemAvail' with lines, \\
-	\$STEPS using 2 : (\$0)*18 : 4 : (0.0) with vector as 66 notitle, \\
-	\$STEPS using 2 : (\$0)*18 : 1 with labels font "Times,10" right offset 7 notitle
+	\$STEPS using 2 : (\$0)*16 : 4 : (0.0) with vector as 66 notitle, \\
+	\$STEPS using 2 : (\$0)*16 : 1 with labels font "Times,8" right offset 7 notitle
 EOF
 	gnuplot -p "$temp3"
 	name="$( basename "$logfile" )-${ramsize}M"
@@ -2216,13 +2216,14 @@ if command -v ./kaem.run; then
 	/bin/busybox cat init
 	mount -t devtmpfs none /dev
 
-#	for FILE in /proc/sys/vm/*; do LINE="\$( /bin/busybox cat \$FILE )"; printf '%s\\n' "\$FILE \$LINE"; done
+#	/bin/busybox grep -H . /proc/sys/vm/dirty*
+	for FILE in /proc/sys/vm/*; do LINE="\$( /bin/busybox cat \$FILE )"; printf '%s\\n' "\$FILE \$LINE"; done
 #	printf '%s\\n' 0 >/proc/sys/vm/min_free_kbytes
 #	printf '%s\\n' 0 >/proc/sys/vm/user_reserve_kbytes
 #	printf '%s\\n' 0 >/proc/sys/vm/admin_reserve_kbytes
 #	for FILE in /proc/sys/vm/*; do LINE="\$( /bin/busybox cat \$FILE )"; printf '%s\\n' "\$FILE \$LINE"; done
 
-	( while :; do while read -r L; do case "\$L" in MemFree*) set -- \$L; FREE=\$2 ;; MemAvailable*) set -- \$L; AVAIL=\$2; >&2 printf '%s\\n' "DEBUG_Mem free: \$FREE avail: \$AVAIL"; break ;; esac; done </proc/meminfo; /bin/busybox sleep 0.25; command -v /tmp/READY && break; done ) &
+	( while :; do while read -r L; do case "\$L" in MemFree*) set -- \$L; FREE=\$2 ;; MemAvailable*) set -- \$L; AVAIL=\$2; >&2 printf '%s\\n' "DEBUG_Mem free: \$FREE avail: \$AVAIL"; break ;; esac; done </proc/meminfo; /bin/busybox sleep 1; command -v /tmp/READY && break; done ) &
 
 #	( while :; do while read -r L; do case "\$L" in MemAvailable*) >&2 printf '%s\\n' "DEBUG_\$L"; break ;; esac; done </proc/meminfo; /bin/busybox sleep 1; done ) &
 #	( while :; do while read -r L; do printf '%s\\n' "\$L"; done </proc/meminfo; /bin/busybox sleep 5; done ) &
@@ -3091,7 +3092,7 @@ while [ \$I -gt 0 ]; do {
 
 	case "\$LINE" in
 		READY) RC=0 && break ;;		# TODO: more finegraned
-		*) sleep 1; I=\$(( I - 1 )) ;;
+		*) sleep 1; test -f /tmp/maxoverride || I=\$(( I - 1 )) ;;
 	esac
 } done
 
