@@ -2301,8 +2301,8 @@ export INITSCRIPT="$PWD/init"
 
 [ -f init ] || {
 	init_shebang					&& echo
-	has_arg 'procfs'	&& init_procfs
-	has_arg 'sysfs'		&& init_sysfs
+	grep -q 'CONFIG_PROC_FS=y' "$LINUX_BUILD/.config" && init_procfs
+	grep -q 'CONFIG_SYSFS=y'   "$LINUX_BUILD/.config" && init_sysfs
 	has_arg 'hostfs'	&& init_hostfs
 	test -f "$CRONTAB"	&& init_crond
 	has_arg 'net'		&& init_net
