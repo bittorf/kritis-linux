@@ -289,6 +289,7 @@ has_arg 'allnoconfig'	&& DEFCONFIG='allnoconfig'
 has_arg 'defconfig'	&& DEFCONFIG='defconfig'
 has_arg 'config'	&& DEFCONFIG='config'		# e.g. kernel 2.4.x
 has_arg '*defconfig'	&& DEFCONFIG="$THIS_ARG"	# e.g. mvme16x_defconfig
+has_arg '*defconfig'	&& OPTIONS="$OPTIONS procfs sysfs"	# a hack for generating proper init
 
 case "$DSTARCH" in
 	uml*)
@@ -2301,8 +2302,8 @@ export INITSCRIPT="$PWD/init"
 
 [ -f init ] || {
 	init_shebang					&& echo
-	grep -q 'CONFIG_PROC_FS=y' "$LINUX_BUILD/.config" && init_procfs
-	grep -q 'CONFIG_SYSFS=y'   "$LINUX_BUILD/.config" && init_sysfs
+	has_arg 'procfs'	&& init_procfs	# real test with CONFIG1 not possible yet,
+	has_arg 'sysfs'		&& init_sysfs	# because kernel-config is generated later
 	has_arg 'hostfs'	&& init_hostfs
 	test -f "$CRONTAB"	&& init_crond
 	has_arg 'net'		&& init_net
