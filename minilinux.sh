@@ -19,6 +19,7 @@ UNIX0="$( date +%s )"
 URL_TOYBOX='http://landley.net/toybox/downloads/toybox-0.8.4.tar.gz'
 URL_BUSYBOX='https://busybox.net/downloads/busybox-1.32.0.tar.bz2'
 URL_BUSYBOX='https://busybox.net/downloads/busybox-snapshot.tar.bz2'
+URL_BUSYBOX='https://busybox.net/downloads/busybox-1.35.0.tar.bz2'
 URL_DASH='https://git.kernel.org/pub/scm/utils/dash/dash.git/snapshot/dash-0.5.11.3.tar.gz'
 URL_WIREGUARD='https://git.zx2c4.com/wireguard-tools/snapshot/wireguard-tools-1.0.20200827.zip'
 URL_BASH='http://git.savannah.gnu.org/cgit/bash.git/snapshot/bash-5.1.tar.gz'
@@ -27,6 +28,13 @@ URL_SLIRP='https://github.com/bittorf/slirp-uml-and-compiler-friendly.git'
 URL_IODINE='https://github.com/frekky/iodine/archive/master.zip'	# fork has 'configure' + crosscompile support
 URL_ZLIB='https://github.com/madler/zlib/archive/v1.2.11.tar.gz'
 URL_ICMPTUNNEL='https://github.com/DhavalKapil/icmptunnel/archive/master.zip'
+URL_TAILSCALE='https://pkgs.tailscale.com/stable/tailscale_1.16.2_386.tgz'
+URL_TAILSCALE='https://pkgs.tailscale.com/stable/tailscale_1.18.0_386.tgz'
+URL_TAILSCALE='https://pkgs.tailscale.com/unstable/tailscale_1.19.132_386.tgz'
+
+URL_LIBMNL='https://www.netfilter.org/projects/libmnl/files/libmnl-1.0.4.tar.bz2'
+URL_LIBNFTNL='https://www.netfilter.org/projects/libnftnl/files/libnftnl-1.1.9.tar.bz2'
+URL_IPTABLES='https://www.netfilter.org/projects/iptables/files/iptables-1.8.7.tar.bz2'
 
 log() { >&2 printf '%s\n' "$1"; }
 
@@ -1169,6 +1177,7 @@ list_kernel_symbols()
 			uml*)
 				echo 'CONFIG_UML_NET=y'
 				echo 'CONFIG_UML_NET_SLIRP=y'
+				echo 'CONFIG_HOST_2G_2G'
 			;;
 			m68k)
 				has_arg '*defconfig' || {
@@ -1198,6 +1207,18 @@ list_kernel_symbols()
 
 	has_arg 'icmptunnel' && {
 		echo 'CONFIG_TUN=y'
+	}
+
+	has_arg 'tailscale' && {
+		echo 'CONFIG_EPOLL=y'
+		echo 'CONFIG_UNIX=y'
+		echo 'CONFIG_UNIX_SCM=y'
+		echo 'CONFIG_UNIX_DIAG=y'
+		echo 'CONFIG_NETFILTER=y'
+		echo 'CONFIG_NETFILTER_ADVANCED=y'
+		echo 'CONFIG_POSIX_TIMERS=y'
+		echo 'CONFIG_TUN=y'
+		echo 'CONFIG_NET_FOU=y'
 	}
 
 	has_arg 'wireguard' && {
@@ -1793,6 +1814,102 @@ has_arg 'dropbear' && {
 }
 
 # TODO: unify download + compile (dash, busybox, wireguard...)
+has_arg 'iptables' && {
+	export LIBMNL="$OPT/libmnl"
+	mkdir -p "$LIBMNL"
+
+	export LIBMNL_BUILD="$BUILDS/libmnl"
+	mkdir -p "$LIBMNL_BUILD"
+
+
+#
+	
+	export PREFIX="$BUILDS/iptables-foo"
+	mkdir -p "$PREFIX"
+#
+
+	download "$URL_LIBMNL" || exit
+	mv ./*libmnl* "$LIBMNL_BUILD/" || exit
+	cd "$LIBMNL_BUILD" || exit
+	untar ./* || exit
+	cd ./* || exit		# there is only 1 dir
+
+	./configure --prefix=$PREFIX --enable-static=no $CONF_HOST
+
+# -static x2
+	make $SILENT_MAKE $ARCH $CROSSCOMPILE "-j$CPU" install || exit
+#	make "CC=$CC" "CPP=$CXX -E" $SILENT_MAKE $ARCH $CROSSCOMPILE "-j$CPU" install || exit
+
+#### READY 1/3 ##########
+
+	export LIBNFTNL="$OPT/libnftnl"
+	mkdir -p "$LIBNFTNL"
+
+	export LIBNFTNL_BUILD="$BUILDS/libnftnl"
+	mkdir -p "$LIBNFTNL_BUILD"
+
+	download "$URL_LIBNFTNL" || exit
+	mv ./*libnftnl* "$LIBNFTNL_BUILD/" || exit
+	cd "$LIBNFTNL_BUILD" || exit
+	untar ./* || exit
+	cd ./* || exit		# there is only 1 dir
+
+	LIBMNL_CFLAGS="-I$PREFIX/include" \
+	LIBMNL_LIBS="-L${PREFIX}/lib" \
+	./configure --prefix=$PREFIX --enable-static=no $CONF_HOST || exit
+
+# -static x2
+	make $SILENT_MAKE $ARCH $CROSSCOMPILE "-j$CPU" install || {
+#	make "CC=$CC" "CPP=$CXX -E" $SILENT_MAKE $ARCH $CROSSCOMPILE "-j$CPU" install || {
+		echo "LIBMNL_BUILD: $LIBMNL_BUILD"
+		echo "FOORC: $?"
+		pwd
+		ls -l
+		exit
+	}
+
+	export LIBNFTNL_INCLUDE="$PWD/include"
+echo "LIBNFTNL fertig"
+
+#### READY 2/3 ##############
+
+	export IPTABLES="$OPT/iptables"
+	mkdir -p "$IPTABLES"
+
+	export IPTABLES_BUILD="$BUILDS/iptables"
+	mkdir -p "$IPTABLES_BUILD"
+
+	download "$URL_IPTABLES" || exit
+	mv ./*iptables* "$IPTABLES_BUILD/" || exit
+	cd "$IPTABLES_BUILD" || exit
+	untar ./* || exit
+	cd ./* || exit		# there is only 1 dir
+
+	libnftnl_LIBS="-L$PREFIX/lib -lnftnl" \
+	libnftnl_CFLAGS="-I$PREFIX/include" \
+	libmnl_LIBS="-L$PREFIX/lib -lnftnl" \
+	libmnl_CFLAGS="-I$PREFIX/include" \
+	./configure --prefix=$PREFIX --enable-static=no $CONF_HOST --disable-nftables || {
+		echo "configure iptables rc:$?" 
+		./configure --help
+		exit
+	}
+		./configure --help
+		exit
+
+# -static x2
+	make $SILENT_MAKE $ARCH $CROSSCOMPILE "-j$CPU" install || {
+#	make "CC=$CC" "CPP=$CXX -E" $SILENT_MAKE $ARCH $CROSSCOMPILE "-j$CPU" install || {
+		echo "make iptables rc:$? in $PWD"
+		exit
+	}
+
+#### READY 3/3 ##########
+
+	echo "guuuuuuuuuuuuuuuuuuut: $?"
+	exit
+}
+
 has_arg 'wireguard' && {
 	export WIREGUARD="$OPT/wireguard"
 	mkdir -p "$WIREGUARD"
@@ -2608,7 +2725,7 @@ fi
 cd "$LINUX_BUILD" || exit
 
 if [ -f "$OWN_KCONFIG" ]; then
-	cp -v "$OWN_KCONFIG" .config
+	gzip -c -d -f "$OWN_KCONFIG" >.config
 	yes "" | make $SILENT_MAKE $ARCH oldconfig || msg_and_die "$?" "oldconfig failed"
 	emit_doc "applied: cp '$OWN_KCONFIG' .config && make $SILENT_MAKE $ARCH oldconfig"
 else
