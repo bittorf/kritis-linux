@@ -2394,12 +2394,20 @@ has_arg 'iodine' && install_iodine
 
 has_arg 'icmptunnel' && install_icmptunnel
 
-[ -d "$INITRD_DIR_ADD" ] && {
-	# FIXME! we do not include a spedicla directory named 'x'
+[ -e "$INITRD_DIR_ADD" ] && {
+	# FIXME! ignore specific directory named 'x'
 	test -d "$INITRD_DIR_ADD/x" && mv -v "$INITRD_DIR_ADD/x" ~/tmp.cheat.$$
-	cp -R "$INITRD_DIR_ADD/"* .
+
+	if [ -f "$INITRD_DIR_ADD" ]; then
+		cp -v "$INITRD_DIR_ADD" .
+	else
+		cp -R "$INITRD_DIR_ADD/"* .
+	fi
+
+	# FIXME!
 	test -d ~/tmp.cheat.$$ && mv -v ~/tmp.cheat.$$ "$INITRD_DIR_ADD/x"
 
+	# FIXME!
 	[ -d kritis-linux ] && rm -fR kritis-linux
 
 	test -f "$MYINIT" && mv -v "$MYINIT" 'init'
