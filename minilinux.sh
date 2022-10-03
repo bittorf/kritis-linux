@@ -16,18 +16,21 @@ BASEDIR="$PWD/minilinux${BUILID:+_}${BUILDID}"		# autoclean removes it later
 WGETOPTS='--no-check-certificate'			# TODO: use hashes instead?
 UNIX0="$( date +%s )"
 
-URL_TOYBOX='http://landley.net/toybox/downloads/toybox-0.8.4.tar.gz'
+URL_TOYBOX='https://landley.net/toybox/downloads/toybox-0.8.8.tar.gz'
 URL_BUSYBOX='https://busybox.net/downloads/busybox-1.32.0.tar.bz2'
 URL_BUSYBOX='https://busybox.net/downloads/busybox-snapshot.tar.bz2'
 URL_BUSYBOX='https://busybox.net/downloads/busybox-1.35.0.tar.bz2'
+
 URL_DASH='https://git.kernel.org/pub/scm/utils/dash/dash.git/snapshot/dash-0.5.11.3.tar.gz'
-URL_WIREGUARD='https://git.zx2c4.com/wireguard-tools/snapshot/wireguard-tools-1.0.20200827.zip'
 URL_BASH='http://git.savannah.gnu.org/cgit/bash.git/snapshot/bash-5.1.tar.gz'
+
+URL_WIREGUARD='https://git.zx2c4.com/wireguard-tools/snapshot/wireguard-tools-1.0.20200827.zip'
 URL_DROPBEAR='https://github.com/mkj/dropbear/archive/DROPBEAR_2020.81.tar.gz'
 URL_SLIRP='https://github.com/bittorf/slirp-uml-and-compiler-friendly.git'
 URL_IODINE='https://github.com/frekky/iodine/archive/master.zip'	# fork has 'configure' + crosscompile support
 URL_ZLIB='https://github.com/madler/zlib/archive/v1.2.11.tar.gz'
 URL_ICMPTUNNEL='https://github.com/DhavalKapil/icmptunnel/archive/master.zip'
+
 URL_TAILSCALE='https://pkgs.tailscale.com/stable/tailscale_1.16.2_386.tgz'
 URL_TAILSCALE='https://pkgs.tailscale.com/stable/tailscale_1.18.0_386.tgz'
 URL_TAILSCALE='https://pkgs.tailscale.com/unstable/tailscale_1.19.132_386.tgz'
@@ -383,7 +386,7 @@ kernels()
 		22) echo 'https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.4.89.tar.xz' ;;
 		23) echo 'https://mirrors.edge.kernel.org/pub/linux/kernel/v2.4/linux-2.4.26.tar.xz' ;;
 		latest|stable) wget $WGETOPTS -qO - https://www.kernel.org | grep -A1 "latest_link" | tail -n1 | cut -d'"' -f2 ;;
-		 *) false ;;
+		 *) log "[ERROR] kernels() bad input '$1'"; false ;;
 	esac
 }
 
@@ -397,6 +400,8 @@ download()
 	local url="$1"
 	local dest="${2:-.}"
 	local cache
+
+	[ -z "$url" ] && log "[ERROR] download() empty url" && exit 1
 
 	cache="$STORAGE/$( string_hash "$url" )-$( basename "$url" )"
 
@@ -1694,7 +1699,10 @@ compile()
 
 	makedir_gointo_and_cleanup "$result"
 	makedir_gointo_and_cleanup "$build"
+
+	[ -z "$url" ] && log "[ERROR] compile() empty url" && exit 1
 	download "$url"
+
 	for file in ./*; do break; done
 	untar "$file"
 	cd ./* || exit
