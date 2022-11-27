@@ -1067,6 +1067,11 @@ file_iscompressed()
 	local line word parse=
 	local threshold=9
 
+	command -v 'ent' >/dev/null || {
+		echo "file_iscompressed() tool 'ent' not found, will always say 'NO' compressed - see: https://manpages.ubuntu.com/manpages/bionic/man1/ent.1.html"
+		return 2
+	}
+
 	# used compression via:
 	# grep -i CONFIG_HAVE_KERNEL_ + CONFIG_KERNEL_ .config
 
