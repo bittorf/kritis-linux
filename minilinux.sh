@@ -17,9 +17,7 @@ WGETOPTS='--no-check-certificate'			# TODO: use hashes instead?
 UNIX0="$( date +%s )"
 
 URL_TOYBOX='https://landley.net/toybox/downloads/toybox-0.8.8.tar.gz'
-URL_BUSYBOX='https://busybox.net/downloads/busybox-1.32.0.tar.bz2'
-URL_BUSYBOX='https://busybox.net/downloads/busybox-snapshot.tar.bz2'
-URL_BUSYBOX='https://busybox.net/downloads/busybox-1.35.0.tar.bz2'
+URL_BUSYBOX='https://busybox.net/downloads/busybox-1.36.0.tar.bz2'
 
 URL_DASH='https://git.kernel.org/pub/scm/utils/dash/dash.git/snapshot/dash-0.5.11.3.tar.gz'
 URL_BASH='http://git.savannah.gnu.org/cgit/bash.git/snapshot/bash-5.1.tar.gz'
@@ -31,9 +29,9 @@ URL_IODINE='https://github.com/frekky/iodine/archive/master.zip'	# fork has 'con
 URL_ZLIB='https://github.com/madler/zlib/archive/v1.2.11.tar.gz'
 URL_ICMPTUNNEL='https://github.com/DhavalKapil/icmptunnel/archive/master.zip'
 
-URL_TAILSCALE='https://pkgs.tailscale.com/stable/tailscale_1.16.2_386.tgz'
-URL_TAILSCALE='https://pkgs.tailscale.com/stable/tailscale_1.18.0_386.tgz'
-URL_TAILSCALE='https://pkgs.tailscale.com/unstable/tailscale_1.19.132_386.tgz'
+#URL_TAILSCALE='https://pkgs.tailscale.com/stable/tailscale_1.16.2_386.tgz'
+#URL_TAILSCALE='https://pkgs.tailscale.com/stable/tailscale_1.18.0_386.tgz'
+#URL_TAILSCALE='https://pkgs.tailscale.com/unstable/tailscale_1.19.132_386.tgz'
 
 URL_LIBMNL='https://www.netfilter.org/projects/libmnl/files/libmnl-1.0.4.tar.bz2'
 URL_LIBNFTNL='https://www.netfilter.org/projects/libnftnl/files/libnftnl-1.1.9.tar.bz2'
@@ -524,7 +522,7 @@ plot_progress()
 	local x="${2:-5000}"
 	local y="${3:-880}"
 	local mem1 mem2 ramsize sec line line2 name max=0
-	local temp1 temp2 temp3 temp4 temp5 val1 val2 val3 taskname id sec_start min=9999
+	local temp1 temp2 temp3 temp4 val1 val2 val3 taskname id sec_start min=9999
 	local heading1='bootstraping a full system'
 	local heading2='https://github.com/fosslinux/live-bootstrap @ 8504c35'
 
@@ -576,7 +574,7 @@ plot_progress()
 	{
 		echo '#!/usr/bin/env gnuplot'
 		echo
-		echo '$MEM << EOD'
+		echo "\$MEM <<EOD"
 
 		while read -r line; do {
 			case "$line" in *'DEBUG_Mem'*) ;; *) continue ;; esac
@@ -634,7 +632,7 @@ plot_progress()
 	# 00 36 49 DEBUGps: after_build: perl-5.000 | buildid 20 | READY: 3284   <--- 2nd
 	{
 	echo
-	echo '$STEPS << EOD'
+	echo "\$STEPS << EOD"
 	# https://github.com/fosslinux/live-bootstrap/blob/master/parts.rst
 	# +> ../bin/kaem --verbose --strict -f mescc-tools-full-kaem.kaem
 	insert_from_to_as '+> ./hex0 kaem-minimal.hex0 kaem-0' 'Hello,M2-mes!'		'stage0'
@@ -657,6 +655,7 @@ plot_progress()
 	insert_from_to_as '+> pkg=heirloom-devtools-070527' '/after/bin/yacc: OK'	'heirloom-yacc'
 	insert_from_to_as '+> pkg=bash-2.05b' '/after/bin/bash: OK'			'bash-2.05b'
 
+	# shellcheck disable=SC2094
 	while read -r line; do {
 		case "$line" in *'ps: before_build: '*' | READY: '*) ;; *) continue ;; esac
 
@@ -667,6 +666,7 @@ plot_progress()
 		taskname=$6
 		id=$9
 
+		# shellcheck disable=SC2094
 		if line2="$( grep "after_build: $taskname | buildid $id | " "$temp1" )"; then
 			set -- $line2
 			timestamps_to_seconds "$1" "$2" "$3"	# sets var $sec
@@ -1582,9 +1582,9 @@ elfcrunch_file()
 	size2="$( wc -c <"$file" )"
 
 	if   [ "$size1" != "$size2" ]; then
-		msg_and_die "$?" "obfuscation failed, filesize changed '$file' before/after: $size1/$size2"
+		msg_and_die '0' "obfuscation failed, filesize changed '$file' before/after: $size1/$size2"
 	elif grep --text 'UPX!' "$file"; then
-		msg_and_die "$?" "obfuscation failed, found string 'UPX!' in '$file'"
+		msg_and_die '0' "obfuscation failed, found string 'UPX!' in '$file'"
 	else
 		humanreadable_lines "$file"
 		true
@@ -1874,8 +1874,8 @@ has_arg 'iptables' && {
 # -static x2
 	make $SILENT_MAKE $ARCH $CROSSCOMPILE "-j$CPU" install || {
 #	make "CC=$CC" "CPP=$CXX -E" $SILENT_MAKE $ARCH $CROSSCOMPILE "-j$CPU" install || {
-		echo "LIBMNL_BUILD: $LIBMNL_BUILD"
 		echo "FOORC: $?"
+		echo "LIBMNL_BUILD: $LIBMNL_BUILD"
 		pwd
 		ls -l
 		exit
