@@ -182,9 +182,19 @@ is_uml() { false; }
 DSTARCH_CMDLINE="$DSTARCH"
 
 # autotranslate for most DSTARCH via feature commandline:
-for MARCH in riscv armel armhf arm64 or1k m68k uml uml32 i386 x86 x86_64 amd64; do has_arg "$MARCH" && DSTARCH="$MARCH"; done
+for MARCH in riscv armel armhf arm64 or1k m68k uml uml32 powerpc i386 x86 x86_64 amd64; do has_arg "$MARCH" && DSTARCH="$MARCH"; done
 
 case "$DSTARCH" in
+	powerpc)
+		# https://stackoverflow.com/questions/26450980/qemu-system-ppc-does-not-seem-to-boot
+		# https://stackoverflow.com/questions/22004616/how-to-debug-the-linux-kernel-with-qemu-and-kgdb
+		# https://github.com/66RING/Notes/blob/master/universe/qemu/powerpc_sim.md
+		# https://lists.gnu.org/archive/html/qemu-devel/2011-08/msg02728.html
+		# https://github.com/torvalds/linux/blob/master/arch/powerpc/platforms/Kconfig.cputype
+		export ARCH='ARCH=PPC_85xx' QEMU='qemu-system-ppc'
+		export BOARD='mpc8544ds' DEFCONFIG=
+		CROSS_DL='http://musl.cc/riscv64-linux-musl-cross.tgz'
+	;;
 	riscv)
 		export ARCH='ARCH=riscv' QEMU='qemu-system-riscv64'
 		export BOARD='virt' DEFCONFIG='rv32_defconfig LOADADDR=0x80008000'
