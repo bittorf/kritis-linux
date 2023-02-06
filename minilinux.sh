@@ -166,6 +166,7 @@ install_dep()
 
 		sudo apt-get install --force-yes -y "$package" || {
 			rc=$?
+			has_arg 'weak' && return 0
 
 			if [ "$option" = 'weak' ]; then
 				log "rc:$rc sudo apt-get install --force-yes -y $package"
@@ -181,9 +182,14 @@ is_uml() { false; }
 DSTARCH_CMDLINE="$DSTARCH"
 
 # autotranslate for most DSTARCH via feature commandline:
-for MARCH in armel armhf arm64 or1k m68k uml uml32 i386 x86 x86_64 amd64; do has_arg "$MARCH" && DSTARCH="$MARCH"; done
+for MARCH in riscv armel armhf arm64 or1k m68k uml uml32 i386 x86 x86_64 amd64; do has_arg "$MARCH" && DSTARCH="$MARCH"; done
 
 case "$DSTARCH" in
+	riscv)
+		export ARCH='ARCH=riscv' QEMU='qemu-system-riscv64'
+		export BOARD='virt' DEFCONFIG='rv32_defconfig LOADADDR=0x80008000'
+		CROSS_DL='http://musl.cc/riscv64-linux-musl-cross.tgz'
+	;;
 	armel)	# FIXME! on arm / qemu-system-arm / we should switch to qemu -M virt without DTB and smaller config
 		# see: https://github.com/landley/aboriginal/blob/master/sources/targets/armv5l
 		# old ARM, 32bit - from aboriginal linux target armv5l:
@@ -303,7 +309,7 @@ has_arg '*defconfig'	&& OPTIONS="$OPTIONS procfs sysfs"	# a hack for generating 
 case "$DSTARCH" in
 	uml*)
 	;;
-	or1k|m68k)
+	or1k|m68k|riscv)
 		install_dep 'qemu-system'
 		install_dep 'qemu-system-misc'
 	;;
@@ -632,7 +638,7 @@ plot_progress()
 	# 00 36 49 DEBUGps: after_build: perl-5.000 | buildid 20 | READY: 3284   <--- 2nd
 	{
 	echo
-	echo "\$STEPS << EOD"
+	echo "\$STEPS <<EOD"
 	# https://github.com/fosslinux/live-bootstrap/blob/master/parts.rst
 	# +> ../bin/kaem --verbose --strict -f mescc-tools-full-kaem.kaem
 	insert_from_to_as '+> ./hex0 kaem-minimal.hex0 kaem-0' 'Hello,M2-mes!'		'stage0'
@@ -2992,6 +2998,11 @@ $( has_arg 'net' && echo "QEMU_OPTIONS='-net nic,model=rtl8139 -net user'" )
 $( has_arg 'net' && test "$QEMUCPU" = 486 && echo "QEMU_OPTIONS='-net nic,model=ne2000 -net user'" )
 
 case "$DSTARCH" in
+	riscv)
+		QEMU_OPTIONS=
+		KVM_SUPPORT="-M virt -cpu rv64"
+		KVM_PRE=
+	;;
 	armel|armhf|arm|arm64)
 		QEMU_OPTIONS=	# FIXME! add proper: -net nic,model=XXX -net user
 		DTB='$DTB'
