@@ -39,7 +39,10 @@ URL_IPTABLES='https://www.netfilter.org/projects/iptables/files/iptables-1.8.7.t
 
 log() { >&2 printf '%s\n' "$1"; }
 
-export LC_ALL=C
+>/tmp/mydoc.txt
+document() { local arg; for arg in "$@"; do printf '%s\n' "$arg"; done >>/tmp/mydoc.txt; }
+
+export LC_ALL=C && document "export LC_ALL=C"
 export STORAGE="/tmp/storage"
 mkdir -p "$STORAGE" && log "[OK] cache/storage is here: '$STORAGE'"
 
@@ -1033,10 +1036,10 @@ makedir_gointo_and_cleanup "$OPT"
 makedir_gointo_and_cleanup "$BUILDS"
 
 export LINUX="$OPT/linux"
-mkdir -p "$LINUX"
+mkdir -p "$LINUX" && document "mkdir $LINUX"
 
 export LINUX_BUILD="$BUILDS/linux"
-mkdir -p "$LINUX_BUILD"
+mkdir -p "$LINUX_BUILD" && document "mkdir $LINUX_BUILD"
 
 # FAKEID: e.g. user@host.domain
 mkdir -p "$OPT/fakeid"
@@ -1652,7 +1655,7 @@ is_uml && has_arg 'net' && {
 
 [ -n "$CROSS_DL" ] && {
 	CROSSC="$OPT/cross-${DSTARCH:-native}-$( string_hash "$CROSS_DL" )"
-	makedir_gointo_and_cleanup "$CROSSC"
+	makedir_gointo_and_cleanup "$CROSSC" && document "mkdir $CROSSC && cd $CROSSC" "wget $CROSS_DL && tar ./* && cd ./*"
 	download "$CROSS_DL" || exit
 	untar ./* || exit
 	cd ./* || exit
@@ -1673,8 +1676,8 @@ is_uml && has_arg 'net' && {
 		# we need later: CROSS_COMPILE=or1k-linux-musl-'
 		#                              ^^^^^^^^^^^^^^^^
 		PRE="$( basename "${CC%-*}" )"		# remove trailing 'gcc'
-		export CROSSCOMPILE="CROSS_COMPILE=$PRE-"
-		export CC CXX PATH="$PWD/bin:$PATH"
+		export CROSSCOMPILE="CROSS_COMPILE=$PRE-"	&& document "export CROSSCOMPILE=$CROSSCOMPILE"
+		export CC CXX PATH="$PWD/bin:$PATH"		&& document "export CC=$CC" "export CXX=$CXX" "PATH=\$PWD/bin:\$PATH"
 	fi
 }
 
@@ -1687,7 +1690,7 @@ if [ -n "$CROSSCOMPILE" ]; then
 						#       If a cross compiler is detected then cross compile mode will be used
 
 	CC_VERSION="$( "$CHOST-gcc" --version | head -n1 )"
-	export STRIP CONF_HOST CHOST
+	export STRIP CONF_HOST CHOST && document "export STRIP=$STRIP" "export CONF_HOST=$CONF_HOST" "export CHOST=$CHOST"
 else
 	export STRIP='strip'
 	CC_VERSION="$( ${CC:-cc} --version | head -n1 )"
@@ -1695,10 +1698,10 @@ fi
 
 log "CROSSCOMPILE: $CROSSCOMPILE | vCC: $CC_VERSION | CC: $CC | CXX: $CXX"
 
-export MUSL="$OPT/musl"
+export MUSL="$OPT/musl" && document "export MUSL=$MUSL && cd \$MUSL"
 mkdir -p "$MUSL"
 
-export MUSL_BUILD="$BUILDS/musl"
+export MUSL_BUILD="$BUILDS/musl" && document "export MUSL_BUILD=\$MUSL_BUILD && cd \$MUSL_BUILD"
 mkdir -p "$MUSL_BUILD"
 
 export CRONTAB="$OPT/crontab.txt"
@@ -2152,13 +2155,14 @@ EOF
 	compile 'iodine' "$URL_IODINE"
 }
 
-export BUSYBOX="$OPT/busybox"
+export BUSYBOX="$OPT/busybox"		&& document "export BUSYBOX=$BUSYBOX && mkdir \$BUSYBOX"
 mkdir -p "$BUSYBOX"
 
-export BUSYBOX_BUILD="$BUILDS/busybox"
+export BUSYBOX_BUILD="$BUILDS/busybox"	&& document "export BUSYBOX_BUILD=$BUSYBOX_BUILD && mkdir \$BUSYBOX_BUILD"
 mkdir -p "$BUSYBOX_BUILD"
 
 cd "$BUSYBOX" || msg_and_die "$?" "cd $BUSYBOX"
+document "cd $BUSYBOX"
 
 if [ -f "$OWN_INITRD" ]; then
 	:
@@ -2167,6 +2171,7 @@ elif has_arg 'toybox'; then
 	mv ./*toybox* "$BUSYBOX_BUILD/"
 else
 	download "$URL_BUSYBOX" || exit	
+	document "curl $URL_BUSYBOX"
 fi
 
 [ -f "$OWN_INITRD" ] || {
@@ -2186,9 +2191,11 @@ elif has_arg 'toybox'; then
 else
 	# busybox
 	make $SILENT_MAKE O="$BUSYBOX_BUILD" $ARCH $CROSSCOMPILE defconfig || msg_and_die "$?" "make O=$BUSYBOX_BUILD $ARCH $CROSSCOMPILE defconfig"
+	document "make $SILENT_MAKE O=$BUSYBOX_BUILD $ARCH $CROSSCOMPILE defconfig"
 fi
 
 cd "$BUSYBOX_BUILD" || msg_and_die "$?" "$_"
+document "cd $BUSYBOX_BUILD"
 
 if [ -f "$OWN_INITRD" ]; then
 	:
@@ -2227,8 +2234,10 @@ elif has_arg 'toybox'; then
 else
 	# busybox:
 	make $SILENT_MAKE $ARCH $CROSSCOMPILE "-j$CPU" || msg_and_die "$?" "make $ARCH $CROSSCOMPILE"
+	document "make $SILENT_MAKE $ARCH $CROSSCOMPILE"
 #	make $SILENT_MAKE $ARCH $CROSSCOMPILE "-j1"    || msg_and_die "$?" "make $ARCH $CROSSCOMPILE"
 	make $SILENT_MAKE $ARCH $CROSSCOMPILE install  || msg_and_die "$?" "make $ARCH $CROSSCOMPILE install"
+	document "make $SILENT_MAKE $ARCH $CROSSCOMPILE install"
 fi
 
 cd ..
@@ -2238,8 +2247,10 @@ if [ -f "$OWN_INITRD" ]; then
 else
 	export INITRAMFS_BUILD="$BUILDS/initramfs"
 	makedir_gointo_and_cleanup "$INITRAMFS_BUILD"
+	document "export INITRAMFS_BUILD=$INITRAMFS_BUILD"
 
 	mkdir -p bin sbin etc proc sys usr/bin usr/sbin usr/bin dev tmp root
+	document "mkdir -p bin sbin etc proc sys usr/bin usr/sbin usr/bin dev tmp root"
 	has_arg 'hostfs' && mkdir -p mnt mnt/host
 
 	ROOT_PASS="$( test -n "$SSHPASS" && echo "$SSHPASS" | mkpasswd -m SHA-256 -s || echo 'x' )"
@@ -2249,7 +2260,13 @@ else
 	echo "root:$ROOT_PASS:0:0:root:$ROOT_HOME:$ROOT_SHELL" >'etc/passwd'
 	echo "root:x:0:" >'etc/group'
 
+	read -r LINE <etc/passwd
+	document "echo '$LINE' >etc/passwd"
+	read -r LINE <etc/group
+	document "echo '$LINE' >etc/group"
+
 	cp -a "$BUSYBOX_BUILD/_install/"* .
+	document "cp -a $BUSYBOX_BUILD/_install/* ."
 fi
 
 [ -n "$KEEP_LIST" ] && {
