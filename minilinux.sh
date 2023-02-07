@@ -182,19 +182,9 @@ is_uml() { false; }
 DSTARCH_CMDLINE="$DSTARCH"
 
 # autotranslate for most DSTARCH via feature commandline:
-for MARCH in riscv armel armhf arm64 or1k m68k uml uml32 powerpc i386 x86 x86_64 amd64; do has_arg "$MARCH" && DSTARCH="$MARCH"; done
+for MARCH in riscv armel armhf arm64 or1k m68k uml uml32 ppc i386 x86 x86_64 amd64; do has_arg "$MARCH" && DSTARCH="$MARCH"; done
 
 case "$DSTARCH" in
-	powerpc)
-		# https://stackoverflow.com/questions/26450980/qemu-system-ppc-does-not-seem-to-boot
-		# https://stackoverflow.com/questions/22004616/how-to-debug-the-linux-kernel-with-qemu-and-kgdb
-		# https://github.com/66RING/Notes/blob/master/universe/qemu/powerpc_sim.md
-		# https://lists.gnu.org/archive/html/qemu-devel/2011-08/msg02728.html
-		# https://github.com/torvalds/linux/blob/master/arch/powerpc/platforms/Kconfig.cputype
-		export ARCH='ARCH=PPC_85xx' QEMU='qemu-system-ppc'
-		export BOARD='mpc8544ds' DEFCONFIG=
-		CROSS_DL='http://musl.cc/riscv64-linux-musl-cross.tgz'
-	;;
 	riscv)
 		export ARCH='ARCH=riscv' QEMU='qemu-system-riscv64'
 		export BOARD='virt' DEFCONFIG='rv32_defconfig LOADADDR=0x80008000'
@@ -256,6 +246,15 @@ case "$DSTARCH" in
 		CROSS_DL='https://musl.cc/m68k-linux-musl-cross.tgz'
 	;;
 	ppc)	# 32bit
+		# https://stackoverflow.com/questions/26450980/qemu-system-ppc-does-not-seem-to-boot
+		# https://stackoverflow.com/questions/22004616/how-to-debug-the-linux-kernel-with-qemu-and-kgdb
+		# https://github.com/66RING/Notes/blob/master/universe/qemu/powerpc_sim.md
+		# https://lists.gnu.org/archive/html/qemu-devel/2011-08/msg02728.html
+		# https://github.com/torvalds/linux/blob/master/arch/powerpc/platforms/Kconfig.cputype
+		export ARCH='ARCH=powerpc' QEMU='qemu-system-ppc'
+		export BOARD='mpc8544ds' DEFCONFIG=mpc85xx_defconfig
+		CROSS_DL='http://musl.cc/powerpc-linux-muslsf-cross.tgz'
+		# TODO: u-boot-tools
 	;;
 	ppc64)	# big endian
 		# https://issues.guix.gnu.org/41669
@@ -318,6 +317,11 @@ has_arg '*defconfig'	&& OPTIONS="$OPTIONS procfs sysfs"	# a hack for generating 
 
 case "$DSTARCH" in
 	uml*)
+	;;
+	ppc)
+		install_dep 'qemu-system'
+		install_dep 'qemu-system-misc'
+		install_dep 'u-boot-tools'
 	;;
 	or1k|m68k|riscv)
 		install_dep 'qemu-system'
@@ -3018,6 +3022,10 @@ case "$DSTARCH" in
 		DTB='$DTB'
 		KVM_SUPPORT="-M $BOARD \${DTB:+-dtb }\$DTB" ; KVM_PRE=; KERNEL_ARGS='console=ttyAMA0'
 		[ "$DSTARCH" = arm64 ] && KVM_SUPPORT="\$KVM_SUPPORT -cpu max"
+	;;
+	ppc)
+		KVM_SUPPORT="-M $BOARD"
+		KVM_PRE=
 	;;
 	m68k)
 		KVM_SUPPORT="-M $BOARD"
