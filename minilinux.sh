@@ -257,6 +257,7 @@ case "$DSTARCH" in
 		export ARCH='ARCH=powerpc' QEMU='qemu-system-ppc'
 		export BOARD='mpc8544ds' DEFCONFIG=mpc85xx_defconfig
 		CROSS_DL='http://musl.cc/powerpc-linux-muslsf-cross.tgz'
+		OPTIONS="$OPTIONS 32bit"
 		# TODO: u-boot-tools
 	;;
 	ppc64)	# big endian
@@ -1652,8 +1653,26 @@ is_uml && has_arg 'net' && {
 
 	DNS='10.0.2.3'
 }
+if has_arg 'glibc' && [ "$DSTARCH" = ppc ]; then
+	#/usr/bin/powerpc-linux-gnu-gcc
+	#/usr/bin/powerpc-linux-gnu-gcc-ar
+	#/usr/bin/powerpc-linux-gnu-gcc-nm
+	#/usr/bin/powerpc-linux-gnu-gcc-ranlib
+	#/usr/bin/powerpc-linux-gnu-gcov
+	#/usr/bin/powerpc-linux-gnu-gcov-dump
+	#/usr/bin/powerpc-linux-gnu-gcov-tool
+	#/usr/bin/powerpc-linux-gnu-lto-dump
 
-[ -n "$CROSS_DL" ] && {
+	install_dep "gcc-${DSTARCH:-native}-linux-gnu"
+
+	 CC="/usr/bin/${DSTARCH:-native}-linux-gnu-gcc"
+	CXX=
+
+	PRE="${DSTARCH:-native}-linux-gnu"		# without trailing 'gcc'
+	export CROSSCOMPILE="CROSS_COMPILE=$PRE-"
+	export CC CXX PATH="/usr/bin:$PATH"
+
+elif [ -n "$CROSS_DL" ]; then
 	CROSSC="$OPT/cross-${DSTARCH:-native}-$( string_hash "$CROSS_DL" )"
 	makedir_gointo_and_cleanup "$CROSSC" && document "mkdir $CROSSC && cd $CROSSC" "wget $CROSS_DL && tar ./* && cd ./*"
 	download "$CROSS_DL" || exit
@@ -1679,7 +1698,7 @@ is_uml && has_arg 'net' && {
 		export CROSSCOMPILE="CROSS_COMPILE=$PRE-"	&& document "export CROSSCOMPILE=$CROSSCOMPILE"
 		export CC CXX PATH="$PWD/bin:$PATH"		&& document "export CC=$CC" "export CXX=$CXX" "PATH=\$PWD/bin:\$PATH"
 	fi
-}
+fi
 
 if [ -n "$CROSSCOMPILE" ]; then
 	# https://www.gnu.org/software/autoconf/manual/autoconf-2.65/html_node/Specifying-Target-Triplets.html
