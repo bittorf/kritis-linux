@@ -1653,6 +1653,9 @@ is_uml && has_arg 'net' && {
 
 	DNS='10.0.2.3'
 }
+
+# EXTERNAL_TOOLCHAIN=/home/bastian/software/musl-cross-make/output	# => there must be a 'bin' dir
+
 if has_arg 'glibc' && [ "$DSTARCH" = ppc ]; then
 	#/usr/bin/powerpc-linux-gnu-gcc
 	#/usr/bin/powerpc-linux-gnu-gcc-ar
@@ -1671,6 +1674,23 @@ if has_arg 'glibc' && [ "$DSTARCH" = ppc ]; then
 	PRE="${DSTARCH:-native}-linux-gnu"		# without trailing 'gcc'
 	export CROSSCOMPILE="CROSS_COMPILE=$PRE-"
 	export CC CXX PATH="/usr/bin:$PATH"
+elif [ -d "$EXTERNAL_TOOLCHAIN" ]; then
+	# e.g. /home/bastian/software/musl-cross-make/output
+	cd "$EXTERNAL_TOOLCHAIN"
+
+# TODO: fix name for all arches
+		 CC="$PWD/$( find bin/ -type f -name 'powerpc*-linux-musl*-gcc'   )"
+		CXX="$PWD/$( find bin/ -type f -name 'powerpc*-linux-musl*-g++'   )"
+
+		test -f  "$CC" || msg_and_die "$?" "CC  not a file: '$CC'  dir: '$PWD/bin'"
+		test -f "$CXX" || msg_and_die "$?" "CXX not a file: '$CXX' dir: '$PWD/bin'"
+
+		# e.g.                      CC=or1k-linux-musl-gcc
+		# we need later: CROSS_COMPILE=or1k-linux-musl-'
+		#                              ^^^^^^^^^^^^^^^^
+		PRE="$( basename "${CC%-*}" )"		# remove trailing 'gcc'
+		export CROSSCOMPILE="CROSS_COMPILE=$PRE-"	&& document "export CROSSCOMPILE=$CROSSCOMPILE"
+		export CC CXX PATH="$PWD/bin:$PATH"		&& document "export CC=$CC" "export CXX=$CXX" "PATH=$PWD/bin:\$PATH"
 
 elif [ -n "$CROSS_DL" ]; then
 	CROSSC="$OPT/cross-${DSTARCH:-native}-$( string_hash "$CROSS_DL" )"
@@ -1717,10 +1737,10 @@ fi
 
 log "CROSSCOMPILE: $CROSSCOMPILE | vCC: $CC_VERSION | CC: $CC | CXX: $CXX"
 
-export MUSL="$OPT/musl" && document "export MUSL=$MUSL && cd \$MUSL"
+export MUSL="$OPT/musl" && document "export MUSL=$MUSL && mkdir -p \$MUSL"
 mkdir -p "$MUSL"
 
-export MUSL_BUILD="$BUILDS/musl" && document "export MUSL_BUILD=\$MUSL_BUILD && cd \$MUSL_BUILD"
+export MUSL_BUILD="$BUILDS/musl" && document "export MUSL_BUILD=\$MUSL_BUILD && mkdir -p \$MUSL_BUILD"
 mkdir -p "$MUSL_BUILD"
 
 export CRONTAB="$OPT/crontab.txt"
@@ -2417,7 +2437,7 @@ if command -v ./kaem.run; then
 
 	exec setsid cttyhack ./init.user
 elif command -v step00/stage0_monitor.hex0; then
-	/bin/busybox sleep 2 && AUTO=true ./init.user	# wait for dmesg-trash
+	/bin/busybox sleep 2 && AUTO=true ./init.user	# wait for dmesg-trash from CONFIG_PRINTK
 fi
 EOF
 	else
