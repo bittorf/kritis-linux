@@ -39,7 +39,7 @@ while [ -n "$1" ]; do {
 [ -f "$PWD/$MYINIT" ] && MYINIT="$PWD/$MYINIT"
 
 [ -d "${GITDIR:=.git}" ] && {
-	[ "$GIT_REPONAME"  ] || GIT_REPONAME="$( basename "$( cd "$GITDIR" && git rev-parse --show-toplevel )" )"
+	[ "$GIT_REPONAME"  ] || GIT_REPONAME="$( basename "$( cd "$GITDIR/".. && git rev-parse --show-toplevel )" )"
 	[ "$GIT_USERNAME"  ] || GIT_USERNAME="$( basename "$( cd "$GITDIR" && dirname "$( git config --get remote.origin.url )" )" )"
 	[ "$GIT_SHORTHASH" ] || GIT_SHORTHASH="$( cd "$GITDIR" && git rev-parse --short HEAD )"
 	[ "$GIT_BRANCH"    ] || GIT_BRANCH="$( cd "$GITDIR" && git rev-parse --abbrev-ref HEAD )"
