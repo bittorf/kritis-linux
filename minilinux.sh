@@ -1,4 +1,5 @@
 #!/bin/sh
+# shellcheck shell=dash
 
 KERNEL="$1"		# e.g. 'latest' or 'stable' or '5.4.89' or '4.19.x' or URL-to-tarball
 ARG2="$2"		# only used...
@@ -16,17 +17,15 @@ BASEDIR="$PWD/minilinux${BUILID:+_}${BUILDID}"		# autoclean removes it later
 WGETOPTS='--no-check-certificate'			# TODO: use hashes instead?
 UNIX0="$( date +%s )"
 
-URL_TOYBOX='https://landley.net/toybox/downloads/toybox-0.8.8.tar.gz'
+URL_TOYBOX='https://landley.net/toybox/downloads/toybox-0.8.9.tar.gz'
 URL_BUSYBOX='https://busybox.net/downloads/busybox-1.36.0.tar.bz2'
-
-URL_DASH='https://git.kernel.org/pub/scm/utils/dash/dash.git/snapshot/dash-0.5.11.3.tar.gz'
-URL_BASH='http://git.savannah.gnu.org/cgit/bash.git/snapshot/bash-5.1.tar.gz'
-
-URL_WIREGUARD='https://git.zx2c4.com/wireguard-tools/snapshot/wireguard-tools-1.0.20200827.zip'
-URL_DROPBEAR='https://github.com/mkj/dropbear/archive/DROPBEAR_2020.81.tar.gz'
+URL_DASH='https://git.kernel.org/pub/scm/utils/dash/dash.git/snapshot/dash-0.5.12.tar.gz'
+URL_BASH='http://git.savannah.gnu.org/cgit/bash.git/snapshot/bash-5.2.tar.gz'
+URL_WIREGUARD='https://git.zx2c4.com/wireguard-tools/snapshot/wireguard-tools-1.0.20210914.zip'
+URL_DROPBEAR='https://matt.ucc.asn.au/dropbear/releases/dropbear-2022.83.tar.bz2'
 URL_SLIRP='https://github.com/bittorf/slirp-uml-and-compiler-friendly.git'
 URL_IODINE='https://github.com/frekky/iodine/archive/master.zip'	# fork has 'configure' + crosscompile support
-URL_ZLIB='https://github.com/madler/zlib/archive/v1.2.11.tar.gz'
+URL_ZLIB='https://github.com/madler/zlib/archive/v1.2.13.tar.gz'
 URL_ICMPTUNNEL='https://github.com/DhavalKapil/icmptunnel/archive/master.zip'
 
 #URL_TAILSCALE='https://pkgs.tailscale.com/stable/tailscale_1.16.2_386.tgz'
@@ -273,6 +272,7 @@ case "$DSTARCH" in
 
 		export ARCH='ARCH=um'
 		export DEFCONFIG='tinyconfig'
+		export UML_PATCHES_APPLY=		# FIXME! must be true for older kernels
 
 		if has_arg '32bit'; then
 			export DSTARCH='uml32'
@@ -2660,7 +2660,7 @@ F2='scripts/dtc/dtc-lexer.lex.c_shipped' && checksum "$F2" plain
 	checksum "$F1" after plain || emit_doc "applied: kernel-patch in '$PWD/$F1' | EMBED_CMDLINE: $EMBED_CMDLINE"
 }
 
-is_uml && {
+is_uml && [ -n "$UML_PATCHES_APPLY" ] && {
 	# http://lkml.iu.edu/hypermail/linux/kernel/1806.1/05149.html
 	F='arch/x86/um/shared/sysdep/ptrace_32.h'
 	checksum "$F" plain
@@ -2863,18 +2863,29 @@ has_arg 'kmenuconfig' && {
 
 CONFIG1="$PWD/.config"
 
-if has_arg 'no_pie'; then
-	T0="$( date +%s )"
-	echo "make        $ARCH $CROSSCOMPILE CFLAGS=-fno-pie LDFLAGS=-no-pie -j$CPU"
-	yes "" | make $SILENT_MAKE $ARCH $CROSSCOMPILE CFLAGS=-fno-pie LDFLAGS=-no-pie -j"$CPU" || \
+T0="$( date +%s )"
+if has_arg 'no_pie' && ! is_uml; then
+	echo    "make $SILENT_MAKE $ARCH $CROSSCOMPILE CFLAGS=-fno-pie LDFLAGS=-no-pie  -j$CPU"
+	yes "" | make $SILENT_MAKE $ARCH $CROSSCOMPILE CFLAGS=-fno-pie LDFLAGS=-no-pie "-j$CPU" || \
 		msg_and_die "$?" "make $ARCH $CROSSCOMPILE CFLAGS=-fno-pie LDFLAGS=-no-pie"
-	T1="$( date +%s )"
+elif is_uml; then
+	if [ -n "$CF_ADD" ]; then
+		# we should make sure, that gcc-toolchain is used, musl seems problematic 2023-03-12
+		echo    "make $SILENT_MAKE $ARCH                -j$CPU  'CFLAGS_KERNEL=$CF_ADD'"
+		yes "" | make $SILENT_MAKE $ARCH               "-j$CPU" "CFLAGS_KERNEL=$CF_ADD" || \
+			msg_and_die "$?" "make $ARCH 'CFLAGS_KERNEL=$CF_ADD'"
+	else
+		# we should make sure, that gcc-toolchain is used, musl seems problematic 2023-03-12
+		echo    "make $SILENT_MAKE $ARCH                -j$CPU"
+		yes "" | make $SILENT_MAKE $ARCH               "-j$CPU" || \
+			msg_and_die "$?" "make $ARCH"
+	fi
 else
-	T0="$( date +%s )"
-	echo "make        $ARCH $CROSSCOMPILE -j$CPU 'CFLAGS_KERNEL=$CF_ADD'"
-	yes "" | make $SILENT_MAKE $ARCH $CROSSCOMPILE -j"$CPU" "CFLAGS_KERNEL=$CF_ADD" || msg_and_die "$?" "make $ARCH $CROSSCOMPILE"
-	T1="$( date +%s )"
+	echo    "make $SILENT_MAKE $ARCH $CROSSCOMPILE  -j$CPU  'CFLAGS_KERNEL=$CF_ADD'"
+	yes "" | make $SILENT_MAKE $ARCH $CROSSCOMPILE "-j$CPU" "CFLAGS_KERNEL=$CF_ADD" || \
+		msg_and_die "$?" "make $ARCH $CROSSCOMPILE 'CFLAGS_KERNEL=$CF_ADD'"
 fi
+T1="$( date +%s )"
 KERNEL_TIME=$(( T1 - T0 ))
 
 # FIXME! define it initially for every arch

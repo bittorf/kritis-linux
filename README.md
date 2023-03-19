@@ -78,6 +78,7 @@ kritis-linux/ci_helper.sh \
 * `--onefile` for including `initrd` into kernel
 * `--cmdline` for enforcing arguments to an `uml` kernel
 * `--qemucpu 486` for choosing e.g. i486 in x86/32bit mode
+* `--parallel 1` for enforcing to use e.g. 1 cpu for compiling
 * `--debug true`
 
 ### kernel configuration and features

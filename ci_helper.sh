@@ -9,6 +9,7 @@ while [ -n "$1" ]; do {
 		--logtime) export LOGTIME="$2" ;;	# e.g. false (default is true)
 		--ramsize) export MEM="$2" ;;		# e.g. 512
 		--qemucpu) export QEMUCPU="$2" ;;	# e.g. 486 or host
+		--parallel) export CPU="$2" ;;		# e.g. 1
 		--diradd) export INITRD_DIR_ADD="$2" ;;	# e.g. '/path/to/my/files' or e.g. simply "$(pwd)"
 		--initrd) export OWN_INITRD="$2" ;;	# e.g. '/path/to/myinit.tgz'
 		--kernel) LINUX_VERSION="$2" ;;		# e.g. 'latest' (=default) or '5.4.89' or an URL to .tgz/.xz
