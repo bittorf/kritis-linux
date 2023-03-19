@@ -243,3 +243,10 @@ sed -n '/markerABC$/,/markerXYZ/p' | base64 -d >mybin
 
 # and check: grep 'sha256sum: WARNING:' $LOG
 ```
+
+### using ubuntu in docker
+
+sudo docker run -ti --security-opt seccomp=unconfined --rm amd64/ubuntu:18.04
+apt update && apt -y install git sudo file wget ent bc cpio
+git clone https://github.com/bittorf/kritis-linux.git
+
