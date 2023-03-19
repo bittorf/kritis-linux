@@ -250,4 +250,5 @@ sed -n '/markerABC$/,/markerXYZ/p' | base64 -d >mybin
 sudo docker run -ti --security-opt seccomp=unconfined --rm amd64/ubuntu:18.04
 apt update && apt -y install git sudo file wget ent bc cpio
 git clone https://github.com/bittorf/kritis-linux.git
+kritis-linux/ci_helper.sh --arch uml --kernel 5.10.175 --features printk,sysfs,procfs,speedup,busybox --parallel 1
 ```
