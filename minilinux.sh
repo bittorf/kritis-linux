@@ -3374,7 +3374,7 @@ echo "# in dir '\$PWD'"
 echo
 
 echo "will now stop '\$QEMU' with pid '\$PID'" && \$KVM_PRE echo
-while \$KVM_PRE kill -0 \$PID; do \$KVM_PRE kill \$PID; sleep 1; \$KVM_PRE kill -0 \$PID && \$KVM_PRE kill -s KILL \$PID; done
+while test -n "\$PID" && \$KVM_PRE kill -0 \$PID; do \$KVM_PRE kill \$PID; sleep 1; \$KVM_PRE kill -0 \$PID && \$KVM_PRE kill -s KILL \$PID; done
 rm -f "\$PIPE" "\$PIPE.in" "\$PIPE.out" "\$PIDFILE"
 
 test \$RC -eq 0
