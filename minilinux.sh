@@ -2561,10 +2561,10 @@ else
 	RAW="$BUILDS/initramfs.cpio"
 	find . -print0 | cpio $CPIOARGS >"$RAW" || exit 1
 
-	xz -9  --format=lzma    --keep "$RAW" >"$RAW.xz"
-	xz -9e --format=lzma    --keep "$RAW" >"$RAW.xz.xz"
-	zstd -v -T0 --ultra -22 --keep "$RAW" >"$RAW.zstd"
-	gzip -9                 --keep "$RAW" >"$RAW.gz" || exit 1
+	xz -9  --format=lzma    --force --keep "$RAW" >"$RAW.xz"
+	xz -9e --format=lzma    --force --keep "$RAW" >"$RAW.xz.xz"
+	zstd -v -T0 --ultra -22 --force --keep "$RAW" >"$RAW.zstd"
+	gzip -9                 --force --keep "$RAW" >"$RAW.gz" || exit 1
 
 	INITRD_FILE2="$( readlink -e "$RAW.xz"    )"
 	INITRD_FILE3="$( readlink -e "$RAW.xz.xz" )"
