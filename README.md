@@ -247,8 +247,14 @@ sed -n '/markerABC$/,/markerXYZ/p' | base64 -d >mybin
 ### using ubuntu in docker
 
 ```
-sudo docker run -ti --security-opt seccomp=unconfined --rm amd64/ubuntu:18.04
-apt update && apt -y install git sudo file wget ent bc cpio
+sudo docker run -ti --security-opt seccomp=unconfined --rm --tmpfs /tmp:exec amd64/ubuntu:18.04
+
+# LIST="coreutils build-essential flex bison automake whois arch base64 basename cat chmod cp file find grep gzip head make mkdir rm sed strip tar tee test touch tr wget mkpasswd"
+# for CMD in $L; do command -v $CMD || apt -y install $CMD; done
+# sudo file wget ent bc cpio
+
+apt update && apt -y install git
 git clone https://github.com/bittorf/kritis-linux.git
+kritis-linux/ci_helper.sh --checkdeps
 kritis-linux/ci_helper.sh --arch uml --kernel 5.10.175 --features printk,sysfs,procfs,speedup,busybox --parallel 1
 ```

@@ -2,6 +2,13 @@
 # shellcheck shell=dash
 # FIXME! http_get() => curl + wget + autodelete on errors
 # FIXME! document ttm.sh
+# FIXME! uml-linux arch=um - make sure that this is OK:
+#  Checking that ptrace can change system call numbers...OK
+#  Checking syscall emulation patch for ptrace...OK
+#  Checking advanced syscall emulation patch for ptrace...OK
+#  Checking environment variables for a tempdir.../tmp/tmp.o9KloEryk0
+#  Checking if /tmp/tmp.o9KloEryk0 is on tmpfs...OK
+#  Checking PROT_EXEC mmap in /tmp/tmp.o9KloEryk0...OK
 
 KERNEL="$1"		# e.g. 'latest' or 'stable' or '5.4.89' or '4.19.x' or URL-to-tarball
 ARG2="$2"		# only used...
