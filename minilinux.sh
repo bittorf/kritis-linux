@@ -1,5 +1,7 @@
 #!/bin/sh
 # shellcheck shell=dash
+# FIXME! http_get() => curl + wget + autodelete on errors
+# FIXME! document ttm.sh
 
 KERNEL="$1"		# e.g. 'latest' or 'stable' or '5.4.89' or '4.19.x' or URL-to-tarball
 ARG2="$2"		# only used...
@@ -2544,10 +2546,15 @@ else
 	# xz + zstd only for comparison, not productive
 	# cpio -o = --create -H = --format -> cpio -o -H newc
 	CPIOARGS="--create --null --format=newc --owner=+0:+0"
-	find . -print0 | cpio $CPIOARGS | xz -9  --format=lzma    >"$BUILDS/initramfs.cpio.xz"    || true
-	find . -print0 | cpio $CPIOARGS | xz -9e --format=lzma    >"$BUILDS/initramfs.cpio.xz.xz" || true
-	find . -print0 | cpio $CPIOARGS | zstd -v -T0 --ultra -22 >"$BUILDS/initramfs.cpio.zstd"  || true
+	log "RC=$? ; find $PWD -print0 | cpio $CPIOARGS | xz -9 ..."
+	find . -print0 | cpio $CPIOARGS | xz -9  --format=lzma    >"$BUILDS/initramfs.cpio.xz"
+	log "RC=$? ; find $PWD -print0 | cpio $CPIOARGS | xz -9e ..."
+	find . -print0 | cpio $CPIOARGS | xz -9e --format=lzma    >"$BUILDS/initramfs.cpio.xz.xz"
+	log "RC=$? ; find $PWD -print0 | cpio $CPIOARGS | zsdt ..."
+	find . -print0 | cpio $CPIOARGS | zstd -v -T0 --ultra -22 >"$BUILDS/initramfs.cpio.zstd"
+	log "RC=$? ; find $PWD -print0 | cpio $CPIOARGS | gzip -9 ..."
 	find . -print0 | cpio $CPIOARGS | gzip -9                 >"$BUILDS/initramfs.cpio.gz"
+	log "RC=$?"
 
 	INITRD_FILE="$(  readlink -e "$BUILDS/initramfs.cpio.gz" )"
 	INITRD_FILE2="$( readlink -e "$BUILDS/initramfs.cpio.xz"    || true )"
