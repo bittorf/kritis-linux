@@ -2552,21 +2552,26 @@ if [ -f "$OWN_INITRD" ]; then
 else
 	# xz + zstd only for comparison, not productive
 	# cpio -o = --create -H = --format -> cpio -o -H newc
-	CPIOARGS="--create --null --format=newc --owner=+0:+0"
-	log "RC=$? ; find $PWD -print0 | cpio $CPIOARGS | xz -9 ..."
-	find . -print0 | cpio $CPIOARGS | xz -9  --format=lzma    >"$BUILDS/initramfs.cpio.xz"
-	log "RC=$? ; find $PWD -print0 | cpio $CPIOARGS | xz -9e ..."
-	find . -print0 | cpio $CPIOARGS | xz -9e --format=lzma    >"$BUILDS/initramfs.cpio.xz.xz"
-	log "RC=$? ; find $PWD -print0 | cpio $CPIOARGS | zsdt ..."
-	find . -print0 | cpio $CPIOARGS | zstd -v -T0 --ultra -22 >"$BUILDS/initramfs.cpio.zstd"
-	log "RC=$? ; find $PWD -print0 | cpio $CPIOARGS | gzip -9 ..."
-	find . -print0 | cpio $CPIOARGS | gzip -9                 >"$BUILDS/initramfs.cpio.gz"
-	log "RC=$?"
+	if [ "$( id -u )" = 0 ]; then
+		CPIOARGS="--create --null --format=newc"
+	else
+		CPIOARGS="--create --null --format=newc --owner=+0:+0"
+	fi
 
-	INITRD_FILE="$(  readlink -e "$BUILDS/initramfs.cpio.gz" )"
-	INITRD_FILE2="$( readlink -e "$BUILDS/initramfs.cpio.xz"    || true )"
-	INITRD_FILE3="$( readlink -e "$BUILDS/initramfs.cpio.xz.xz" || true )"
-	INITRD_FILE4="$( readlink -e "$BUILDS/initramfs.cpio.zstd"  || true )"
+	RAW="$BUILDS/initramfs.cpio"
+	find . -print0 | cpio $CPIOARGS >"$RAW" || exit 1
+
+	xz -9  --format=lzma    --keep "$RAW" >"$RAW.xz"
+	xz -9e --format=lzma    --keep "$RAW" >"$RAW.xz.xz"
+	zstd -v -T0 --ultra -22 --keep "$RAW" >"$RAW.zstd"
+	gzip -9                 --keep "$RAW" >"$RAW.gz" || exit 1
+
+	INITRD_FILE2="$( readlink -e "$RAW.xz"    )"
+	INITRD_FILE3="$( readlink -e "$RAW.xz.xz" )"
+	INITRD_FILE4="$( readlink -e "$RAW.zstd"  )"
+	INITRD_FILE="$(  readlink -e "$RAW.gz"    )"
+
+	rm -f "$RAW"
 fi
 
 # TODO: uncompress OWN_INITRD?
