@@ -348,7 +348,7 @@ esac
 if has_arg 'debug'; then
 	SILENT_MAKE='V=s'
 else
-	SILENT_MAKE='-s'
+	SILENT_MAKE='--silent'
 	SILENT_CONF='--enable-silent-rules'
 fi
 
